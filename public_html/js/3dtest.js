@@ -59,15 +59,6 @@
     var objectCollection = [];
     
     var loader = new THREE.VRMLLoader();
-//    loader.addEventListener("load", function (e) {
-//        var content = e.content;
-//        var obj = content.children[1];
-//        obj.children.forEach(function(child) {
-//            saveColor(child);
-//        });
-//        objectCollection.push(obj);
-//        scene.add(obj);
-//    });
     
     function loadModel(object, toCenterOfMass){
         var obj = object.children[1];
@@ -102,8 +93,6 @@
     var raycaster = new THREE.Raycaster();
     var mousePos = new THREE.Vector2(-1,-1);
     
-//    var mouseDown = false;
-//    
     function onMouseMove(event) {
 	mousePos.x = ( event.clientX / window.innerWidth ) * 2 - 1
 	mousePos.y = - ( event.clientY / window.innerHeight ) * 2 + 1	
@@ -112,52 +101,41 @@
     window.addEventListener('mousemove', onMouseMove, false);
     window.addEventListener('click', intersectionTest, false);
     
-//    window.addEventListener('mousedown', function(){
-//        mouseDown = true;
-//    },false);
-//    
-//    window.addEventListener('mouseup', function(){
-//        mouseDown = false;
-//    }, false);
-    
-    
     var selectedObject = null;
     
     function intersectionTest(){
         raycaster.setFromCamera(mousePos, camera);
-        var intersects = raycaster.intersectObjects(objectCollection, true);
-        if(intersects.length > 0){
-            if(selectedObject !== null)
-                deselectObject();
-            selectObject(intersects[0].object.parent);
+        var intersectionFound = false;
+        for(var i = 0; i < objectCollection.length; ++i){
+            var intersect = raycaster.intersectObject(objectCollection[i],true);
+            if(intersect.length > 0){
+                if(selectedObject !== null)
+                    deselectObject();
+                selectObject(objectCollection[i]);
+                intersectionFound = true;
+                break;
+            }
         }
-        else
-            deselectObject();
+            if(!intersectionFound)
+                deselectObject();
     }
     
     function selectObject(object){
         selectedObject = object;
-        object.children.forEach(function(child){
-                child.material.color = new THREE.Color(0xB0E2FF);
-            });
+        selectedObject.traverse(function(child){
+            if(child instanceof THREE.Mesh)
+                 child.material.color = new THREE.Color(0xB0E2FF);
+        });
         generateArrows();
     }
     
     var axisAssistant;
     
     function generateArrows(){
-        
-        var toCenterOfMass = null;
-        
-        selectedObject.traverseAncestors(function(ancestor){
-           if(ancestor.hasOwnProperty('toCenterOfMass'))
-               toCenterOfMass = ancestor.toCenterOfMass;
-        });
-        
         var origin = new THREE.Vector3(
-                toCenterOfMass.x,
-                toCenterOfMass.y,
-                toCenterOfMass.z);
+                selectedObject.toCenterOfMass.x,
+                selectedObject.toCenterOfMass.y,
+                selectedObject.toCenterOfMass.z);
         var dirX = new THREE.Vector3(1,0,0);
         var dirY = new THREE.Vector3(0,1,0);
         var dirZ = new THREE.Vector3(0,0,1);
@@ -177,27 +155,15 @@
         arrowHelperZ.userData.axis = "Z";
         axisAssistant.add(arrowHelperZ);
         foregroundScene.add(axisAssistant);
-    //    var dir = new THREE.Vector3( 1, 0, 0 );
-    //    var origin = new THREE.Vector3( 0, 0, 0 );
-    //    var length = 0.07;
-    //    var hex = 0xffff00;
-    //
-    //    var arrowHelper = new THREE.ArrowHelper( dir, origin, length, hex );
-    //    objectCollection.push(arrowHelper.cone);
-    //    scene.add( arrowHelper );
     }
     
     function deselectObject(){
         if(selectedObject !== null)
         {
-            selectedObject.children.forEach(function(child){
-                if(child.hasOwnProperty('material'))
-                    child.material.color = child.initColor;
+            selectedObject.traverse(function(child){
+               if(child instanceof THREE.Mesh)
+                   child.material.color = child.initColor;
             });
-//            selectedObject.traverseAncestors(function(ancestor){
-//               if(ancestor.hasOwnProperty('toCenterOfMass'))
-//                   scene.remove(ancestor);  
-//            });
             selectedObject = null;
             foregroundScene.remove(axisAssistant);
             axisAssistant = null;
