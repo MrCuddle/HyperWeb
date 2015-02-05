@@ -11,6 +11,7 @@
     var renderer = new THREE.WebGLRenderer({antialias:true});
     renderer.setClearColor( 0xd3d3d3, 1 );
     renderer.setSize(width,height);
+    renderer.autoClear = false;
     container.appendChild(renderer.domElement);
     
     var camera = new THREE.PerspectiveCamera(45,width/height,0.1,1000);
@@ -36,6 +37,7 @@
     
     var scene = new THREE.Scene();
     scene.add(camera);
+    var foregroundScene = new THREE.Scene();
     
     var directionalLight = new THREE.DirectionalLight();
     directionalLight.position.z = 100;
@@ -57,15 +59,25 @@
     var objectCollection = [];
     
     var loader = new THREE.VRMLLoader();
-    loader.addEventListener("load", function (e) {
-        var content = e.content;
-        var obj = content.children[1];
+//    loader.addEventListener("load", function (e) {
+//        var content = e.content;
+//        var obj = content.children[1];
+//        obj.children.forEach(function(child) {
+//            saveColor(child);
+//        });
+//        objectCollection.push(obj);
+//        scene.add(obj);
+//    });
+    
+    function loadModel(object, toCenterOfMass){
+        var obj = object.children[1];
         obj.children.forEach(function(child) {
             saveColor(child);
         });
+        obj.toCenterOfMass = toCenterOfMass;
         objectCollection.push(obj);
-        scene.add(content);
-    });
+        scene.add(obj);
+    }
     
     function saveColor(object){
         if(object.hasOwnProperty('material'))
@@ -74,22 +86,18 @@
            saveColor(child);
        });
     }
-    loader.load("Piston_Study.wrl");
-    loader.load("Master_One_Cylinder.wrl");
-    loader.load("Rod_Study.wrl");
-    loader.load("Cranck_Study.wrl");
-    
-    function colorIn(children){
-        for(var i = 0; i < children.length; i++){
-            if(children[i].castShadow != null) 
-                children[i].castShadow = true;
-            children[i].receiveShadow = true;
-            children[i].material = new THREE.MeshPhongMaterial({color: 0xFF0000});
-            children[i].initColor = children[i].material.color;
-            if(children[i].children != null)
-                colorIn(children[i].children);
-        }
-    }
+    loader.load("Piston_Study.wrl", function(object){
+        loadModel(object, new THREE.Vector3(0.,-0.15149054405043,0.));
+    });
+    loader.load("Master_One_Cylinder.wrl", function(object){
+        loadModel(object, new THREE.Vector3(-4.5e-2,0.,0.));
+    });
+    loader.load("Rod_Study.wrl", function(object){
+        loadModel(object, new THREE.Vector3(0.,-8.9431700693962e-2,2.4489282256523e-2));
+    });
+    loader.load("Cranck_Study.wrl", function(object){
+        loadModel(object, new THREE.Vector3(-2.7054598934035e-2,-9.0702960410631e-3,1.2818607418443e-2));
+    });
         
     var raycaster = new THREE.Raycaster();
     var mousePos = new THREE.Vector2(-1,-1);
@@ -130,12 +138,45 @@
     function selectObject(object){
         selectedObject = object;
         object.children.forEach(function(child){
-                child.material.color = new THREE.Color(0x669933);
+                child.material.color = new THREE.Color(0xB0E2FF);
             });
+        generateArrows();
     }
     
+    var axisAssistant;
+    
     function generateArrows(){
-        var origin = new THREE.Vector3(selectedObject);
+        
+        var toCenterOfMass = null;
+        
+        selectedObject.traverseAncestors(function(ancestor){
+           if(ancestor.hasOwnProperty('toCenterOfMass'))
+               toCenterOfMass = ancestor.toCenterOfMass;
+        });
+        
+        var origin = new THREE.Vector3(
+                toCenterOfMass.x,
+                toCenterOfMass.y,
+                toCenterOfMass.z);
+        var dirX = new THREE.Vector3(1,0,0);
+        var dirY = new THREE.Vector3(0,1,0);
+        var dirZ = new THREE.Vector3(0,0,1);
+        var length = 0.07;
+        
+        axisAssistant = new THREE.Object3D;
+        
+        var arrowHelperX = new THREE.ArrowHelper(dirX, origin, length, 0xff0000);
+        arrowHelperX.userData.axis = "X";
+        axisAssistant.add(arrowHelperX);
+        
+        var arrowHelperY = new THREE.ArrowHelper(dirY, origin, length, 0x00ff00);
+        arrowHelperY.userData.axis = "Y";
+        axisAssistant.add(arrowHelperY);
+        
+        var arrowHelperZ = new THREE.ArrowHelper(dirZ, origin, length, 0x0000FF);
+        arrowHelperZ.userData.axis = "Z";
+        axisAssistant.add(arrowHelperZ);
+        foregroundScene.add(axisAssistant);
     //    var dir = new THREE.Vector3( 1, 0, 0 );
     //    var origin = new THREE.Vector3( 0, 0, 0 );
     //    var length = 0.07;
@@ -147,10 +188,20 @@
     }
     
     function deselectObject(){
-        selectedObject.children.forEach(function(child){
-            child.material.color = child.initColor;
-        })
-        selectedObject = null;
+        if(selectedObject !== null)
+        {
+            selectedObject.children.forEach(function(child){
+                if(child.hasOwnProperty('material'))
+                    child.material.color = child.initColor;
+            });
+//            selectedObject.traverseAncestors(function(ancestor){
+//               if(ancestor.hasOwnProperty('toCenterOfMass'))
+//                   scene.remove(ancestor);  
+//            });
+            selectedObject = null;
+            foregroundScene.remove(axisAssistant);
+            axisAssistant = null;
+        }
     }
     
     function logic() {
@@ -159,7 +210,10 @@
     }
     
     function render(){
+        renderer.clear();
         renderer.render(scene,camera);
+        renderer.clearDepth();
+        renderer.render(foregroundScene, camera);
     }
     setInterval(logic, 1000/60);
 })();
