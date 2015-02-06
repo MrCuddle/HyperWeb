@@ -64,7 +64,7 @@ Group {
 	children [
 Group {
 	children [
-DEF _000000002D5C75D8 Group {
+DEF _00000000288C22F0 Group {
 	children [
 	]
 }
@@ -72,7 +72,7 @@ DEF _000000002D5C75D8 Group {
 }
 Group {
 	children [
-DEF _000000002D5C76D0 Group {
+DEF _00000000288C21F8 Group {
 	children [
 	]
 }
@@ -80,7 +80,7 @@ DEF _000000002D5C76D0 Group {
 }
 Group {
 	children [
-DEF _000000002D5C78C0 Group {
+DEF _000000003F121008 Group {
 	children [
 	]
 }
@@ -90,11 +90,73 @@ Group {
 	children [
 Group {
 	children [
-DEF _0000000036A5F170 Group {
+DEF _0000000047772E18 Group {
 	children [
 Shape {
 appearance Appearance {
 	material DEF _material0 Material {
+		emissiveColor 0 0 0
+	}
+}
+geometry PointSet {
+	coord Coordinate {
+point	[
+		 -60 0 0,
+		]
+}
+}
+}
+	]
+}
+	]
+}
+Group {
+	children [
+DEF _00000000477721E8 Group {
+	children [
+Shape {
+appearance Appearance {
+material USE _material0
+}
+geometry PointSet {
+	coord Coordinate {
+point	[
+		 -30 0 0,
+		]
+}
+}
+}
+	]
+}
+	]
+}
+Group {
+	children [
+DEF _00000000324604B8 Group {
+	children [
+Shape {
+appearance Appearance {
+material USE _material0
+}
+geometry PointSet {
+	coord Coordinate {
+point	[
+		 -45 0 0,
+		]
+}
+}
+}
+	]
+}
+	]
+}
+Group {
+	children [
+DEF _000000003A988710 Group {
+	children [
+Shape {
+appearance Appearance {
+	material DEF _material1 Material {
 		diffuseColor  0 0.501961 1
 	}
 }
@@ -263,7 +325,7 @@ coordIndex [
 }
 Shape {
 appearance Appearance {
-material USE _material0
+material USE _material1
 }
 geometry IndexedFaceSet {
 solid FALSE
@@ -430,7 +492,7 @@ coordIndex [
 }
 Shape {
 appearance Appearance {
-material USE _material0
+material USE _material1
 }
 geometry IndexedFaceSet {
 solid FALSE
@@ -669,7 +731,7 @@ coordIndex [
 }
 Shape {
 appearance Appearance {
-material USE _material0
+material USE _material1
 }
 geometry IndexedFaceSet {
 solid FALSE
@@ -908,7 +970,7 @@ coordIndex [
 }
 Shape {
 appearance Appearance {
-material USE _material0
+material USE _material1
 }
 geometry IndexedFaceSet {
 solid FALSE
@@ -929,7 +991,7 @@ coordIndex [
 }
 Shape {
 appearance Appearance {
-material USE _material0
+material USE _material1
 }
 geometry IndexedFaceSet {
 solid FALSE
@@ -950,7 +1012,7 @@ coordIndex [
 }
 Shape {
 appearance Appearance {
-material USE _material0
+material USE _material1
 }
 geometry IndexedFaceSet {
 solid FALSE
@@ -971,7 +1033,7 @@ coordIndex [
 }
 Shape {
 appearance Appearance {
-material USE _material0
+material USE _material1
 }
 geometry IndexedFaceSet {
 solid FALSE
@@ -992,9 +1054,7 @@ coordIndex [
 }
 Shape {
 appearance Appearance {
-	material DEF _material1 Material {
-		emissiveColor 0 0 0
-	}
+material USE _material0
 }
 geometry IndexedLineSet {
 	coord Coordinate {
@@ -1008,7 +1068,7 @@ point	[
 }
 Shape {
 appearance Appearance {
-material USE _material1
+material USE _material0
 }
 geometry IndexedLineSet {
 	coord Coordinate {
@@ -1022,7 +1082,7 @@ point	[
 }
 Shape {
 appearance Appearance {
-material USE _material1
+material USE _material0
 }
 geometry IndexedLineSet {
 	coord Coordinate {
@@ -1036,7 +1096,7 @@ point	[
 }
 Shape {
 appearance Appearance {
-material USE _material1
+material USE _material0
 }
 geometry IndexedLineSet {
 	coord Coordinate {
@@ -1050,7 +1110,7 @@ point	[
 }
 Shape {
 appearance Appearance {
-material USE _material1
+material USE _material0
 }
 geometry IndexedLineSet {
 	coord Coordinate {
@@ -1064,7 +1124,7 @@ point	[
 }
 Shape {
 appearance Appearance {
-material USE _material1
+material USE _material0
 }
 geometry IndexedLineSet {
 	coord Coordinate {
@@ -1078,7 +1138,7 @@ point	[
 }
 Shape {
 appearance Appearance {
-material USE _material1
+material USE _material0
 }
 geometry IndexedLineSet {
 	coord Coordinate {
@@ -1092,7 +1152,7 @@ point	[
 }
 Shape {
 appearance Appearance {
-material USE _material1
+material USE _material0
 }
 geometry IndexedLineSet {
 	coord Coordinate {
@@ -1106,7 +1166,7 @@ point	[
 }
 Shape {
 appearance Appearance {
-material USE _material1
+material USE _material0
 }
 geometry IndexedLineSet {
 	coord Coordinate {
@@ -1120,7 +1180,7 @@ point	[
 }
 Shape {
 appearance Appearance {
-material USE _material1
+material USE _material0
 }
 geometry IndexedLineSet {
 	coord Coordinate {
@@ -1134,7 +1194,7 @@ point	[
 }
 Shape {
 appearance Appearance {
-material USE _material1
+material USE _material0
 }
 geometry IndexedLineSet {
 	coord Coordinate {
@@ -1148,7 +1208,7 @@ point	[
 }
 Shape {
 appearance Appearance {
-material USE _material1
+material USE _material0
 }
 geometry IndexedLineSet {
 	coord Coordinate {
@@ -1162,7 +1222,7 @@ point	[
 }
 Shape {
 appearance Appearance {
-material USE _material1
+material USE _material0
 }
 geometry IndexedLineSet {
 	coord Coordinate {
@@ -1211,7 +1271,7 @@ point	[
 }
 Shape {
 appearance Appearance {
-material USE _material1
+material USE _material0
 }
 geometry IndexedLineSet {
 	coord Coordinate {
@@ -1260,7 +1320,7 @@ point	[
 }
 Shape {
 appearance Appearance {
-material USE _material1
+material USE _material0
 }
 geometry IndexedLineSet {
 	coord Coordinate {
@@ -1309,7 +1369,7 @@ point	[
 }
 Shape {
 appearance Appearance {
-material USE _material1
+material USE _material0
 }
 geometry IndexedLineSet {
 	coord Coordinate {
@@ -1358,7 +1418,7 @@ point	[
 }
 Shape {
 appearance Appearance {
-material USE _material1
+material USE _material0
 }
 geometry IndexedLineSet {
 	coord Coordinate {
@@ -1372,7 +1432,7 @@ point	[
 }
 Shape {
 appearance Appearance {
-material USE _material1
+material USE _material0
 }
 geometry IndexedLineSet {
 	coord Coordinate {
@@ -1394,11 +1454,11 @@ Group {
 	children [
 Group {
 	children [
-DEF _000000003B4E3C38 Group {
+DEF _000000003A985698 Group {
 	children [
 Shape {
 appearance Appearance {
-material USE _material1
+material USE _material0
 }
 geometry PointSet {
 	coord Coordinate {
@@ -1414,11 +1474,11 @@ point	[
 }
 Group {
 	children [
-DEF _0000000034B0C0F8 Group {
+DEF _000000003A985E18 Group {
 	children [
 Shape {
 appearance Appearance {
-material USE _material1
+material USE _material0
 }
 geometry PointSet {
 	coord Coordinate {
@@ -1434,11 +1494,11 @@ point	[
 }
 Group {
 	children [
-DEF _0000000034B0C008 Group {
+DEF _000000003A985D28 Group {
 	children [
 Shape {
 appearance Appearance {
-material USE _material1
+material USE _material0
 }
 geometry PointSet {
 	coord Coordinate {
@@ -1454,7 +1514,7 @@ point	[
 }
 Group {
 	children [
-DEF _000000003B502698 Group {
+DEF _000000003F114698 Group {
 	children [
 Shape {
 appearance Appearance {
@@ -1478,7 +1538,7 @@ coord Coordinate {
 }
 Group {
 	children [
-DEF _000000003B5029E0 Group {
+DEF _000000003F1147B0 Group {
 	children [
 Shape {
 appearance Appearance {
@@ -1500,7 +1560,7 @@ coord Coordinate {
 }
 Group {
 	children [
-DEF _000000003B502C10 Group {
+DEF _000000003F1148C8 Group {
 	children [
 Shape {
 appearance Appearance {
@@ -1522,7 +1582,7 @@ coord Coordinate {
 }
 Group {
 	children [
-DEF _000000003B502AF8 Group {
+DEF _000000003F1149E0 Group {
 	children [
 Shape {
 appearance Appearance {
@@ -1546,16 +1606,16 @@ coord Coordinate {
 }
 Group {
 	children [
-DEF _0000000022B973E8 Group {
+DEF _000000003F12DE90 Group {
 	children [
 Shape {
 appearance Appearance {
-material USE _material1
+material USE _material0
 }
 geometry PointSet {
 	coord Coordinate {
 point	[
-		 0 0 0,
+		 -45 0 0,
 		]
 }
 }
@@ -1566,11 +1626,11 @@ point	[
 }
 Group {
 	children [
-DEF _0000000035346E90 Group {
+DEF _000000003F1211F8 Group {
 	children [
 Shape {
 appearance Appearance {
-material USE _material1
+material USE _material0
 }
 geometry PointSet {
 	coord Coordinate {

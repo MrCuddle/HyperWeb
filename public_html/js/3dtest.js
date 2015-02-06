@@ -90,13 +90,11 @@
         loadModel(object, new THREE.Vector3(-2.7054598934035e-2,-9.0702960410631e-3,1.2818607418443e-2));
     });
     
-//    generateSphere(0.,-3.465692988818e-2,4.8978561933508e-2);
-//    generateSphere(0.,0.,0.);
-//    generateSphere(0.,-0.16920647088485,0.);
-//    generateSphere(0.,-3.465692988818e-2,4.8978561933508e-2);
-//    generateSphere(0.,-0.14420647088485,0.);
-//    generateSphere(0.,-0.14420647088485,0.);
-//    generateSphere(0.,-0.16920647088485,0.);
+    generateSphere(0.,0.,0.);
+    generateSphere(-4.5e-2,0.,0.);
+    generateSphere(0.,-3.465692988818e-2,4.8978561933508e-2);
+    generateSphere(0.,-0.14420647088485,0.);
+    generateSphere(0.,-0.16920647088485,0.);
         
     var raycaster = new THREE.Raycaster();
     var mousePos = new THREE.Vector2(-1,-1);
