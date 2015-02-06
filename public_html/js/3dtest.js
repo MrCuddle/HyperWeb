@@ -48,11 +48,11 @@
     scene.add(directionalLight);
     scene.add(new THREE.AmbientLight(new THREE.Color(0.05,0.02,0.1)));
     
-    function GenerateSphere(x,y,z){
-        var geometry = new THREE.SphereGeometry(0.025, 10,10);
-        var material = new THREE.MeshBasicMaterial( {color: 0xffff00} );
+    function generateSphere(x,y,z){
+        var geometry = new THREE.SphereGeometry(0.005, 10,10);
+        var material = new THREE.MeshBasicMaterial( {color: 0xffffff} );
         var sphere = new THREE.Mesh( geometry, material );
-        scene.add( sphere );
+        foregroundScene.add( sphere );
         sphere.position.set(x,y,z);
     }
     
@@ -89,6 +89,14 @@
     loader.load("Cranck_Study.wrl", function(object){
         loadModel(object, new THREE.Vector3(-2.7054598934035e-2,-9.0702960410631e-3,1.2818607418443e-2));
     });
+    
+//    generateSphere(0.,-3.465692988818e-2,4.8978561933508e-2);
+//    generateSphere(0.,0.,0.);
+//    generateSphere(0.,-0.16920647088485,0.);
+//    generateSphere(0.,-3.465692988818e-2,4.8978561933508e-2);
+//    generateSphere(0.,-0.14420647088485,0.);
+//    generateSphere(0.,-0.14420647088485,0.);
+//    generateSphere(0.,-0.16920647088485,0.);
         
     var raycaster = new THREE.Raycaster();
     var mousePos = new THREE.Vector2(-1,-1);

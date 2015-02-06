@@ -10,49 +10,49 @@ Background {
 	skyColor [ 0 0 0 ]
 }
 Viewpoint {
-	position      0.000000 0.000000 0.373205
+	position      0.000000 0.000000 0.003919
 	orientation   1.000000 0.000000 0.000000 0.000000
 	fieldOfView   0.523583
 	description   "Main Viewpoint"
 }
 Viewpoint {
-	position      0.215470 0.215470 0.215470
+	position      0.002262 0.002262 0.002262
 	orientation   0.187053 0.451587 0.872399 2.448076
 	fieldOfView   0.523583
 	description   "Iso View"
 }
 Viewpoint {
-	position      0.373205 0.000000 0.000000
+	position      0.003919 0.000000 0.000000
 	orientation   0.577350 0.577350 0.577350 2.094395
 	fieldOfView   0.523583
 	description   "Front View"
 }
 Viewpoint {
-	position      -0.373205 0.000000 0.000000
+	position      -0.003919 0.000000 0.000000
 	orientation   0.577350 -0.577350 -0.577350 2.094395
 	fieldOfView   0.523583
 	description   "Back View"
 }
 Viewpoint {
-	position      0.000000 -0.373205 0.000000
+	position      0.000000 -0.003919 0.000000
 	orientation   1.000000 -0.000173 0.000173 1.570796
 	fieldOfView   0.523583
 	description   "Left View"
 }
 Viewpoint {
-	position      0.000000 0.373205 0.000000
+	position      0.000000 0.003919 0.000000
 	orientation   -0.000122 -0.707107 -0.707107 3.141348
 	fieldOfView   0.523583
 	description   "Right View"
 }
 Viewpoint {
-	position      0.000000 0.000000 0.373205
+	position      0.000000 0.000000 0.003919
 	orientation   0.000000 0.000000 1.000000 1.570796
 	fieldOfView   0.523583
 	description   "Top View"
 }
 Viewpoint {
-	position      0.000000 0.000000 -0.373205
+	position      0.000000 0.000000 -0.003919
 	orientation   0.707107 0.707107 0.000000 3.141593
 	fieldOfView   0.523583
 	description   "Bottom View"
@@ -64,7 +64,7 @@ Group {
 	children [
 Group {
 	children [
-DEF _000000002D5C75D8 Group {
+DEF _00000000409BDCB8 Group {
 	children [
 	]
 }
@@ -72,7 +72,7 @@ DEF _000000002D5C75D8 Group {
 }
 Group {
 	children [
-DEF _000000002D5C76D0 Group {
+DEF _00000000409BDBD0 Group {
 	children [
 	]
 }
@@ -80,7 +80,7 @@ DEF _000000002D5C76D0 Group {
 }
 Group {
 	children [
-DEF _000000002D5C78C0 Group {
+DEF _00000000409BDE88 Group {
 	children [
 	]
 }
@@ -90,7 +90,7 @@ Group {
 	children [
 Group {
 	children [
-DEF _0000000036A5F170 Group {
+DEF _0000000036360818 Group {
 	children [
 Shape {
 appearance Appearance {
@@ -1394,7 +1394,7 @@ Group {
 	children [
 Group {
 	children [
-DEF _000000003B4E3C38 Group {
+DEF _000000004552F008 Group {
 	children [
 Shape {
 appearance Appearance {
@@ -1414,7 +1414,7 @@ point	[
 }
 Group {
 	children [
-DEF _0000000034B0C0F8 Group {
+DEF _000000004552F0E8 Group {
 	children [
 Shape {
 appearance Appearance {
@@ -1434,7 +1434,7 @@ point	[
 }
 Group {
 	children [
-DEF _0000000034B0C008 Group {
+DEF _000000004552F1C8 Group {
 	children [
 Shape {
 appearance Appearance {
@@ -1454,7 +1454,7 @@ point	[
 }
 Group {
 	children [
-DEF _000000003B502698 Group {
+DEF _0000000036358E78 Group {
 	children [
 Shape {
 appearance Appearance {
@@ -1478,7 +1478,7 @@ coord Coordinate {
 }
 Group {
 	children [
-DEF _000000003B5029E0 Group {
+DEF _0000000036358D70 Group {
 	children [
 Shape {
 appearance Appearance {
@@ -1500,7 +1500,7 @@ coord Coordinate {
 }
 Group {
 	children [
-DEF _000000003B502C10 Group {
+DEF _00000000454F0320 Group {
 	children [
 Shape {
 appearance Appearance {
@@ -1522,7 +1522,7 @@ coord Coordinate {
 }
 Group {
 	children [
-DEF _000000003B502AF8 Group {
+DEF _00000000454F0110 Group {
 	children [
 Shape {
 appearance Appearance {
@@ -1546,11 +1546,11 @@ coord Coordinate {
 }
 Group {
 	children [
-DEF _0000000022B973E8 Group {
+DEF _0000000036366008 Group {
 	children [
 Shape {
 appearance Appearance {
-material USE _material1
+material USE _material2
 }
 geometry PointSet {
 	coord Coordinate {
@@ -1566,16 +1566,36 @@ point	[
 }
 Group {
 	children [
-DEF _0000000035346E90 Group {
+DEF _0000000004186578 Group {
 	children [
 Shape {
 appearance Appearance {
-material USE _material1
+material USE _material2
 }
 geometry PointSet {
 	coord Coordinate {
 point	[
-		 0 -169.206 0,
+		 0 -34.6569 48.9786,
+		]
+}
+}
+}
+	]
+}
+	]
+}
+Group {
+	children [
+DEF _0000000004186748 Group {
+	children [
+Shape {
+appearance Appearance {
+material USE _material2
+}
+geometry PointSet {
+	coord Coordinate {
+point	[
+		 0 -144.206 0,
 		]
 }
 }
