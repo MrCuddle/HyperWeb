@@ -19,7 +19,7 @@
     camera.position.y = 0;
     camera.position.x = 0.2;
     
-    cameraControls = new THREE.TrackballControls( camera );
+    var cameraControls = new THREE.TrackballControls( camera );
 
     cameraControls.rotateSpeed = 5.0;
     cameraControls.zoomSpeed = 1.2;
@@ -33,10 +33,34 @@
 
     cameraControls.keys = [ 65, 83, 68 ];
 
-    cameraControls.addEventListener( 'change', render );
+    //cameraControls.addEventListener( 'change', render );
+    //cameraControls.addEventListener('objectChange', );
     
     transformControls = new THREE.TransformControls( camera, renderer.domElement );
-    transformControls.addEventListener( 'change', render );
+    transformControls.addEventListener( 'objectChange', checkForConnections );
+    transformControls.addEventListener('mouseUp', onMouseUp );
+    
+    function onMouseUp(){
+        if(selectedObject && closestObject){
+            foregroundScene.remove(connectionMarker);
+            connectionMarker = null;
+            selectedObject.rotation.set(closestObject.rotation.x,closestObject.rotation.y,closestObject.rotation.z );
+            selectedObject.updateMatrix();
+            selectedObject.updateMatrixWorld(true);
+            
+            
+            var cp1Clone = connectionPoint1.clone();
+            var cp2Clone = connectionPoint2.clone();
+                        
+            cp1Clone = selectedObject.localToWorld(cp1Clone);
+            cp2Clone = closestObject.localToWorld(cp2Clone);
+            var displacement = new THREE.Vector3(cp2Clone.x, cp2Clone.y, cp2Clone.z).sub(cp1Clone);
+            displacement = displacement.add(selectedObject.position);
+            selectedObject.position.set(displacement.x,displacement.y,displacement.z);
+            selectedObject.updateMatrix();
+            selectedObject.updateMatrixWorld(true);
+        }
+    }
     
     var scene = new THREE.Scene();
     scene.add(camera);
@@ -65,8 +89,8 @@
         var geometry = new THREE.SphereGeometry(0.005, 10,10);
         var material = new THREE.MeshBasicMaterial( {color: 0xffffff} );
         var sphere = new THREE.Mesh( geometry, material );
-        foregroundScene.add( sphere );
         sphere.position.set(x,y,z);
+        return sphere;
     }
     
     var objectCollection = [];
@@ -100,10 +124,11 @@
         //Draw positions of the object's connection points and scale the vectors according to the object's scale
         for(var i = 0; i < connectionPoints.length; i++){
             var v = connectionPoints[i];
-            v.divideScalar(0.001);
+            v.sub(toCenterOfMass);
+            //v.divideScalar(0.001);
             connectionPoints[i] = v;
-            v = obj.localToWorld(v);
-            generateSphere(v.x,v.y,v.z);
+//            v = obj.localToWorld(v);
+//            generateSphere(v.x,v.y,v.z);
         }
     }
     
@@ -137,8 +162,8 @@
     var mousePos = new THREE.Vector2(-1,-1);
     
     function onMouseMove(event) {
-	mousePos.x = ( event.clientX / window.innerWidth ) * 2 - 1
-	mousePos.y = - ( event.clientY / window.innerHeight ) * 2 + 1	
+	mousePos.x = ( event.clientX / window.innerWidth ) * 2 - 1;
+	mousePos.y = - ( event.clientY / window.innerHeight ) * 2 + 1;	
     }
     
     window.addEventListener('mousemove', onMouseMove, false);
@@ -204,7 +229,7 @@
     }
     
     function deselectObject(){
-        if(selectedObject !== null)
+        if(selectedObject)
         {
             selectedObject.traverse(function(child){
                if(child instanceof THREE.Mesh)
@@ -217,9 +242,73 @@
         }
     }
     
+    var closestObject;
+    var connectionPoint1;
+    var connectionPoint2;
+    var connectionMarker;
+            
+    function checkForConnections(){
+        if(selectedObject){
+            var minDistSquared = Math.pow(50,2);
+            var widthHalf = window.innerWidth / 2;
+            var heightHalf = window.innerHeight / 2;
+            foregroundScene.remove(connectionMarker);
+            closestObject = null;
+            connectionPoint1 = null;
+            connectionPoint2 = null;
+            for(var i = 0; i < selectedObject.connectionPoints.length; i++){
+                var connectionClone = selectedObject.connectionPoints[i].clone();
+                selectedObject.localToWorld(connectionClone);
+                var selectedObjScreenPos = connectionClone;
+                selectedObjScreenPos = selectedObjScreenPos.project(camera);
+                console.log("BEFORE:" + selectedObjScreenPos.x + ", " + selectedObjScreenPos.y);
+            
+                selectedObjScreenPos.x = ( selectedObjScreenPos.x * widthHalf ) + widthHalf;
+                selectedObjScreenPos.y = - ( selectedObjScreenPos.y * heightHalf ) + heightHalf;
+                console.log("AFTER:" + selectedObjScreenPos.x + ", " + selectedObjScreenPos.y);
+                for(var j = 0; j < objectCollection.length; j++){
+                    if(objectCollection[j] !== selectedObject){
+                        for(var k = 0; k < objectCollection[j].connectionPoints.length; k++){
+                            connectionClone = objectCollection[j].connectionPoints[k].clone();
+                            var comparisonObjScreenPos = objectCollection[j].localToWorld(connectionClone);
+                            comparisonObjScreenPos.project(camera);
+                            comparisonObjScreenPos.x = ( comparisonObjScreenPos.x * widthHalf ) + widthHalf;
+                            comparisonObjScreenPos.y = - ( comparisonObjScreenPos.y * heightHalf ) + heightHalf;
+                            var diff = new THREE.Vector3();
+                            diff.x = selectedObjScreenPos.x - comparisonObjScreenPos.x;
+                            diff.y = selectedObjScreenPos.y - comparisonObjScreenPos.y;
+                            var distanceSquared = Math.pow(diff.x,2) + Math.pow(diff.y,2);
+                            if(distanceSquared < minDistSquared){
+                                closestObject = objectCollection[j];
+                                connectionPoint1 = selectedObject.connectionPoints[i];
+                                connectionPoint2 = objectCollection[j].connectionPoints[k];
+                                minDistSquared = distanceSquared;
+                            }
+                        }
+                    }
+                }
+            }
+            if(closestObject){
+                var connectionClone = connectionPoint2.clone();
+                closestObject.localToWorld(connectionClone);
+                connectionMarker = generateSphere(connectionClone.x,connectionClone.y,connectionClone.z);
+                foregroundScene.add(connectionMarker);
+            }
+        }
+    }
+    
+//            for(var i = 0; i < connectionPoints.length; i++){
+//            var v = connectionPoints[i];
+//            v.divideScalar(0.001);
+//            connectionPoints[i] = v;
+//            v = obj.localToWorld(v);
+//            generateSphere(v.x,v.y,v.z);
+//        }
+    
     function logic() {
         requestAnimationFrame(render);
         cameraControls.update();
+        transformControls.update();
     }
     
     function render(){
@@ -227,7 +316,6 @@
         renderer.render(scene,camera);
         renderer.clearDepth();
         renderer.render(foregroundScene, camera);
-        transformControls.update();
     }
     setInterval(logic, 1000/60);
 })();
