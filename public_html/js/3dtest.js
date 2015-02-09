@@ -46,7 +46,16 @@
     directionalLight.castShadow = true;
     renderer.shadowMapEnabled = true;
     scene.add(directionalLight);
-    scene.add(new THREE.AmbientLight(new THREE.Color(0.05,0.02,0.1)));
+    
+    directionalLight = new THREE.DirectionalLight();
+    directionalLight.position.z = -100;
+    directionalLight.position.x = -0;
+    directionalLight.position.y = -100;
+    directionalLight.castShadow = true;
+    renderer.shadowMapEnabled = true;
+    scene.add(directionalLight);
+    
+    scene.add(new THREE.AmbientLight(new THREE.Color(0.1,0.1,0.1)));
     
     function generateSphere(x,y,z){
         var geometry = new THREE.SphereGeometry(0.005, 10,10);
@@ -60,14 +69,31 @@
     
     var loader = new THREE.VRMLLoader();
     
-    function loadModel(object, toCenterOfMass){
+    function loadModel(object, toCenterOfMass, connectionPoints){
+        //Extract the part of the Object3D containing the meshes
         var obj = object.children[1];
         obj.children.forEach(function(child) {
             saveColor(child);
         });
         obj.toCenterOfMass = toCenterOfMass;
+        obj.connectionPoints = connectionPoints;
+        var scaleFactor = 0.3;
+        obj.position.set(scaleFactor*(Math.random()*2 - 1), scaleFactor*(Math.random()*2 - 1), scaleFactor*(Math.random()*2 - 1));
+        obj.rotation.set(Math.random()*Math.PI*2, Math.random()*Math.PI*2, Math.random()*Math.PI*2);
         objectCollection.push(obj);
         scene.add(obj);
+        
+        obj.updateMatrixWorld(true);
+        obj.updateMatrix();
+        
+        //Draw positions of the object's connection points and scale the vectors according to the object's scale
+        for(var i = 0; i < connectionPoints.length; i++){
+            var v = connectionPoints[i];
+            v.divideScalar(0.001);
+            connectionPoints[i] = v;
+            v = obj.localToWorld(v);
+            generateSphere(v.x,v.y,v.z);
+        }
     }
     
     function saveColor(object){
@@ -78,23 +104,23 @@
        });
     }
     loader.load("Piston_Study.wrl", function(object){
-        loadModel(object, new THREE.Vector3(0.,-0.15149054405043,0.));
+        loadModel(object, new THREE.Vector3(0.,-0.15149054405043,0.), new Array(new THREE.Vector3(0.,-0.14420647088485,0.)));
     });
     loader.load("Master_One_Cylinder.wrl", function(object){
-        loadModel(object, new THREE.Vector3(-4.5e-2,0.,0.));
+        loadModel(object, new THREE.Vector3(-4.5e-2,0.,0.), new Array(new THREE.Vector3(-4.5e-2,0.,0.)));
     });
     loader.load("Rod_Study.wrl", function(object){
-        loadModel(object, new THREE.Vector3(0.,-8.9431700693962e-2,2.4489282256523e-2));
+        loadModel(object, new THREE.Vector3(0.,-8.9431700693962e-2,2.4489282256523e-2), new Array(new THREE.Vector3(0.,-3.465692988818e-2,4.8978561933508e-2), new THREE.Vector3(0.,-0.14420647088485,0.)));
     });
     loader.load("Cranck_Study.wrl", function(object){
-        loadModel(object, new THREE.Vector3(-2.7054598934035e-2,-9.0702960410631e-3,1.2818607418443e-2));
+        loadModel(object, new THREE.Vector3(-2.7054598934035e-2,-9.0702960410631e-3,1.2818607418443e-2), new Array(new THREE.Vector3(0.,-3.465692988818e-2,4.8978561933508e-2), new THREE.Vector3(-4.5e-2,0.,0.)));
     });
     
-    generateSphere(0.,0.,0.);
-    generateSphere(-4.5e-2,0.,0.);
-    generateSphere(0.,-3.465692988818e-2,4.8978561933508e-2);
-    generateSphere(0.,-0.14420647088485,0.);
-    generateSphere(0.,-0.16920647088485,0.);
+//    generateSphere(0.,0.,0.);
+//    generateSphere(-4.5e-2,0.,0.);
+//    generateSphere(0.,-3.465692988818e-2,4.8978561933508e-2);
+//    generateSphere(0.,-0.14420647088485,0.);
+//    generateSphere(0.,-0.16920647088485,0.);
         
     var raycaster = new THREE.Raycaster();
     var mousePos = new THREE.Vector2(-1,-1);
