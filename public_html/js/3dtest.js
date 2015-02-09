@@ -19,24 +19,28 @@
     camera.position.y = 0;
     camera.position.x = 0.2;
     
-    controls = new THREE.TrackballControls( camera );
+    cameraControls = new THREE.TrackballControls( camera );
 
-    controls.rotateSpeed = 5.0;
-    controls.zoomSpeed = 1.2;
-    controls.panSpeed = 0.8;
+    cameraControls.rotateSpeed = 5.0;
+    cameraControls.zoomSpeed = 1.2;
+    cameraControls.panSpeed = 0.8;
 
-    controls.noZoom = false;
-    controls.noPan = false;
+    cameraControls.noZoom = false;
+    cameraControls.noPan = false;
 
-    controls.staticMoving = true;
-    controls.dynamicDampingFactor = 0.3;
+    cameraControls.staticMoving = true;
+    cameraControls.dynamicDampingFactor = 0.3;
 
-    controls.keys = [ 65, 83, 68 ];
+    cameraControls.keys = [ 65, 83, 68 ];
 
-    controls.addEventListener( 'change', render );
+    cameraControls.addEventListener( 'change', render );
+    
+    transformControls = new THREE.TransformControls( camera, renderer.domElement );
+    transformControls.addEventListener( 'change', render );
     
     var scene = new THREE.Scene();
     scene.add(camera);
+    scene.add(transformControls);
     var foregroundScene = new THREE.Scene();
     
     var directionalLight = new THREE.DirectionalLight();
@@ -71,7 +75,14 @@
     
     function loadModel(object, toCenterOfMass, connectionPoints){
         //Extract the part of the Object3D containing the meshes
-        var obj = object.children[1];
+        var obj = new THREE.Object3D();
+        obj.translateX(toCenterOfMass.x);
+        obj.translateY(toCenterOfMass.y);
+        obj.translateZ(toCenterOfMass.z);
+        obj.add(object.children[1]);
+        obj.children[0].translateX(-toCenterOfMass.x);
+        obj.children[0].translateY(-toCenterOfMass.y);
+        obj.children[0].translateZ(-toCenterOfMass.z);
         obj.children.forEach(function(child) {
             saveColor(child);
         });
@@ -154,11 +165,14 @@
     
     function selectObject(object){
         selectedObject = object;
+        transformControls.attach(selectedObject);
+        transformControls.setMode("translate");
+        transformControls.setSpace("local");
         selectedObject.traverse(function(child){
             if(child instanceof THREE.Mesh)
                  child.material.color = new THREE.Color(0xB0E2FF);
         });
-        generateArrows();
+        //generateArrows();
     }
     
     var axisAssistant;
@@ -196,15 +210,16 @@
                if(child instanceof THREE.Mesh)
                    child.material.color = child.initColor;
             });
+            transformControls.detach(selectedObject);
             selectedObject = null;
             foregroundScene.remove(axisAssistant);
-            axisAssistant = null;
+            //axisAssistant = null;
         }
     }
     
     function logic() {
         requestAnimationFrame(render);
-        controls.update();
+        cameraControls.update();
     }
     
     function render(){
@@ -212,6 +227,7 @@
         renderer.render(scene,camera);
         renderer.clearDepth();
         renderer.render(foregroundScene, camera);
+        transformControls.update();
     }
     setInterval(logic, 1000/60);
 })();
