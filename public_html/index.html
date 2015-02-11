@@ -11,14 +11,29 @@ and open the template in the editor.
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <style>
             * {margin: 0;}
+            
+            .showtest {
+                position: absolute;
+                left: 500px;
+                top: 300px;
+                width: 200px;
+                height: 150px;
+                background: white;
+                z-index: 1;
+                box-shadow: 5px 5px 20px rgba(0,0,0,0.4);
+                padding: 10px;
+            }
         </style>
     </head>
     <body>
         <div id="container"></div>
+<!--        <div id="test"><p>Some text</p></div>-->
+        <script type="text/javascript" src="js/libs/jquery-2.1.3.min.js"></script>
         <script type="text/javascript" src="js/libs/three.js/three.js"></script>
         <script type="text/javascript" src="js/VRMLLoader_Modified.js"></script>
         <script type="text/javascript" src ="js/TransformControl.js"></script>
         <script type="text/javascript" src="js/TrackBallControls.js"></script>
         <script type="text/javascript" src="js/3dtest.js"></script>
+        <script type="text/javascript" src="js/UItest.js"></script>
     </body>
 </html>

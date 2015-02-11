@@ -42,8 +42,13 @@
     
     function onMouseUp(){
         if(selectedObject && closestObject){
+            
+            
+            selectedObject.userData.targetRotation = closestObject.rotation.clone();
+            
             foregroundScene.remove(connectionMarker);
             connectionMarker = null;
+            var oldRotation = selectedObject.rotation.clone();
             selectedObject.rotation.set(closestObject.rotation.x,closestObject.rotation.y,closestObject.rotation.z );
             selectedObject.updateMatrix();
             selectedObject.updateMatrixWorld(true);
@@ -51,14 +56,52 @@
             
             var cp1Clone = connectionPoint1.clone();
             var cp2Clone = connectionPoint2.clone();
-                        
             cp1Clone = selectedObject.localToWorld(cp1Clone);
             cp2Clone = closestObject.localToWorld(cp2Clone);
             var displacement = new THREE.Vector3(cp2Clone.x, cp2Clone.y, cp2Clone.z).sub(cp1Clone);
             displacement = displacement.add(selectedObject.position);
-            selectedObject.position.set(displacement.x,displacement.y,displacement.z);
+            
+            
+            selectedObject.userData.targetPosition = displacement;
+            
+            selectedObject.rotation.set(oldRotation.x, oldRotation.y, oldRotation.z);
+            
+            //selectedObject.position.set(displacement.x,displacement.y,displacement.z);
             selectedObject.updateMatrix();
             selectedObject.updateMatrixWorld(true);
+            
+            
+            objectsMoving[objectsMoving.length] = selectedObject;
+        }
+    }
+    
+    var objectsMoving = [];
+    
+    function MoveObjects(){
+        for(var i = 0; i < objectsMoving.length; i++){
+            var currentPosition = objectsMoving[i].position.clone();
+            currentPosition.lerp(objectsMoving[i].userData.targetPosition,0.07);
+            objectsMoving[i].position.set(currentPosition.x, currentPosition.y, currentPosition.z);
+            
+            var currentRotation = objectsMoving[i].quaternion;
+            var targetRotation = new THREE.Quaternion();
+            targetRotation.setFromEuler(objectsMoving[i].userData.targetRotation);
+            currentRotation.slerp(targetRotation,0.07);
+            objectsMoving[i].rotation.setFromQuaternion(currentRotation);
+            
+            objectsMoving[i].updateMatrix();
+            objectsMoving[i].updateMatrixWorld(true);
+            
+            if(objectsMoving[i].position.distanceTo(objectsMoving[i].userData.targetPosition) < 0.001){
+                var pos = objectsMoving[i].userData.targetPosition;
+                var rot = objectsMoving[i].userData.targetRotation;
+                objectsMoving[i].position.set(pos.x,pos.y,pos.z);
+                objectsMoving[i].rotation.set(rot.x,rot.y,rot.z);
+                objectsMoving[i].updateMatrix();
+                objectsMoving[i].updateMatrixWorld(true);
+                objectsMoving.splice(i,1);
+                i--;
+            } 
         }
     }
     
@@ -306,6 +349,8 @@
 //        }
     
     function logic() {
+        MoveObjects();
+        
         requestAnimationFrame(render);
         cameraControls.update();
         transformControls.update();
