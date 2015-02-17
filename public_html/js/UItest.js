@@ -6,5 +6,16 @@
 
 
    $(document).ready(function(){
-       $('#test').addClass('showtest');
+       $('#test').addClass('showtest').hide();
+       
+       
+       $('#test button').on('click', function(){
+           if(this.id === 'button_close'){
+               $('#test').hide();
+           } else {
+                testTest.ConnectObjects();
+                $('#test').hide();
+           }
+       });
+       
    });

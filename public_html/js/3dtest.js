@@ -4,7 +4,7 @@
  * and open the template in the editor.
  */
 
-(function (){
+function TestTest(){
     var width = window.innerWidth;
     var height = window.innerHeight;
     var container = document.querySelector("#container");
@@ -43,36 +43,47 @@
     function onMouseUp(){
         if(selectedObject && closestObject){
             
+            mousePos.x = ( event.clientX / window.innerWidth ) * 2 - 1;
+            mousePos.y = - ( event.clientY / window.innerHeight ) * 2 + 1;	
             
-            selectedObject.userData.targetRotation = closestObject.rotation.clone();
+            var mouseX = (mousePos.x + 1)/2 * window.innerWidth;
+            var mouseY = -(mousePos.y - 1)/2 * window.innerHeight;
             
-            foregroundScene.remove(connectionMarker);
-            connectionMarker = null;
-            var oldRotation = selectedObject.rotation.clone();
-            selectedObject.rotation.set(closestObject.rotation.x,closestObject.rotation.y,closestObject.rotation.z );
-            selectedObject.updateMatrix();
-            selectedObject.updateMatrixWorld(true);
+            $('#test').css('left', '' + mouseX + 'px').css('top', '' + mouseY + 'px').show();
             
-            
-            var cp1Clone = connectionPoint1.clone();
-            var cp2Clone = connectionPoint2.clone();
-            cp1Clone = selectedObject.localToWorld(cp1Clone);
-            cp2Clone = closestObject.localToWorld(cp2Clone);
-            var displacement = new THREE.Vector3(cp2Clone.x, cp2Clone.y, cp2Clone.z).sub(cp1Clone);
-            displacement = displacement.add(selectedObject.position);
-            
-            
-            selectedObject.userData.targetPosition = displacement;
-            
-            selectedObject.rotation.set(oldRotation.x, oldRotation.y, oldRotation.z);
-            
-            //selectedObject.position.set(displacement.x,displacement.y,displacement.z);
-            selectedObject.updateMatrix();
-            selectedObject.updateMatrixWorld(true);
-            
-            
-            objectsMoving[objectsMoving.length] = selectedObject;
+            //ConnectObjects();
         }
+    }
+    
+    this.ConnectObjects = function(){
+        selectedObject.userData.targetRotation = closestObject.rotation.clone();
+            
+        foregroundScene.remove(connectionMarker);
+        connectionMarker = null;
+        var oldRotation = selectedObject.rotation.clone();
+        selectedObject.rotation.set(closestObject.rotation.x,closestObject.rotation.y,closestObject.rotation.z );
+        selectedObject.updateMatrix();
+        selectedObject.updateMatrixWorld(true);
+
+
+        var cp1Clone = connectionPoint1.clone();
+        var cp2Clone = connectionPoint2.clone();
+        cp1Clone = selectedObject.localToWorld(cp1Clone);
+        cp2Clone = closestObject.localToWorld(cp2Clone);
+        var displacement = new THREE.Vector3(cp2Clone.x, cp2Clone.y, cp2Clone.z).sub(cp1Clone);
+        displacement = displacement.add(selectedObject.position);
+
+
+        selectedObject.userData.targetPosition = displacement;
+
+        selectedObject.rotation.set(oldRotation.x, oldRotation.y, oldRotation.z);
+
+        //selectedObject.position.set(displacement.x,displacement.y,displacement.z);
+        selectedObject.updateMatrix();
+        selectedObject.updateMatrixWorld(true);
+
+
+        objectsMoving[objectsMoving.length] = selectedObject;
     }
     
     var objectsMoving = [];
@@ -363,4 +374,6 @@
         renderer.render(foregroundScene, camera);
     }
     setInterval(logic, 1000/60);
-})();
+}
+
+var testTest = new TestTest();
