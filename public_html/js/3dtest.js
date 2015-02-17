@@ -9,7 +9,7 @@ function TestTest(){
     var height = window.innerHeight;
     var container = document.querySelector("#container");
     var renderer = new THREE.WebGLRenderer({antialias:true});
-    renderer.setClearColor( 0xd3d3d3, 1 );
+    renderer.setClearColor( 0x7EC0EE, 1 );
     renderer.setSize(width,height);
     renderer.autoClear = false;
     container.appendChild(renderer.domElement);
@@ -40,6 +40,8 @@ function TestTest(){
     transformControls.addEventListener( 'objectChange', checkForConnections );
     transformControls.addEventListener('mouseUp', onMouseUp );
     
+    var self = this;
+    
     function onMouseUp(){
         if(selectedObject && closestObject){
             
@@ -49,9 +51,9 @@ function TestTest(){
             var mouseX = (mousePos.x + 1)/2 * window.innerWidth;
             var mouseY = -(mousePos.y - 1)/2 * window.innerHeight;
             
-            $('#test').css('left', '' + mouseX + 'px').css('top', '' + mouseY + 'px').show();
+            //$('#test').css('left', '' + mouseX + 'px').css('top', '' + mouseY + 'px').show();
             
-            //ConnectObjects();
+            self.ConnectObjects();
         }
     }
     
@@ -84,6 +86,7 @@ function TestTest(){
 
 
         objectsMoving[objectsMoving.length] = selectedObject;
+        closestObject = null;
     }
     
     var objectsMoving = [];
@@ -122,17 +125,28 @@ function TestTest(){
     var foregroundScene = new THREE.Scene();
     
     var directionalLight = new THREE.DirectionalLight();
-    directionalLight.position.z = 100;
-    directionalLight.position.x = 40;
-    directionalLight.position.y = 100;
+    directionalLight.position.z = -1;
+    directionalLight.position.x = 0;
+    directionalLight.position.y = 0;
+    directionalLight.intensity = 0.75;
     directionalLight.castShadow = true;
     renderer.shadowMapEnabled = true;
     scene.add(directionalLight);
     
     directionalLight = new THREE.DirectionalLight();
-    directionalLight.position.z = -100;
-    directionalLight.position.x = -0;
-    directionalLight.position.y = -100;
+    directionalLight.position.z = 1;
+    directionalLight.position.x = 1;
+    directionalLight.position.y = -1;
+    directionalLight.intensity = 0.75;
+    directionalLight.castShadow = true;
+    renderer.shadowMapEnabled = true;
+    scene.add(directionalLight);
+    
+        directionalLight = new THREE.DirectionalLight();
+    directionalLight.position.z = 1;
+    directionalLight.position.x = -1;
+    directionalLight.position.y = 1;
+    directionalLight.intensity = 0.75;
     directionalLight.castShadow = true;
     renderer.shadowMapEnabled = true;
     scene.add(directionalLight);
