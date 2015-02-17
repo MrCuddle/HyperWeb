@@ -25,6 +25,12 @@ function Playmola(){
     var mousePos;
     var disableControls = false;
     
+    function ConnectionPoint(position){
+        this.position = new THREE.Vector3();
+        this.position.copy(position);
+        this.connectable = true;
+    }
+    
     function init(){
         renderer = new THREE.WebGLRenderer({antialias:true});
         renderer.setClearColor( 0x7EC0EE, 1 );
@@ -117,11 +123,11 @@ function Playmola(){
             obj.updateMatrixWorld(true);
             obj.updateMatrix();
 
-            //Corrects the position of the connection points
+            //Corrects the position of the connection points and initializes them
             for(var i = 0; i < connectionPoints.length; i++){
-                var v = connectionPoints[i];
+                var v = connectionPoints[i].position;
                 v.sub(centerOfMass);
-                connectionPoints[i] = v;
+                connectionPoints[i].position = v;
             }
         }
         function saveColor(object){
@@ -132,25 +138,25 @@ function Playmola(){
             });
         }
         loader.load("Piston_Study.wrl", function(object){
-            loadModel(object, new THREE.Vector3(0.,-0.15149054405043,0.), new Array(new THREE.Vector3(0.,-0.14420647088485,0.)));
+            loadModel(object, new THREE.Vector3(0.,-0.15149054405043,0.), new Array(new ConnectionPoint(new THREE.Vector3(0.,-0.14420647088485,0.))));
         });
         loader.load("Master_One_Cylinder.wrl", function(object){
-            loadModel(object, new THREE.Vector3(-4.5e-2,0.,0.), new Array(new THREE.Vector3(-4.5e-2,0.,0.)));
+            loadModel(object, new THREE.Vector3(-4.5e-2,0.,0.), new Array(new ConnectionPoint(new THREE.Vector3(-4.5e-2,0.,0.))));
         });
         loader.load("Rod_Study.wrl", function(object){
-            loadModel(object, new THREE.Vector3(0.,-8.9431700693962e-2,2.4489282256523e-2), new Array(new THREE.Vector3(0.,-3.465692988818e-2,4.8978561933508e-2), new THREE.Vector3(0.,-0.14420647088485,0.)));
+            loadModel(object, new THREE.Vector3(0.,-8.9431700693962e-2,2.4489282256523e-2), new Array(new ConnectionPoint(new THREE.Vector3(0.,-3.465692988818e-2,4.8978561933508e-2)), new ConnectionPoint(new THREE.Vector3(0.,-0.14420647088485,0.))));
         });
         loader.load("Cranck_Study.wrl", function(object){
-            loadModel(object, new THREE.Vector3(-2.7054598934035e-2,-9.0702960410631e-3,1.2818607418443e-2), new Array(new THREE.Vector3(0.,-3.465692988818e-2,4.8978561933508e-2), new THREE.Vector3(-4.5e-2,0.,0.)));
+            loadModel(object, new THREE.Vector3(-2.7054598934035e-2,-9.0702960410631e-3,1.2818607418443e-2), new Array(new ConnectionPoint(new THREE.Vector3(0.,-3.465692988818e-2,4.8978561933508e-2)), new ConnectionPoint(new THREE.Vector3(-4.5e-2,0.,0.))));
         });
     }
     function onMouseMove(event) {
 	mousePos.x = ( event.clientX / window.innerWidth ) * 2 - 1;
 	mousePos.y = - ( event.clientY / window.innerHeight ) * 2 + 1;	
     }
-    function generateSphere(x,y,z){
+    function generateSphere(x,y,z, valid){
         var geometry = new THREE.SphereGeometry(0.005, 10,10);
-        var material = new THREE.MeshBasicMaterial( {color: 0xffffff} );
+        var material = valid ? new THREE.MeshBasicMaterial( {color: 0xffffff} ) : new THREE.MeshBasicMaterial( {color: 0x000000} );
         var sphere = new THREE.Mesh( geometry, material );
         sphere.position.set(x,y,z);
         return sphere;
@@ -195,6 +201,7 @@ function Playmola(){
         vec2.add(vec1);
         vec2.multiplyScalar(0.5);
         newObj.position.copy(vec2);
+        //LOCAL TO WORLD - gamla objektens position. WORLD TO LOCAL nya objektet.
         obj1.position.sub(newObj.position);
         obj2.position.sub(newObj.position);
         newObj.add(obj1);
@@ -253,7 +260,7 @@ function Playmola(){
         connectionPoint1 = null;
         connectionPoint2 = null;
         for(var i = 0; i < selectedObject.connectionPoints.length; i++){
-            var connectionClone = selectedObject.connectionPoints[i].clone();
+            var connectionClone = selectedObject.connectionPoints[i].position.clone();
             selectedObject.localToWorld(connectionClone);
             var selectedObjScreenPos = connectionClone;
             selectedObjScreenPos = selectedObjScreenPos.project(camera);
@@ -262,7 +269,7 @@ function Playmola(){
             for(var j = 0; j < objectCollection.length; j++){
                 if(objectCollection[j] !== selectedObject){
                     for(var k = 0; k < objectCollection[j].connectionPoints.length; k++){
-                        connectionClone = objectCollection[j].connectionPoints[k].clone();
+                        connectionClone = objectCollection[j].connectionPoints[k].position.clone();
                         var comparisonObjScreenPos = objectCollection[j].localToWorld(connectionClone);
                         comparisonObjScreenPos.project(camera);
                         comparisonObjScreenPos.x = ( comparisonObjScreenPos.x * widthHalf ) + widthHalf;
@@ -282,9 +289,13 @@ function Playmola(){
             }
         }
         if(closestObject){
-            var connectionClone = connectionPoint2.clone();
+            var connectionClone = connectionPoint2.position.clone();
             closestObject.localToWorld(connectionClone);
-            connectionMarker = generateSphere(connectionClone.x,connectionClone.y,connectionClone.z);
+            if(connectionPoint2.connectable)
+                connectionMarker = generateSphere(connectionClone.x,connectionClone.y,connectionClone.z, true);
+            else
+                connectionMarker = generateSphere(connectionClone.x,connectionClone.y,connectionClone.z, false);
+                
             foregroundScene.add(connectionMarker);
         }
     }
@@ -307,25 +318,30 @@ function Playmola(){
     }
     this.connectObjects = function(){
         selectedObject.userData.targetRotation = closestObject.quaternion.clone();
-        
+
         connectionMarker = null;
-        var oldRotation = selectedObject.rotation.clone();
-        selectedObject.rotation.copy(closestObject.rotation);
-        selectedObject.updateMatrix();
-        selectedObject.updateMatrixWorld(true);
-        var cp1Clone = connectionPoint1.clone();
-        var cp2Clone = connectionPoint2.clone();
-        cp1Clone = selectedObject.localToWorld(cp1Clone);
-        cp2Clone = closestObject.localToWorld(cp2Clone);
-        var displacement = new THREE.Vector3(cp2Clone.x, cp2Clone.y, cp2Clone.z).sub(cp1Clone);
-        displacement = displacement.add(selectedObject.position);
-        selectedObject.userData.targetPosition = displacement;
-        selectedObject.userData.targetObject = closestObject;
-        selectedObject.rotation.copy(oldRotation);
-        selectedObject.updateMatrix();
-        selectedObject.updateMatrixWorld(true);
-        movingObjects[movingObjects.length] = selectedObject;
-        closestObject = null;
+        if(connectionPoint1.connectable && connectionPoint2.connectable){
+            selectedObject.userData.targetRotation = closestObject.quaternion.clone();
+            var oldRotation = selectedObject.rotation.clone();
+            selectedObject.rotation.copy(closestObject.rotation);
+            selectedObject.updateMatrix();
+            selectedObject.updateMatrixWorld(true);
+            var cp1Clone = connectionPoint1.position.clone();
+            var cp2Clone = connectionPoint2.position.clone();
+            connectionPoint1.connectable = false;
+            connectionPoint2.connectable = false;
+            cp1Clone = selectedObject.localToWorld(cp1Clone);
+            cp2Clone = closestObject.localToWorld(cp2Clone);
+            var displacement = new THREE.Vector3(cp2Clone.x, cp2Clone.y, cp2Clone.z).sub(cp1Clone);
+            displacement = displacement.add(selectedObject.position);
+            selectedObject.userData.targetPosition = displacement;
+            selectedObject.userData.targetObject = closestObject;
+            selectedObject.rotation.copy(oldRotation);
+            selectedObject.updateMatrix();
+            selectedObject.updateMatrixWorld(true);
+            movingObjects[movingObjects.length] = selectedObject;
+            closestObject = null;
+        }
     }
     this.cancelConnectObjects = function(){
         disableControls = false;
