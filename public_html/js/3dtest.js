@@ -34,15 +34,7 @@ function Playmola(){
         camera = new THREE.PerspectiveCamera(45,window.innerWidth/window.innerHeight,0.1,1000);
         camera.position.set(0.2,0,0.5);
         
-        cameraControls = new THREE.TrackballControls( camera );
-        cameraControls.rotateSpeed = 5.0;
-        cameraControls.zoomSpeed = 1.2;
-        cameraControls.panSpeed = 0.8;
-        cameraControls.noZoom = false;
-        cameraControls.noPan = false;
-        cameraControls.staticMoving = true;
-        cameraControls.dynamicDampingFactor = 0.3;
-        cameraControls.keys = [ 65, 83, 68 ];
+        createCameraControls();
         
         transformControls = new THREE.TransformControls( camera, renderer.domElement );
         transformControls.addEventListener( 'objectChange', checkForConnections );
@@ -75,6 +67,27 @@ function Playmola(){
         
         window.addEventListener('mousemove', onMouseMove, false);
         window.addEventListener('click', intersectionTest, false);
+        window.addEventListener( 'resize', onWindowResize, false );
+			
+    }
+    
+    function createCameraControls(){
+        cameraControls = new THREE.TrackballControls( camera );
+        cameraControls.rotateSpeed = 5.0;
+        cameraControls.zoomSpeed = 1.2;
+        cameraControls.panSpeed = 0.8;
+        cameraControls.noZoom = false;
+        cameraControls.noPan = false;
+        cameraControls.staticMoving = true;
+        cameraControls.dynamicDampingFactor = 0.3;
+        cameraControls.keys = [ 65, 83, 68 ];
+    }
+    //Resets the camera and renderer when the window is resized
+    function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize( window.innerWidth, window.innerHeight );
+            createCameraControls();
     }
     function loadModels(){
         var loader = new THREE.VRMLLoader();
@@ -221,7 +234,6 @@ function Playmola(){
             });
             transformControls.detach(selectedObject);
             selectedObject = null;
-            foregroundScene.remove(axisAssistant);
         }
     }    
     function checkForConnections(){

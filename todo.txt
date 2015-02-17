@@ -33,3 +33,4 @@ Remove planes
 Allow dragging with whole object OR enlarge middle grabby thing
 Maybe try to make the movement less weird
 
+Refactor
