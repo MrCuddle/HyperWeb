@@ -227,19 +227,25 @@ function TestTest(){
     
     function intersectionTest(){
         raycaster.setFromCamera(mousePos, camera);
-        var intersectionFound = false;
-        for(var i = 0; i < objectCollection.length; ++i){
+        var intersectionFound = null;
+        var distance = 1000000;
+        for(var i = 0; i < objectCollection.length; i++){
             var intersect = raycaster.intersectObject(objectCollection[i],true);
             if(intersect.length > 0){
-                if(selectedObject !== null)
-                    deselectObject();
-                selectObject(objectCollection[i]);
-                intersectionFound = true;
-                break;
+                if(intersect[0].distance < distance){
+                    distance = intersect[0].distance;
+                    intersectionFound = objectCollection[i];
+                }
             }
         }
-            if(!intersectionFound)
+        if(selectedObject !== null)
                 deselectObject();
+        if(intersectionFound !== null)
+            selectObject(intersectionFound);
+//            intersectionFound = true;
+//            break;
+//        if(!intersectionFound)
+//            deselectObject();
     }
     
     function selectObject(object){
