@@ -77,6 +77,7 @@ function TestTest(){
 
 
         selectedObject.userData.targetPosition = displacement;
+        selectedObject.userData.targetObject = closestObject;
 
         selectedObject.rotation.set(oldRotation.x, oldRotation.y, oldRotation.z);
 
@@ -90,6 +91,29 @@ function TestTest(){
     }
     
     var objectsMoving = [];
+    
+    function GenerateNewObject(obj1, obj2){
+        var newObj = new THREE.Object3D();
+        var vec1 = obj1.position.clone();
+        var vec2 = obj2.position.clone();
+        vec2.add(vec1);
+        vec2.multiplyScalar(0.5);
+        newObj.position.set(vec2.x,vec2.y,vec2.z);
+        obj1.position.sub(newObj.position);
+        obj2.position.sub(newObj.position);
+        newObj.add(obj1);
+        newObj.add(obj2);
+        var newConnectionPoints = [];
+        newConnectionPoints = newConnectionPoints.concat(obj1.connectionPoints, obj2.connectionPoints);
+        newObj.connectionPoints = newConnectionPoints;
+        selectObject(newObj);
+        var index = objectCollection.indexOf(obj1);
+        objectCollection.splice(index,1);
+        index = objectCollection.indexOf(obj2);
+        objectCollection.splice(index,1);
+        objectCollection.push(newObj);
+        scene.add(newObj);
+    }
     
     function MoveObjects(){
         for(var i = 0; i < objectsMoving.length; i++){
@@ -113,6 +137,7 @@ function TestTest(){
                 objectsMoving[i].rotation.set(rot.x,rot.y,rot.z);
                 objectsMoving[i].updateMatrix();
                 objectsMoving[i].updateMatrixWorld(true);
+                GenerateNewObject(objectsMoving[i], objectsMoving[i].userData.targetObject);
                 objectsMoving.splice(i,1);
                 i--;
             } 
@@ -165,20 +190,20 @@ function TestTest(){
     
     var loader = new THREE.VRMLLoader();
     
-    function loadModel(object, toCenterOfMass, connectionPoints){
+    function loadModel(object, centerOfMass, connectionPoints){
         //Extract the part of the Object3D containing the meshes
         var obj = new THREE.Object3D();
-        obj.translateX(toCenterOfMass.x);
-        obj.translateY(toCenterOfMass.y);
-        obj.translateZ(toCenterOfMass.z);
+        obj.translateX(centerOfMass.x);
+        obj.translateY(centerOfMass.y);
+        obj.translateZ(centerOfMass.z);
         obj.add(object.children[1]);
-        obj.children[0].translateX(-toCenterOfMass.x);
-        obj.children[0].translateY(-toCenterOfMass.y);
-        obj.children[0].translateZ(-toCenterOfMass.z);
+        obj.children[0].translateX(-centerOfMass.x);
+        obj.children[0].translateY(-centerOfMass.y);
+        obj.children[0].translateZ(-centerOfMass.z);
         obj.children.forEach(function(child) {
             saveColor(child);
         });
-        obj.toCenterOfMass = toCenterOfMass;
+        obj.centerOfMass = centerOfMass;
         obj.connectionPoints = connectionPoints;
         var scaleFactor = 0.3;
         obj.position.set(scaleFactor*(Math.random()*2 - 1), scaleFactor*(Math.random()*2 - 1), scaleFactor*(Math.random()*2 - 1));
@@ -192,7 +217,7 @@ function TestTest(){
         //Draw positions of the object's connection points and scale the vectors according to the object's scale
         for(var i = 0; i < connectionPoints.length; i++){
             var v = connectionPoints[i];
-            v.sub(toCenterOfMass);
+            v.sub(centerOfMass);
             //v.divideScalar(0.001);
             connectionPoints[i] = v;
 //            v = obj.localToWorld(v);
