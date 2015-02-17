@@ -13,7 +13,7 @@
            if(this.id === 'button_close'){
                $('#test').hide();
            } else {
-                testTest.ConnectObjects();
+                playmola.connectObjects();
                 $('#test').hide();
            }
        });
