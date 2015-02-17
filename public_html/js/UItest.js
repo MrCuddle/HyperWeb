@@ -11,6 +11,7 @@
        
        $('#test button').on('click', function(){
            if(this.id === 'button_close'){
+               playmola.cancelConnectObjects();
                $('#test').hide();
            } else {
                 playmola.connectObjects();

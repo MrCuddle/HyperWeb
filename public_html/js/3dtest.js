@@ -23,6 +23,7 @@ function Playmola(){
     var connectionMarker; //Sphere for visualising connection on target object
     
     var mousePos;
+    var disableControls = false;
     
     function init(){
         renderer = new THREE.WebGLRenderer({antialias:true});
@@ -155,22 +156,25 @@ function Playmola(){
         return sphere;
     }
     function intersectionTest(){
-        raycaster.setFromCamera(mousePos, camera);
-        var intersectionFound = null;
-        var distance = 1000000;
-        for(var i = 0; i < objectCollection.length; i++){
-            var intersect = raycaster.intersectObject(objectCollection[i],true);
-            if(intersect.length > 0){
-                if(intersect[0].distance < distance){
-                    distance = intersect[0].distance;
-                    intersectionFound = objectCollection[i];
+        //Only allow selection and deselection if the controls are enabled
+        if(!disableControls){
+            raycaster.setFromCamera(mousePos, camera);
+            var intersectionFound = null;
+            var distance = 1000000;
+            for(var i = 0; i < objectCollection.length; i++){
+                var intersect = raycaster.intersectObject(objectCollection[i],true);
+                if(intersect.length > 0){
+                    if(intersect[0].distance < distance){
+                        distance = intersect[0].distance;
+                        intersectionFound = objectCollection[i];
+                    }
                 }
             }
+            if(selectedObject !== null)
+                deselectObject();
+            if(intersectionFound !== null)
+                selectObject(intersectionFound);
         }
-        if(selectedObject !== null)
-            deselectObject();
-        if(intersectionFound !== null)
-            selectObject(intersectionFound);
     }
     function selectObject(object){
         selectedObject = object;
@@ -222,6 +226,9 @@ function Playmola(){
                 generateNewObject(movingObjects[i], movingObjects[i].userData.targetObject);
                 movingObjects.splice(i,1);
                 i--;
+                if(movingObjects.length == 0){
+                    disableControls = false;
+                }
             } 
         }
     }
@@ -291,14 +298,16 @@ function Playmola(){
             var mouseX = (mousePos.x + 1)/2 * window.innerWidth;
             var mouseY = -(mousePos.y - 1)/2 * window.innerHeight;
 
-            //$('#test').css('left', '' + mouseX + 'px').css('top', '' + mouseY + 'px').show();
-
-            self.connectObjects();
+            $('#test').css('left', '' + mouseX + 'px').css('top', '' + mouseY + 'px').show();
+            disableControls = true;
+            transformControls.detach(selectedObject);
+            foregroundScene.remove(connectionMarker);
+            //self.connectObjects();
         }
     }
     this.connectObjects = function(){
         selectedObject.userData.targetRotation = closestObject.quaternion.clone();
-        foregroundScene.remove(connectionMarker);
+        
         connectionMarker = null;
         var oldRotation = selectedObject.rotation.clone();
         selectedObject.rotation.copy(closestObject.rotation);
@@ -318,11 +327,16 @@ function Playmola(){
         movingObjects[movingObjects.length] = selectedObject;
         closestObject = null;
     }
+    this.cancelConnectObjects = function(){
+        disableControls = false;
+        selectObject(selectedObject);
+    }
     function logic() {
         moveObjects();
-        
         requestAnimationFrame(render);
-        cameraControls.update();
+        if(!disableControls){
+            cameraControls.update();
+        }
         transformControls.update();
     }
     function render(){
