@@ -421,6 +421,7 @@ function Playmola(){
         connectionPoint1 = null;
         connectionPoint2 = null;
         for(var i = 0; i < selectedObject.connectionPoints.length; i++){
+            
             var connectionClone = selectedObject.connectionPoints[i].position.clone();
             selectedObject.localToWorld(connectionClone);
             var selectedObjScreenPos = connectionClone;
