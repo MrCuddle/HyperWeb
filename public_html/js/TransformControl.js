@@ -250,15 +250,15 @@
 			XYZ: [
 				[ new THREE.Mesh( new THREE.OctahedronGeometry( 0.1, 0 ), new GizmoMaterial( { color: 0xffffff, opacity: 0.25 } ) ), [ 0, 0, 0 ], [ 0, 0, 0 ] ]
 			],
-			XY: [
-				[ new THREE.Mesh( new THREE.PlaneGeometry( 0.29, 0.29 ), new GizmoMaterial( { color: 0xffff00, opacity: 0.25 } ) ), [ 0.15, 0.15, 0 ] ]
-			],
-			YZ: [
-				[ new THREE.Mesh( new THREE.PlaneGeometry( 0.29, 0.29 ), new GizmoMaterial( { color: 0x00ffff, opacity: 0.25 } ) ), [ 0, 0.15, 0.15 ], [ 0, Math.PI/2, 0 ] ]
-			],
-			XZ: [
-				[ new THREE.Mesh( new THREE.PlaneGeometry( 0.29, 0.29 ), new GizmoMaterial( { color: 0xff00ff, opacity: 0.25 } ) ), [ 0.15, 0, 0.15 ], [ -Math.PI/2, 0, 0 ] ]
-			]
+//			XY: [
+//				[ new THREE.Mesh( new THREE.PlaneGeometry( 0.29, 0.29 ), new GizmoMaterial( { color: 0xffff00, opacity: 0.25 } ) ), [ 0.15, 0.15, 0 ] ]
+//			],
+//			YZ: [
+//				[ new THREE.Mesh( new THREE.PlaneGeometry( 0.29, 0.29 ), new GizmoMaterial( { color: 0x00ffff, opacity: 0.25 } ) ), [ 0, 0.15, 0.15 ], [ 0, Math.PI/2, 0 ] ]
+//			],
+//			XZ: [
+//				[ new THREE.Mesh( new THREE.PlaneGeometry( 0.29, 0.29 ), new GizmoMaterial( { color: 0xff00ff, opacity: 0.25 } ) ), [ 0.15, 0, 0.15 ], [ -Math.PI/2, 0, 0 ] ]
+//			]
 		};
 
 		this.pickerGizmos = {
@@ -274,15 +274,15 @@
 			XYZ: [
 				[ new THREE.Mesh( new THREE.OctahedronGeometry( 0.2, 0 ), new GizmoMaterial( { color: 0xffffff, opacity: 0.25 } ) ) ]
 			],
-			XY: [
-				[ new THREE.Mesh( new THREE.PlaneGeometry( 0.4, 0.4 ), new GizmoMaterial( { color: 0xffff00, opacity: 0.25 } ) ), [ 0.2, 0.2, 0 ] ]
-			],
-			YZ: [
-				[ new THREE.Mesh( new THREE.PlaneGeometry( 0.4, 0.4 ), new GizmoMaterial( { color: 0x00ffff, opacity: 0.25 } ) ), [ 0, 0.2, 0.2 ], [ 0, Math.PI/2, 0 ] ]
-			],
-			XZ: [
-				[ new THREE.Mesh( new THREE.PlaneGeometry( 0.4, 0.4 ), new GizmoMaterial( { color: 0xff00ff, opacity: 0.25 } ) ), [ 0.2, 0, 0.2 ], [ -Math.PI/2, 0, 0 ] ]
-			]
+//			XY: [
+//				[ new THREE.Mesh( new THREE.PlaneGeometry( 0.4, 0.4 ), new GizmoMaterial( { color: 0xffff00, opacity: 0.25 } ) ), [ 0.2, 0.2, 0 ] ]
+//			],
+//			YZ: [
+//				[ new THREE.Mesh( new THREE.PlaneGeometry( 0.4, 0.4 ), new GizmoMaterial( { color: 0x00ffff, opacity: 0.25 } ) ), [ 0, 0.2, 0.2 ], [ 0, Math.PI/2, 0 ] ]
+//			],
+//			XZ: [
+//				[ new THREE.Mesh( new THREE.PlaneGeometry( 0.4, 0.4 ), new GizmoMaterial( { color: 0xff00ff, opacity: 0.25 } ) ), [ 0.2, 0, 0.2 ], [ -Math.PI/2, 0, 0 ] ]
+//			]
 		};
 
 		this.setActivePlane = function ( axis, eye ) {
@@ -290,28 +290,28 @@
 			var tempMatrix = new THREE.Matrix4();
 			eye.applyMatrix4( tempMatrix.getInverse( tempMatrix.extractRotation( this.planes[ "XY" ].matrixWorld ) ) );
 
-			if ( axis == "X" ) {
-				this.activePlane = this.planes[ "XY" ];
-				if ( Math.abs(eye.y) > Math.abs(eye.z) ) this.activePlane = this.planes[ "XZ" ];
-			}
-
-			if ( axis == "Y" ){
-				this.activePlane = this.planes[ "XY" ];
-				if ( Math.abs(eye.x) > Math.abs(eye.z) ) this.activePlane = this.planes[ "YZ" ];
-			}
-
-			if ( axis == "Z" ){
-				this.activePlane = this.planes[ "XZ" ];
-				if ( Math.abs(eye.x) > Math.abs(eye.y) ) this.activePlane = this.planes[ "YZ" ];
-			}
+//			if ( axis == "X" ) {
+//				this.activePlane = this.planes[ "XY" ];
+//				if ( Math.abs(eye.y) > Math.abs(eye.z) ) this.activePlane = this.planes[ "XZ" ];
+//			}
+//
+//			if ( axis == "Y" ){
+//				this.activePlane = this.planes[ "XY" ];
+//				if ( Math.abs(eye.x) > Math.abs(eye.z) ) this.activePlane = this.planes[ "YZ" ];
+//			}
+//
+//			if ( axis == "Z" ){
+//				this.activePlane = this.planes[ "XZ" ];
+//				if ( Math.abs(eye.x) > Math.abs(eye.y) ) this.activePlane = this.planes[ "YZ" ];
+//			}
 
 			if ( axis == "XYZ" ) this.activePlane = this.planes[ "XYZE" ];
 
-			if ( axis == "XY" ) this.activePlane = this.planes[ "XY" ];
-
-			if ( axis == "YZ" ) this.activePlane = this.planes[ "YZ" ];
-
-			if ( axis == "XZ" ) this.activePlane = this.planes[ "XZ" ];
+//			if ( axis == "XY" ) this.activePlane = this.planes[ "XY" ];
+//
+//			if ( axis == "YZ" ) this.activePlane = this.planes[ "YZ" ];
+//
+//			if ( axis == "XZ" ) this.activePlane = this.planes[ "XZ" ];
 
 			this.hide();
 			this.show();
