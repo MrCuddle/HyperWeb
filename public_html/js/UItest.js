@@ -19,4 +19,8 @@
            }
        });
        
+       $('#button_schematic_mode').on('click', function(){
+           playmola.enterSchematicMode();
+       });
+       
    });

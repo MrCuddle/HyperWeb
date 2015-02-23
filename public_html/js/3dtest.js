@@ -15,6 +15,7 @@ function Playmola(){
     var raycaster;
     
     var movingObjects = [];
+    var connectionLines = [];
     var objectCollection = []; //Collection of all active objects in scene
     var selectedObject = null;
     var closestObject; // Target object of currently selected object
@@ -24,13 +25,63 @@ function Playmola(){
     
     var mousePos;
     var disableControls = false;
+    var schematicMode = false;
     
     function ConnectionPoint(position){
         this.position = new THREE.Vector3();
         this.position.copy(position);
         this.connectable = true;
+        this.connectedTo = null; //The ConnectionPoint this is connected to
+        this.parentObject = null; //The Object3D this is attached to
         this.coordinateSystem = new THREE.Matrix4();
-        this.coordinateSystem.makeBasis(new THREE.Vector3(1,0,0),new THREE.Vector3(0,1,0),new THREE.Vector3(0,0,1));
+        this.coordinateSystem.makeBasis(new THREE.Vector3(1,0,0),new THREE.Vector3(0,1,0),new THREE.Vector3(0,0,1)); //Default coordinate system
+    }
+    
+    function ConnectionLine(start,end){
+        var startPos = new THREE.Vector3();
+        var endPos = new THREE.Vector3();
+        
+        startPos = start.position.clone();
+        start.parentObject.localToWorld(startPos);
+        endPos = end.position.clone();
+        end.parentObject.localToWorld(endPos);
+        
+        
+        
+        var material = new THREE.LineBasicMaterial({
+                color: 0x000000
+        });
+
+        var geometry = new THREE.Geometry();
+       
+        
+        geometry.vertices.push(
+                startPos,
+                endPos
+        );
+
+        var line = new THREE.Line( geometry, material );
+        scene.add( line );
+        
+        this.update = function(){
+
+            startPos = start.position.clone();
+            start.parentObject.localToWorld(startPos);
+            endPos = end.position.clone();
+            end.parentObject.localToWorld(endPos);
+            
+            
+            var geometry = new THREE.Geometry();
+
+
+            geometry.vertices.push(
+                    startPos,
+                    endPos
+            );
+            scene.remove(line);
+            line = new THREE.Line(geometry, material);
+            scene.add(line);
+        }
     }
     
     function init(){
@@ -130,6 +181,7 @@ function Playmola(){
                 var v = connectionPoints[i].position;
                 v.sub(centerOfMass);
                 connectionPoints[i].position = v;
+                connectionPoints[i].parentObject = obj; //Record the Object3D this ConnectionPoint is attached to for future reference!
             }
         }
         function saveColor(object){
@@ -391,13 +443,18 @@ function Playmola(){
                 movingObjects[i].quaternion.copy(movingObjects[i].userData.targetQuaternion);
                 movingObjects[i].updateMatrix();
                 movingObjects[i].updateMatrixWorld(true);
-                generateNewObject(movingObjects[i], movingObjects[i].userData.targetObject);
+                if(movingObjects[i].userData.targetObject != null)
+                    generateNewObject(movingObjects[i], movingObjects[i].userData.targetObject);
                 movingObjects.splice(i,1);
                 i--;
                 if(movingObjects.length == 0){
                     disableControls = false;
                 }
-            } 
+            }
+            
+            for(var j = 0; j < connectionLines.length; j++){
+                connectionLines[j].update();
+            }
         }
     }
     function deselectObject(){
@@ -483,6 +540,11 @@ function Playmola(){
     this.connectObjects = function(){
         connectionMarker = null;
         if(connectionPoint1.connectable && connectionPoint2.connectable){
+            //Set up the logical connection:
+            connectionPoint1.connectedTo = (connectionPoint2.parent !== undefined) ? connectionPoint2.parent : connectionPoint2;
+            connectionPoint2.connectedTo = (connectionPoint1.parent !== undefined) ? connectionPoint1.parent : connectionPoint1;
+            
+            
             //selectedObject.userData.targetRotation = closestObject.quaternion.clone();
             var transform = connectionPoint1.coordinateSystem.clone();
             transform.multiplyMatrices(selectedObject.matrixWorld, transform);
@@ -503,11 +565,15 @@ function Playmola(){
             var cp1Clone = connectionPoint1.position.clone();
             var cp2Clone = connectionPoint2.position.clone();
             connectionPoint1.connectable = false;
-            if(connectionPoint1.parent !== undefined)
+            if(connectionPoint1.parent !== undefined){
                 connectionPoint1.parent.connectable = false;
+                connectionPoint1.parent.connectedTo = (connectionPoint2.parent !== undefined) ? connectionPoint2.parent : connectionPoint2;
+            }
             connectionPoint2.connectable = false;
-            if(connectionPoint2.parent !== undefined)
+            if(connectionPoint2.parent !== undefined){
                 connectionPoint2.parent.connectable = false;
+                connectionPoint2.parent.connectedTo = (connectionPoint1.parent !== undefined) ? connectionPoint1.parent : connectionPoint1;
+            }
             cp1Clone = selectedObject.localToWorld(cp1Clone);
             cp2Clone = closestObject.localToWorld(cp2Clone);
             var displacement = new THREE.Vector3(cp2Clone.x, cp2Clone.y, cp2Clone.z).sub(cp1Clone);
@@ -524,6 +590,51 @@ function Playmola(){
     this.cancelConnectObjects = function(){
         disableControls = false;
         selectObject(selectedObject);
+    }
+    this.enterSchematicMode = function(){
+        //Loop through all objects and scale down
+        for(var i = 0; i < objectCollection.length; i++){
+            if(objectCollection[i].group === undefined){
+                //Do nothing, since this isn't a group
+            } else {
+                //This is a group, move objects apart along the axes of their connection points
+                //Start with one object and traverse connections:
+                schematicPushApart(objectCollection[i].children[0], null, new THREE.Vector3(0,0,0));
+            }
+        }
+    }
+    
+    //CONNECTION LOOPS ARE NOT ALLOWED!
+    function schematicPushApart(obj, prevObj, accumulatedTranslation){
+
+        obj.userData.targetQuaternion = obj.quaternion.clone();
+        obj.userData.targetPosition = obj.position.clone().add(accumulatedTranslation);
+        obj.userData.targetObject = null;
+        movingObjects.push(obj);
+
+        for(var i = 0; i < obj.connectionPoints.length; i++){
+            //Skip the object we came from
+            if(obj.connectionPoints[i].connectable ||obj.connectionPoints[i].connectedTo.parentObject === prevObj)
+                continue;
+            
+            //Create a pretty line:
+            connectionLines.push(new ConnectionLine(obj.connectionPoints[i],obj.connectionPoints[i].connectedTo));
+            
+            var translation = new THREE.Vector3();
+            var y = new THREE.Vector3();
+            var z = new THREE.Vector3();
+            obj.connectionPoints[i].coordinateSystem.extractBasis(translation,y,z);
+            translation.multiplyScalar(0.2);
+            var m = new THREE.Matrix4();
+            m.extractRotation(obj.matrix)
+            translation.applyMatrix4(m);
+            translation.add(accumulatedTranslation);
+            schematicPushApart(obj.connectionPoints[i].connectedTo.parentObject, obj,translation);
+        }
+    }
+    
+    this.exitSchematicMode = function(){
+        
     }
     function logic() {
         moveObjects();
