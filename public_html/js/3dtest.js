@@ -48,8 +48,8 @@ function Playmola(){
         
         
         
-        var material = new THREE.LineBasicMaterial({
-                color: 0x000000
+        var material = new THREE.LineDashedMaterial({
+                color: 0x000000, linewidth: 2, dashSize: 0.001, scale: 5
         });
 
         var geometry = new THREE.Geometry();
@@ -60,7 +60,7 @@ function Playmola(){
                 endPos
         );
 
-        var line = new THREE.Line( geometry, material );
+        var line = new THREE.Line( geometry, material, THREE.LineStrip );
         scene.add( line );
         
         this.update = function(){
@@ -92,7 +92,7 @@ function Playmola(){
         document.querySelector("#container").appendChild(renderer.domElement);
 
         camera = new THREE.PerspectiveCamera(45,window.innerWidth/window.innerHeight,0.1,1000);
-        camera.position.set(0.2,0,0.5);
+        camera.position.set(200,0,50);
         
         createCameraControls();
         
@@ -172,6 +172,8 @@ function Playmola(){
             obj.rotation.set(Math.random()*Math.PI*2, Math.random()*Math.PI*2, Math.random()*Math.PI*2);
             objectCollection.push(obj);
             scene.add(obj);
+            
+            obj.scale.set(100,100,100);
 
             obj.updateMatrixWorld(true);
             obj.updateMatrix();
