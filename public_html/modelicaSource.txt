@@ -1,0 +1,75 @@
+model Furuta \"Furuta pendulum with 3D animation\"
+
+  inner Modelica.Mechanics.MultiBody.World world
+                              annotation (Placement(transformation(extent={{-80,
+            0},{-60,20}}, rotation=0)));
+  Modelica.Mechanics.MultiBody.Joints.Revolute R1(
+    n={0,1,0},
+    a(fixed=false),
+    phi(fixed=true),
+    w(fixed=true))
+    annotation (Placement(transformation(
+        origin={-50,50},
+        extent={{-10,-10},{10,10}},
+        rotation=90)));
+  Modelica.Mechanics.MultiBody.Parts.BodyBox B1(color={255,0,0}, r={0.5,0,0})
+    annotation (Placement(transformation(extent={{-30,60},{-10,80}}, rotation=0)));
+  Modelica.Mechanics.MultiBody.Joints.Revolute R2(
+    n={1,0,0},
+    a(fixed=false),
+    w(fixed=true),
+    phi(
+      fixed=true,
+      start=2,
+      displayUnit=\"rad\")) annotation (Placement(transformation(extent={{0,60},{
+            20,80}}, rotation=0)));
+  Modelica.Mechanics.MultiBody.Parts.BodyBox B2(color={0,180,0}, r={0,-0.5,0})
+    annotation (Placement(transformation(
+        origin={30,30},
+        extent={{-10,-10},{10,10}},
+        rotation=270)));
+  Modelica.Mechanics.MultiBody.Joints.Revolute R3(
+    n={1,0,0},
+    a(fixed=false),
+    phi(fixed=true),
+    w(fixed=true))        annotation (Placement(transformation(extent={{40,-20},
+            {60,0}}, rotation=0)));
+  Modelica.Mechanics.MultiBody.Parts.BodyBox B3(color={0,0,255}, r={0,-0.5,0})
+    annotation (Placement(transformation(
+        origin={70,-50},
+        extent={{-10,-10},{10,10}},
+        rotation=270)));
+equation 
+  connect(R3.frame_b, B3.frame_a) annotation (Line(
+      points={{60,-10},{70,-10},{70,-40}},
+      color={0,0,0},
+      thickness=0.5));
+  connect(world.frame_b, R1.frame_a) annotation (Line(
+      points={{-60,10},{-50,10},{-50,40}},
+      color={0,0,0},
+      thickness=0.5));
+  connect(R1.frame_b, B1.frame_a) annotation (Line(
+      points={{-50,60},{-50,70},{-30,70}},
+      color={0,0,0},
+      thickness=0.5));
+  connect(B1.frame_b, R2.frame_a) annotation (Line(
+      points={{-10,70},{0,70}},
+      color={0,0,0},
+      thickness=0.5));
+  connect(R2.frame_b, B2.frame_a) annotation (Line(
+      points={{20,70},{30,70},{30,40}},
+      color={0,0,0},
+      thickness=0.5));
+  connect(B2.frame_b, R3.frame_a) annotation (Line(
+      points={{30,20},{30,-10},{40,-10}},
+      color={0,0,0},
+      thickness=0.5));
+  annotation (
+    uses(Modelica(version=\"3.2.1\")),
+    version=\"2.0.1\",
+    versionDate=\"2014-02-04\",
+    Dymola(checkSum=\"547553467:2050110470\"),
+    Commands(file=\"Furuta.mos\" \"Simulate Furuta pendulum\", file=\"Animate.mos\" 
+        \"Animate Furuta pendulum\"),
+    experiment(StopTime=25));
+end Furuta;

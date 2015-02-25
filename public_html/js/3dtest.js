@@ -104,6 +104,27 @@ function Playmola(){
         scene.add(camera);
         scene.add(transformControls);
         foregroundScene = new THREE.Scene();
+        
+//DymolaInterface Testkod!!
+//        var interface;
+//        try{
+//            interface = new DymolaInterface();
+//            var source;
+//            var request = new XMLHttpRequest();
+//            request.open("GET", "modelicaSource.txt", false);
+//            request.send(null);
+//            source = request.responseText;
+//            
+//            var result = interface.setClassText("", source);
+//            interface.RunAnimation(false);
+//            interface.simulateModel("Furuta",0,600000,0,0,"Dassl", 0.0001,0.0, "dsres");
+//            interface.exportAnimation("D:/WebGL/HTML5ApplicationTest/HyperWeb/blabla2.wrl");
+//            
+//        }
+//        catch(err)
+//        {
+//            console.log(err.message);
+//        }
 
         var directionalLight = new THREE.DirectionalLight();
         directionalLight.position.set(0,0,-1);
