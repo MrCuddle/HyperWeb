@@ -19,8 +19,19 @@
            }
        });
        
+       
+       var schematicMode = false;
        $('#button_schematic_mode').on('click', function(){
-           playmola.enterSchematicMode();
+            if(schematicMode === false){
+                playmola.enterSchematicMode();
+                $('#button_schematic_mode').html('3D Mode');
+                schematicMode = true;
+            }
+            else {
+                playmola.exitSchematicMode();
+                $('#button_schematic_mode').html('Schematic Mode');
+                schematicMode = false;
+            }
        });
        
    });
