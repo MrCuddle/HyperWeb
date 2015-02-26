@@ -94,11 +94,13 @@ function Playmola(){
         camera = new THREE.PerspectiveCamera(45,window.innerWidth/window.innerHeight,0.1,1000);
         camera.position.set(50,0,0);
         
-        createCameraControls();
+       
         
         transformControls = new THREE.TransformControls( camera, renderer.domElement );
         transformControls.addEventListener( 'objectChange', checkForConnections );
         transformControls.addEventListener('mouseUp', onMouseUp );
+        
+       
         
         scene = new THREE.Scene();
         scene.add(camera);
@@ -147,8 +149,22 @@ function Playmola(){
         mousePos = new THREE.Vector2(-1,-1);
         
         window.addEventListener('mousemove', onMouseMove, false);
-        window.addEventListener('click', intersectionTest, false);
-        window.addEventListener( 'resize', onWindowResize, false );
+        $(document).on('mousedown', function(event){
+            if(intersectionTest() === true){
+                event.preventDefault();
+                event.stopImmediatePropagation();
+                event.stopPropagation();
+                return false;
+            }
+        });
+        //$(transformControls).on('mouseDown', intersectionTest);
+//        $(cameraControls).on('start', function(){
+//            var blah = true;
+//        });
+        window.addEventListener('resize', onWindowResize, false);
+        
+
+        createCameraControls();
 			
     }
     
@@ -238,6 +254,7 @@ function Playmola(){
         sphere.position.set(x,y,z);
         return sphere;
     }
+    //Returns true if an intersection was found, false otherwise
     function intersectionTest(){
         //Only allow selection and deselection if the controls are enabled
         if(!disableControls){
@@ -253,17 +270,30 @@ function Playmola(){
                     }
                 }
             }
-            if(selectedObject !== null)
+            //Don't reselect the currently selected object
+            if(intersectionFound === selectedObject && selectedObject !== null){
+                transformControls.forceDrag();
+                return true;
+            }
+            //Deselect the selected object if there is one
+            if(selectedObject !== null) 
                 deselectObject();
-            if(intersectionFound !== null)
+            //Select the new object
+            if(intersectionFound !== null){
                 selectObject(intersectionFound);
+                transformControls.forceDrag();
+                return true;
+            }
+            return false;
         }
     }
     function selectObject(object){
         selectedObject = object;
         transformControls.attach(selectedObject);
         transformControls.setMode("translate");
-        transformControls.setSpace("local");
+        transformControls.setSpace("world");
+        
+        
         selectedObject.traverse(function(child){
             if(child instanceof THREE.Mesh)
                  child.material.color = new THREE.Color(0xB0E2FF);
@@ -461,7 +491,7 @@ function Playmola(){
             movingObjects[i].updateMatrix();
             movingObjects[i].updateMatrixWorld(true);
             
-            if(movingObjects[i].position.distanceTo(movingObjects[i].userData.targetPosition) < 0.001){
+            if(movingObjects[i].position.distanceTo(movingObjects[i].userData.targetPosition) < 0.1){
                 movingObjects[i].position.copy(movingObjects[i].userData.targetPosition);
                 movingObjects[i].quaternion.copy(movingObjects[i].userData.targetQuaternion);
                 movingObjects[i].updateMatrix();

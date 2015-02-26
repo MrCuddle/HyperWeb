@@ -97,7 +97,7 @@
 
 			//// PLANES
 
-			var planeGeometry = new THREE.PlaneGeometry( 50, 50, 2, 2 );
+			var planeGeometry = new THREE.PlaneGeometry( 500, 500, 2, 2 );
 			var planeMaterial = new THREE.MeshBasicMaterial( { wireframe: true } );
 			planeMaterial.side = THREE.DoubleSide;
 
@@ -249,7 +249,7 @@
 			],
 			XYZ: [
 				[ new THREE.Mesh( new THREE.OctahedronGeometry( 0.1, 0 ), new GizmoMaterial( { color: 0xffffff, opacity: 0.25 } ) ), [ 0, 0, 0 ], [ 0, 0, 0 ] ]
-			],
+			]
 //			XY: [
 //				[ new THREE.Mesh( new THREE.PlaneGeometry( 0.29, 0.29 ), new GizmoMaterial( { color: 0xffff00, opacity: 0.25 } ) ), [ 0.15, 0.15, 0 ] ]
 //			],
@@ -273,7 +273,7 @@
 			],
 			XYZ: [
 				[ new THREE.Mesh( new THREE.OctahedronGeometry( 0.2, 0 ), new GizmoMaterial( { color: 0xffffff, opacity: 0.25 } ) ) ]
-			],
+			]
 //			XY: [
 //				[ new THREE.Mesh( new THREE.PlaneGeometry( 0.4, 0.4 ), new GizmoMaterial( { color: 0xffff00, opacity: 0.25 } ) ), [ 0.2, 0.2, 0 ] ]
 //			],
@@ -572,6 +572,7 @@
 		var _dragging = false;
 		var _mode = "translate";
 		var _plane = "XY";
+                var _forcedrag = false;
 
 		var changeEvent = { type: "change" };
 		var mouseDownEvent = { type: "mouseDown" };
@@ -631,6 +632,10 @@
 		domElement.addEventListener( "touchend", onPointerUp, false );
 		domElement.addEventListener( "touchcancel", onPointerUp, false );
 		domElement.addEventListener( "touchleave", onPointerUp, false );
+
+                this.forceDrag = function () {
+                    _forcedrag = true;
+                };
 
 		this.attach = function ( object ) {
 
@@ -724,7 +729,9 @@
 
 		function onPointerHover( event ) {
 
-			if ( scope.object === undefined || _dragging === true ) return;
+			if ( scope.object === undefined || _dragging === true ) {
+                            return;
+                        }
 
 			event.preventDefault();
 
@@ -754,8 +761,8 @@
 
 			if ( scope.object === undefined || _dragging === true ) return;
 
-			event.preventDefault();
-			event.stopPropagation();
+			//event.preventDefault();
+			//event.stopPropagation();
 
 			var pointer = event.changedTouches ? event.changedTouches[ 0 ] : event;
 
@@ -765,7 +772,8 @@
 
 				if ( intersect ) {
 
-					scope.dispatchEvent( mouseDownEvent );
+					event.preventDefault();
+                                        event.stopPropagation();
 
 					scope.axis = intersect.object.name;
 
@@ -787,6 +795,8 @@
 					parentScale.setFromMatrixScale( tempMatrix.getInverse( scope.object.parent.matrixWorld ) );
 
 					offset.copy( planeIntersect.point );
+                                        
+                                        scope.dispatchEvent( mouseDownEvent );
 
 				}
 
@@ -797,6 +807,37 @@
 		}
 
 		function onPointerMove( event ) {
+
+                        if(_forcedrag){
+                            
+                            var pointer = event.changedTouches ? event.changedTouches[ 0 ] : event;
+                            event.preventDefault();
+                            event.stopPropagation();
+
+                            scope.axis = "XYZ";
+
+                            scope.update();
+
+                            eye.copy( camPosition ).sub( worldPosition ).normalize();
+
+                            scope.gizmo[_mode].setActivePlane( scope.axis, eye );
+
+                            var planeIntersect = intersectObjects( pointer, [scope.gizmo[_mode].activePlane] );
+
+                            oldPosition.copy( scope.object.position );
+                            oldScale.copy( scope.object.scale );
+
+                            oldRotationMatrix.extractRotation( scope.object.matrix );
+                            worldRotationMatrix.extractRotation( scope.object.matrixWorld );
+
+                            parentRotationMatrix.extractRotation( scope.object.parent.matrixWorld );
+                            parentScale.setFromMatrixScale( tempMatrix.getInverse( scope.object.parent.matrixWorld ) );
+
+                            offset.copy( planeIntersect.point );
+                            _dragging = true;
+                            _forcedrag = false;
+
+                        }
 
 			if ( scope.object === undefined || scope.axis === null || _dragging === false ) return;
 
@@ -972,6 +1013,7 @@
 				scope.dispatchEvent( mouseUpEvent )
 			}
 			_dragging = false;
+                        _forcedrag = false;
 			onPointerHover( event );
 
 		}
