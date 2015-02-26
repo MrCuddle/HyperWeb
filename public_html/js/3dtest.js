@@ -204,7 +204,7 @@ function Playmola(){
             });
             obj.centerOfMass = centerOfMass;
             obj.connectionPoints = connectionPoints;
-            var scaleFactor = 20;
+            var scaleFactor = 200;
             obj.position.set(scaleFactor*(Math.random()*2 - 1), scaleFactor*(Math.random()*2 - 1), scaleFactor*(Math.random()*2 - 1));
             obj.rotation.set(Math.random()*Math.PI*2, Math.random()*Math.PI*2, Math.random()*Math.PI*2);
             objectCollection.push(obj);
@@ -230,18 +230,62 @@ function Playmola(){
                 saveColor(child);
             });
         }
-        loader.load("Piston_Study.wrl", function(object){
-            loadModel(object, new THREE.Vector3(0.,-0.15149054405043,0.), new Array(new ConnectionPoint(new THREE.Vector3(0.,-0.14420647088485,0.))));
+//        loader.load("Piston_Study.wrl", function(object){
+//            loadModel(object, new THREE.Vector3(0.,-0.15149054405043,0.), new Array(new ConnectionPoint(new THREE.Vector3(0.,-0.14420647088485,0.))));
+//        });
+//        loader.load("Master_One_Cylinder.wrl", function(object){
+//            loadModel(object, new THREE.Vector3(-4.5e-2,0.,0.), new Array(new ConnectionPoint(new THREE.Vector3(-4.5e-2,0.,0.))));
+//        });
+//        loader.load("Rod_Study.wrl", function(object){
+//            loadModel(object, new THREE.Vector3(0.,-8.9431700693962e-2,2.4489282256523e-2), new Array(new ConnectionPoint(new THREE.Vector3(0.,-3.465692988818e-2,4.8978561933508e-2)), new ConnectionPoint(new THREE.Vector3(0.,-0.14420647088485,0.))));
+//        });
+//        loader.load("Cranck_Study.wrl", function(object){
+//            loadModel(object, new THREE.Vector3(-2.7054598934035e-2,-9.0702960410631e-3,1.2818607418443e-2), new Array(new ConnectionPoint(new THREE.Vector3(0.,-3.465692988818e-2,4.8978561933508e-2)), new ConnectionPoint(new THREE.Vector3(-4.5e-2,0.,0.))));
+//        });
+        
+        
+        loader.load("models/robot/b0.wrl", function(object){
+            loadModel(object, new THREE.Vector3(0,0,0), new Array(new ConnectionPoint(new THREE.Vector3(0,0.351,0)),new ConnectionPoint(new THREE.Vector3(0,0,0))));
         });
-        loader.load("Master_One_Cylinder.wrl", function(object){
-            loadModel(object, new THREE.Vector3(-4.5e-2,0.,0.), new Array(new ConnectionPoint(new THREE.Vector3(-4.5e-2,0.,0.))));
+        loader.load("models/robot/b1.wrl", function(object){
+            loadModel(object, new THREE.Vector3(0,0,0), new Array(new ConnectionPoint(new THREE.Vector3(0,0.324,0.3)),new ConnectionPoint(new THREE.Vector3(0,0,0))));
         });
-        loader.load("Rod_Study.wrl", function(object){
-            loadModel(object, new THREE.Vector3(0.,-8.9431700693962e-2,2.4489282256523e-2), new Array(new ConnectionPoint(new THREE.Vector3(0.,-3.465692988818e-2,4.8978561933508e-2)), new ConnectionPoint(new THREE.Vector3(0.,-0.14420647088485,0.))));
+        loader.load("models/robot/b2.wrl", function(object){
+            loadModel(object, new THREE.Vector3(0.172,0.205,0), new Array(new ConnectionPoint(new THREE.Vector3(0,0.65,0)),new ConnectionPoint(new THREE.Vector3(0,0,0))));
         });
-        loader.load("Cranck_Study.wrl", function(object){
-            loadModel(object, new THREE.Vector3(-2.7054598934035e-2,-9.0702960410631e-3,1.2818607418443e-2), new Array(new ConnectionPoint(new THREE.Vector3(0.,-3.465692988818e-2,4.8978561933508e-2)), new ConnectionPoint(new THREE.Vector3(-4.5e-2,0.,0.))));
+        loader.load("models/robot/b3.wrl", function(object){
+            loadModel(object, new THREE.Vector3(0.064,-0.034,0), new Array(new ConnectionPoint(new THREE.Vector3(0,0.414,-0.155)),new ConnectionPoint(new THREE.Vector3(0,0,0))));
         });
+        loader.load("models/robot/b4.wrl", function(object){
+            loadModel(object, new THREE.Vector3(0,0,0), new Array(new ConnectionPoint(new THREE.Vector3(0,0.186,0)),new ConnectionPoint(new THREE.Vector3(0,0,0))));
+        });
+        loader.load("models/robot/b5.wrl", function(object){
+            loadModel(object, new THREE.Vector3(0,0,0), new Array(new ConnectionPoint(new THREE.Vector3(0,0.125,0)),new ConnectionPoint(new THREE.Vector3(0,0,0))));
+        });
+        loader.load("models/robot/b6.wrl", function(object){
+            loadModel(object, new THREE.Vector3(0.05,0.05,0.05), new Array(new ConnectionPoint(new THREE.Vector3(0,0,0))));
+        });
+        try{
+            interface = new DymolaInterface();
+            //var result = interface.Dymola_AST_ComponentsInClass("Furuta");
+            var result = interface.exportWebGL("Modelica.Mechanics.MultiBody.Joints.Revolute");
+            //var componentText = interface.ModelManagement_Structure_AST_GetComponentText("Furuta","R1", true);
+            //result = result.replace(/scene/g, 'foregroundScene');
+            //$(document.body).append("<p>"+text+"</p>");
+            eval(result);
+//            var source;
+//            var request = new XMLHttpRequest();
+//            request.open("GET", "modelicaSource.txt", false);
+//            request.send(null);
+//            source = request.responseText;
+            
+//            var result = interface.setClassText("", source);
+//            interface.RunAnimation(false);
+          }
+          catch(err)
+          {
+              console.log(err.message);
+          }
     }
     function onMouseMove(event) {
 	mousePos.x = ( event.clientX / window.innerWidth ) * 2 - 1;
@@ -724,3 +768,27 @@ function Playmola(){
 }
 
 var playmola = new Playmola();
+
+//(function test()
+//{
+//    var renderer;
+//    var camera;
+//    var scene; 
+//    
+//    renderer = new THREE.WebGLRenderer({antialias:true});
+//    renderer.setClearColor( 0x7EC0EE, 1 );
+//    renderer.setSize(window.innerWidth, window.innerHeight);
+//    document.querySelector("#container").appendChild(renderer.domElement);
+//    
+//    camera = new THREE.PerspectiveCamera(45,window.innerWidth/window.innerHeight,0.1,1000);
+//    camera.position.set(40,0,120);
+//    
+//    scene = new THREE.Scene();
+//    scene.add(camera);
+//    
+//    var interface = new DymolaInterface();
+//    var result = interface.exportWebGL("Modelica.Mechanics.MultiBody.Joints.Revolute", true);
+//    eval(result);
+//    renderer.clear();
+//    renderer.render(scene,camera);
+//})();
