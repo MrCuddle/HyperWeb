@@ -573,6 +573,7 @@
 		var _mode = "translate";
 		var _plane = "XY";
                 var _forcedrag = false;
+                var _SSdrag = false;
 
 		var changeEvent = { type: "change" };
 		var mouseDownEvent = { type: "mouseDown" };
@@ -584,6 +585,7 @@
 
 		var point = new THREE.Vector3();
 		var offset = new THREE.Vector3();
+                var SSoffset = new THREE.Vector2();
 
 		var rotation = new THREE.Vector3();
 		var offsetRotation = new THREE.Vector3();
@@ -833,11 +835,34 @@
                             parentRotationMatrix.extractRotation( scope.object.parent.matrixWorld );
                             parentScale.setFromMatrixScale( tempMatrix.getInverse( scope.object.parent.matrixWorld ) );
 
+                            var rect = domElement.getBoundingClientRect();
+//			var x = ( pointer.clientX - rect.left ) / rect.width;
+//			var y = ( pointer.clientY - rect.top ) / rect.height;
+//
+//			pointerVector.set( ( x * 2 ) - 1, - ( y * 2 ) + 1, 0.5 );
+//			pointerVector.unproject( camera );
+//
+//			ray.set( camPosition, pointerVector.sub( camPosition ).normalize() );
+//
+//			var intersections = ray.intersectObjects( objects, true );
+//			return intersections[0] ? intersections[0] : false;
+
+                            var selectedObjScreenPos = scope.object.position.clone();
+                            selectedObjScreenPos = selectedObjScreenPos.project(camera);
+                            selectedObjScreenPos.x = ( selectedObjScreenPos.x * rect.width/2 ) + rect.width/2;
+                            selectedObjScreenPos.y = - ( selectedObjScreenPos.y * rect.height/2 ) + rect.height/2;
+                            
+                            SSoffset.set(selectedObjScreenPos.x - pointer.clientX,selectedObjScreenPos.y - pointer.clientY);
+
                             offset.copy( planeIntersect.point );
                             _dragging = true;
                             _forcedrag = false;
+                            
 
                         }
+                        
+                        
+                        
 
 			if ( scope.object === undefined || scope.axis === null || _dragging === false ) return;
 
@@ -845,14 +870,13 @@
 			event.stopPropagation();
 
 			var pointer = event.changedTouches? event.changedTouches[0] : event;
-
-			var planeIntersect = intersectObjects( pointer, [scope.gizmo[_mode].activePlane] );
+                        var planeIntersect = intersectObjects( pointer, [scope.gizmo[_mode].activePlane] );
 
 			point.copy( planeIntersect.point );
 
 			if ( _mode == "translate" ) {
 
-				point.sub( offset );
+                                point.sub( offset );
 				point.multiply(parentScale);
 
 				if ( scope.space == "local" ) {
