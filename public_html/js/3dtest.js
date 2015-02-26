@@ -15,7 +15,8 @@ function Playmola(){
     var raycaster;
     
     var movingObjects = [];
-    var connectionLines = [];
+    var connectionLines = []; //To be removed
+    var joints = [];
     var objectCollection = []; //Collection of all active objects in scene
     var selectedObject = null;
     var closestObject; // Target object of currently selected object
@@ -37,14 +38,62 @@ function Playmola(){
         this.coordinateSystem.makeBasis(new THREE.Vector3(1,0,0),new THREE.Vector3(0,1,0),new THREE.Vector3(0,0,1)); //Default coordinate system
     }
     
-    function ConnectionLine(start,end){
+    function Joint(){
+        THREE.Object3D.call( this );
+        
+        this.connectionA = null;
+        this.connectionB = null;
+        var self = this;
+        var lineA = null;
+        var lineB = null;
+        
+        function init(){
+            self.visible = false;
+            var geometry = new THREE.CylinderGeometry( 1, 1, 2, 32 );
+            var material = new THREE.MeshBasicMaterial( {color: 0xffff00} );
+            var cylinder = new THREE.Mesh( geometry, material );
+            self.add(cylinder);
+            
+        }
+        
+        //Return the ConnectionPoint on the "other" side of the joint
+        this.getConnection = function(connectionPoint){
+            if(connectionPoint === self.connectionA)
+                return self.connectionB;
+            if(connectionPoint === self.connectionB)
+                return self.connectionA;
+            return null;
+        }
+        
+        this.makeLines = function(){
+            self.lineA = new ConnectionLine(self.connectionA,self);
+            self.lineB = new ConnectionLine(self.connectionB,self);
+        }
+        
+        this.update = function(){
+            if(self.lineA !== null){
+                self.lineA.update();
+            }
+            if(self.lineB !== null){
+                self.lineB.update();
+            }
+        }
+        
+        init();
+    }
+    
+    Joint.prototype = Object.create( THREE.Object3D.prototype );
+    
+    function ConnectionLine(connectionPoint, joint){
         var startPos = new THREE.Vector3();
         var endPos = new THREE.Vector3();
         
-        startPos = start.position.clone();
-        start.parentObject.localToWorld(startPos);
-        endPos = end.position.clone();
-        end.parentObject.localToWorld(endPos);
+        startPos = connectionPoint.position.clone();
+        
+        connectionPoint.parentObject.localToWorld(startPos);
+        joint.worldToLocal(startPos)
+        endPos = joint.position.clone();
+        //joint.localToWorld(endPos);
         
         
         var material = new THREE.LineBasicMaterial({
@@ -60,15 +109,15 @@ function Playmola(){
         );
 
         var line = new THREE.Line( geometry, material);
-        scene.add( line );
+        line.position.sub(joint.position);
+        joint.add( line );
         
         this.update = function(){
 
-            startPos = start.position.clone();
-            start.parentObject.localToWorld(startPos);
-            endPos = end.position.clone();
-            end.parentObject.localToWorld(endPos);
-            
+            startPos = connectionPoint.position.clone();
+            connectionPoint.parentObject.localToWorld(startPos);
+            endPos = joint.position.clone();
+            //joint.localToWorld(endPos);
             
             var geometry = new THREE.Geometry();
 
@@ -77,11 +126,13 @@ function Playmola(){
                     startPos,
                     endPos
             );
-            scene.remove(line);
+            joint.remove(line);
             line = new THREE.Line(geometry, material );
-            scene.add(line);
+            line.position.sub(joint.position);
+            joint.add(line);
 
         }
+        
     }
     
     function init(){
@@ -552,8 +603,8 @@ function Playmola(){
             
         }
         
-        for(var j = 0; j < connectionLines.length; j++){
-            connectionLines[j].update();
+        for(var j = 0; j < joints.length; j++){
+            joints[j].update();
         }
     }
     function deselectObject(){
@@ -640,8 +691,34 @@ function Playmola(){
         connectionMarker = null;
         if(connectionPoint1.connectable && connectionPoint2.connectable){
             //Set up the logical connection:
-            connectionPoint1.connectedTo = (connectionPoint2.parent !== undefined) ? connectionPoint2.parent : connectionPoint2;
-            connectionPoint2.connectedTo = (connectionPoint1.parent !== undefined) ? connectionPoint1.parent : connectionPoint1;
+            
+            var joint = new Joint();
+            scene.add(joint);
+            
+            joint.visible = false;
+           
+            connectionPoint1.connectedTo = joint;
+            connectionPoint2.connectedTo = joint;
+            joint.connectionA = (connectionPoint1.parent !== undefined) ? connectionPoint1.parent : connectionPoint1;
+            joint.connectionB = (connectionPoint2.parent !== undefined) ? connectionPoint2.parent : connectionPoint2;
+            connectionPoint1.connectable = false;
+            if(connectionPoint1.parent !== undefined){
+                connectionPoint1.parent.connectable = false;
+                connectionPoint1.parent.connectedTo = joint;
+            }
+            connectionPoint2.connectable = false;
+            if(connectionPoint2.parent !== undefined){
+                connectionPoint2.parent.connectable = false;
+                connectionPoint2.parent.connectedTo = joint;
+            }
+            
+            joint.makeLines();
+            var temp = connectionPoint1.position.clone();
+            selectedObject.localToWorld(temp);
+           //Move the joint:
+            joint.position.copy(temp);
+            
+            joints.push(joint);
             
             
             //selectedObject.userData.targetRotation = closestObject.quaternion.clone();
@@ -663,16 +740,7 @@ function Playmola(){
             selectedObject.updateMatrixWorld(true);
             var cp1Clone = connectionPoint1.position.clone();
             var cp2Clone = connectionPoint2.position.clone();
-            connectionPoint1.connectable = false;
-            if(connectionPoint1.parent !== undefined){
-                connectionPoint1.parent.connectable = false;
-                connectionPoint1.parent.connectedTo = (connectionPoint2.parent !== undefined) ? connectionPoint2.parent : connectionPoint2;
-            }
-            connectionPoint2.connectable = false;
-            if(connectionPoint2.parent !== undefined){
-                connectionPoint2.parent.connectable = false;
-                connectionPoint2.parent.connectedTo = (connectionPoint1.parent !== undefined) ? connectionPoint1.parent : connectionPoint1;
-            }
+            
             cp1Clone = selectedObject.localToWorld(cp1Clone);
             cp2Clone = closestObject.localToWorld(cp2Clone);
             var displacement = new THREE.Vector3(cp2Clone.x, cp2Clone.y, cp2Clone.z).sub(cp1Clone);
@@ -701,6 +769,12 @@ function Playmola(){
                 schematicPushApart(objectCollection[i].children[0], null, new THREE.Vector3(0,0,0));
             }
         }
+        
+//        for(var i = 0; i < joints.length; i++){
+//            joints[i].visible = true;
+//        }
+        
+        
     }
     
     //CONNECTION LOOPS ARE NOT ALLOWED!
@@ -714,11 +788,10 @@ function Playmola(){
 
         for(var i = 0; i < obj.connectionPoints.length; i++){
             //Skip the object we came from
-            if(obj.connectionPoints[i].connectable ||obj.connectionPoints[i].connectedTo.parentObject === prevObj)
+            if(obj.connectionPoints[i].connectable ||obj.connectionPoints[i].connectedTo.getConnection(obj.connectionPoints[i]).parentObject === prevObj)
                 continue;
             
-            //Create a pretty line:
-            connectionLines.push(new ConnectionLine(obj.connectionPoints[i],obj.connectionPoints[i].connectedTo));
+            
             
             var translation = new THREE.Vector3();
             var y = new THREE.Vector3();
@@ -728,8 +801,28 @@ function Playmola(){
             var m = new THREE.Matrix4();
             m.extractRotation(obj.matrix)
             translation.applyMatrix4(m);
+            
+            
+            var temp = obj.connectionPoints[i].position.clone();
+            obj.localToWorld(temp);
+           //Move the joint:
+            obj.connectionPoints[i].connectedTo.position.copy(temp);
+            obj.connectionPoints[i].connectedTo.userData.oldPosition = temp.clone();
+            obj.connectionPoints[i].connectedTo.visible = true;
+            obj.connectionPoints[i].connectedTo.userData.targetQuaternion = obj.connectionPoints[i].connectedTo.quaternion.clone();
+            var halfTranslation = translation.clone();
+            halfTranslation.multiplyScalar(0.5);
+            halfTranslation.add(accumulatedTranslation);
+            obj.connectionPoints[i].connectedTo.userData.targetPosition = obj.connectionPoints[i].connectedTo.position.clone().add(halfTranslation);
+            movingObjects.push(obj.connectionPoints[i].connectedTo);
+            
             translation.add(accumulatedTranslation);
-            schematicPushApart(obj.connectionPoints[i].connectedTo.parentObject, obj,translation);
+            
+            
+            
+            
+            
+            schematicPushApart(obj.connectionPoints[i].connectedTo.getConnection(obj.connectionPoints[i]).parentObject, obj,translation);
         }
     }
     
@@ -743,6 +836,10 @@ function Playmola(){
                 for(var j = 0; j < objectCollection[i].children.length; j++){
                     objectCollection[i].children[j].userData.targetPosition = objectCollection[i].children[j].userData.oldPosition.clone();
                     movingObjects.push(objectCollection[i].children[j]);
+                }
+                for(var j = 0; j < joints.length; j++){
+                    joints[j].userData.targetPosition = joints[j].userData.oldPosition.clone();
+                    movingObjects.push(joints[j]);
                 }
             }
         }
