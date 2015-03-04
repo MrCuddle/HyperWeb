@@ -293,6 +293,29 @@ function Playmola(){
         loader.load("Cranck_Study.wrl", function(object){
             loadModel(object, new THREE.Vector3(-2.7054598934035e-2,-9.0702960410631e-3,1.2818607418443e-2), new Array(new ConnectionPoint(new THREE.Vector3(0.,-3.465692988818e-2,4.8978561933508e-2)), new ConnectionPoint(new THREE.Vector3(-4.5e-2,0.,0.))));
         });
+        
+          loader.load("models/robot/b0.wrl", function(object){
+            loadModel(object, new THREE.Vector3(0,0,0), new Array(new ConnectionPoint(new THREE.Vector3(0,0.351,0)),new ConnectionPoint(new THREE.Vector3(0,0,0))));
+        });
+        loader.load("models/robot/b1.wrl", function(object){
+            loadModel(object, new THREE.Vector3(0,0,0), new Array(new ConnectionPoint(new THREE.Vector3(0,0.324,0.3)),new ConnectionPoint(new THREE.Vector3(0,0,0))));
+        });
+        loader.load("models/robot/b2.wrl", function(object){
+            loadModel(object, new THREE.Vector3(0.172,0.205,0), new Array(new ConnectionPoint(new THREE.Vector3(0,0.65,0)),new ConnectionPoint(new THREE.Vector3(0,0,0))));
+        });
+        loader.load("models/robot/b3.wrl", function(object){
+            loadModel(object, new THREE.Vector3(0.064,-0.034,0), new Array(new ConnectionPoint(new THREE.Vector3(0,0.414,-0.155)),new ConnectionPoint(new THREE.Vector3(0,0,0))));
+        });
+        
+        loader.load("models/robot/b4.wrl", function(object){
+            loadModel(object, new THREE.Vector3(0,0,0), new Array(new ConnectionPoint(new THREE.Vector3(0,0.186,0)),new ConnectionPoint(new THREE.Vector3(0,0,0))));
+        });
+        loader.load("models/robot/b5.wrl", function(object){
+            loadModel(object, new THREE.Vector3(0,0,0), new Array(new ConnectionPoint(new THREE.Vector3(0,0.125,0)),new ConnectionPoint(new THREE.Vector3(0,0,0))));
+        });
+        loader.load("models/robot/b6.wrl", function(object){
+            loadModel(object, new THREE.Vector3(0.05,0.05,0.05), new Array(new ConnectionPoint(new THREE.Vector3(0,0,0))));
+        });
     }
     function onMouseMove(event) {
 	mousePos.x = ( event.clientX / window.innerWidth ) * 2 - 1;
