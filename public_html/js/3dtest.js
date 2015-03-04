@@ -28,6 +28,46 @@ function Playmola(){
     var disableControls = false;
     var schematicMode = false;
     
+    var palette; //palette of 3D models to add to the scene
+    
+    
+    function Palette(domElement){
+        //THREE.Object3D.call(this);
+        var scope = this;
+
+        this.scene = new THREE.Scene();
+
+        var width = domElement.getBoundingClientRect().width;
+        var height = domElement.getBoundingClientRect().height;
+        this.camera = new THREE.OrthographicCamera(width / -2, width / 2, height / 2, height / -2, 1, 1000);
+
+        var testplane = new THREE.Mesh(new THREE.PlaneGeometry(100, 100), new THREE.MeshBasicMaterial( {color: 0xffff00, side: THREE.DoubleSide} ));
+        
+        this.scene.add(testplane);
+        testplane.position.set(width / -2 + 60,height / 2 - 60,-10);
+        
+        testplane = new THREE.Mesh(new THREE.PlaneGeometry(100, 100), new THREE.MeshBasicMaterial( {color: 0xffff00, side: THREE.DoubleSide} ));
+        
+        this.scene.add(testplane);
+        testplane.position.set(width / -2 + 170,height / 2 - 60,-10);
+        
+        testplane = new THREE.Mesh(new THREE.PlaneGeometry(100, 100), new THREE.MeshBasicMaterial( {color: 0xffff00, side: THREE.DoubleSide} ));
+        
+        this.scene.add(testplane);
+        testplane.position.set(width / -2 + 60,height / 2 - 170,-10);
+
+        this.update = function(){
+            //Do something
+        };
+
+        this.render = function(renderer){
+            renderer.render(scope.scene,scope.camera);
+        };
+
+
+    };
+    Palette.prototype.constructor = THREE.Palette;
+    
     function ConnectionPoint(position){
         this.position = new THREE.Vector3();
         this.position.copy(position);
@@ -151,10 +191,11 @@ function Playmola(){
         transformControls.addEventListener( 'objectChange', checkForConnections );
         transformControls.addEventListener('mouseUp', onMouseUp );
         
+        palette = new Palette(renderer.domElement);
        
         
         scene = new THREE.Scene();
-        scene.add(camera);
+        //scene.add(camera);
         scene.add(transformControls);
         foregroundScene = new THREE.Scene();
         
@@ -261,7 +302,7 @@ function Playmola(){
             objectCollection.push(obj);
             scene.add(obj);
             
-            obj.scale.set(100,100,100);
+            obj.scale.set(1,1,1);
 
             obj.updateMatrixWorld(true);
             obj.updateMatrix();
@@ -830,12 +871,15 @@ function Playmola(){
             cameraControls.update();
         }
         transformControls.update();
+        palette.update();
     }
     function render(){
         renderer.clear();
         renderer.render(scene,camera);
         renderer.clearDepth();
         renderer.render(foregroundScene, camera);
+        renderer.clearDepth();
+        palette.render(renderer);
     }
     
     init();
