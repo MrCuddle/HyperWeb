@@ -9,15 +9,20 @@
        $('#test').addClass('showtest').hide();
        
        
-       $('#test button').on('click', function(){
-           if(this.id === 'button_close'){
-               playmola.cancelConnectObjects();
-               $('#test').hide();
-           } else {
-                playmola.connectObjects();
-                $('#test').hide();
-           }
-       });
+        $('.jointButton').on('click', function(){
+            if(this.id === 'button_close'){
+                playmola.cancelConnectObjects();
+                $( "#jointPopup" ).popup('close');
+            } else {
+                 playmola.connectObjects();
+                 $( "#jointPopup" ).popup('close');
+            }
+        });
+
+        $('#jointClose').on('click', function(){
+             playmola.cancelConnectObjects();
+             $( "#jointPopup" ).popup('close');
+        });
        
        
        var schematicMode = false;

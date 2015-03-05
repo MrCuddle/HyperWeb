@@ -32,33 +32,90 @@ function Playmola(){
     var palette; //palette of 3D models to add to the scene
     var dymolaInterface;
     
+    var loader = new THREE.VRMLLoader();
+    
     function Palette(domElement){
         //THREE.Object3D.call(this);
         var scope = this;
+        var models = [];
+        var dragging = null;
 
         this.scene = new THREE.Scene();
+        
+        $(domElement).on('mousedown',function(){
+            mouseDown(event);
+        });
+        
+        $(domElement).on('mouseup',function(){
+            mouseDown(event);
+        });
+        
+        $(domElement).on('mousemove',function(){
+            mouseDown(event);
+        });
+        
+        function mouseDown(event){
+            
+        }
+        
+        var directionalLight = new THREE.DirectionalLight();
+        directionalLight.position.set(0,0,1);
+        directionalLight.intensity = 0.75;
+        this.scene.add(directionalLight);
 
         var width = domElement.getBoundingClientRect().width;
         var height = domElement.getBoundingClientRect().height;
         this.camera = new THREE.OrthographicCamera(width / -2, width / 2, height / 2, height / -2, 1, 1000);
 
-        var testplane = new THREE.Mesh(new THREE.PlaneGeometry(100, 100), new THREE.MeshBasicMaterial( {color: 0xffff00, side: THREE.DoubleSide} ));
+        var testplane = new THREE.Mesh(new THREE.PlaneGeometry(100, 100), new THREE.MeshBasicMaterial( {color: 0xffffff, side: THREE.DoubleSide , opacity: 0.3, transparent: true} ));
         
         this.scene.add(testplane);
-        testplane.position.set(width / -2 + 60,height / 2 - 60,-10);
+        testplane.position.set(width / -2 + 60,height / 2 - 60,-500);
         
-        testplane = new THREE.Mesh(new THREE.PlaneGeometry(100, 100), new THREE.MeshBasicMaterial( {color: 0xffff00, side: THREE.DoubleSide} ));
-        
-        this.scene.add(testplane);
-        testplane.position.set(width / -2 + 170,height / 2 - 60,-10);
-        
-        testplane = new THREE.Mesh(new THREE.PlaneGeometry(100, 100), new THREE.MeshBasicMaterial( {color: 0xffff00, side: THREE.DoubleSide} ));
+        testplane = new THREE.Mesh(new THREE.PlaneGeometry(100, 100), new THREE.MeshBasicMaterial( {color: 0xffffff, side: THREE.DoubleSide , opacity: 0.3, transparent: true} ));
         
         this.scene.add(testplane);
-        testplane.position.set(width / -2 + 60,height / 2 - 170,-10);
+        testplane.position.set(width / -2 + 170,height / 2 - 60,-500);
+        
+        testplane = new THREE.Mesh(new THREE.PlaneGeometry(100, 100), new THREE.MeshBasicMaterial( {color: 0xffffff, side: THREE.DoubleSide , opacity: 0.3, transparent: true} ));
+        
+        this.scene.add(testplane);
+        testplane.position.set(width / -2 + 60,height / 2 - 170,-500);
+        
+        
+        loader.load("Piston_Study.wrl", function(object){
+            var obj = loadModel(object, new THREE.Vector3(0.,-0.15149054405043,0.), new Array(new ConnectionPoint(new THREE.Vector3(0.,-0.14420647088485,0.))));
+            obj.rotation.set(0.1,0,-0.1);
+            var bbh = new THREE.BoundingBoxHelper(obj, 0xffffff);
+            bbh.update();
+            var size = bbh.box.size()
+            var max = Math.max(size.x, size.y, size.z);
+            var scaleFactor = 80 / max;
+            scope.scene.add(obj);
+            obj.position.set(width/-2 + 60,height/2 - 60,-100);
+            
+            obj.scale.set(scaleFactor,scaleFactor,scaleFactor);
+            models.push(obj);
+        });
+        
+        loader.load("Rod_Study.wrl", function(object){
+            var obj = loadModel(object, new THREE.Vector3(0.,-8.9431700693962e-2,2.4489282256523e-2), new Array(new ConnectionPoint(new THREE.Vector3(0.,-3.465692988818e-2,4.8978561933508e-2)), new ConnectionPoint(new THREE.Vector3(0.,-0.14420647088485,0.))));
+            obj.rotation.set(0.1,0,-0.1);
+            var bbh = new THREE.BoundingBoxHelper(obj, 0xffffff);
+            bbh.update();
+            var size = bbh.box.size()
+            var max = Math.max(size.x, size.y, size.z);
+            var scaleFactor = 80 / max;
+            scope.scene.add(obj);
+            obj.position.set(width/-2 + 170,height/2-60,-100);
+            obj.scale.set(scaleFactor,scaleFactor,scaleFactor);
+            models.push(obj);
+        });
 
         this.update = function(){
-            //Do something
+            for(var i = 0; i < models.length; i++){
+                models[i].rotateOnAxis(new THREE.Vector3(0,-1,0), 0.01);
+            }
         };
 
         this.render = function(renderer){
@@ -204,13 +261,13 @@ function Playmola(){
     
     function init(){
         
-        try{
-            dymolaInterface = new DymolaInterface();
-            alert("Success!");
-        }
-        catch(err){
-            alert("Dymola interface initialization failed");
-        }
+//        try{
+//            dymolaInterface = new DymolaInterface();
+//            alert("Success!");
+//        }
+//        catch(err){
+//            alert("Dymola interface initialization failed");
+//        }
         
         renderer = new THREE.WebGLRenderer({antialias:true});
         renderer.setClearColor( 0x7EC0EE, 1 );
@@ -272,10 +329,41 @@ function Playmola(){
         
 
         createCameraControls();
-        loadDymolaComponent("Modelica.Mechanics.MultiBody.Joints.Revolute");
+        //loadDymolaComponent("Modelica.Mechanics.MultiBody.Joints.Revolute");
         
-        var blahablaha = 123321123;
         //scene.add(dymolaComponentStorage["Modelica.Mechanics.MultiBody.Joints.Revolute"]);	
+    }
+    
+    
+    function loadModel(object, centerOfMass, connectionPoints){
+        //Extract the part of the Object3D containing the meshes and puts it in a 
+        //new object positioned at the center of mass
+        var obj = new THREE.Object3D();
+        obj.translateX(centerOfMass.x);
+        obj.translateY(centerOfMass.y);
+        obj.translateZ(centerOfMass.z);
+        obj.add(object.children[1]);
+        obj.children[0].translateX(-centerOfMass.x);
+        obj.children[0].translateY(-centerOfMass.y);
+        obj.children[0].translateZ(-centerOfMass.z);
+        obj.children.forEach(function(child) {
+            saveColor(child);
+        });
+        obj.centerOfMass = centerOfMass;
+        obj.connectionPoints = connectionPoints;
+        
+        obj.updateMatrixWorld(true);
+        obj.updateMatrix();
+
+        //Corrects the position of the connection points and initializes them
+        for(var i = 0; i < connectionPoints.length; i++){
+            var v = connectionPoints[i].position;
+            v.sub(centerOfMass);
+            connectionPoints[i].position = v;
+            connectionPoints[i].parentObject = obj; //Record the Object3D this ConnectionPoint is attached to for future reference!
+        }
+
+        return obj;
     }
     
     function createCameraControls(){
@@ -296,84 +384,73 @@ function Playmola(){
             renderer.setSize( window.innerWidth, window.innerHeight );
             createCameraControls();
     }
+    
+    function saveColor(object){
+        if(object.hasOwnProperty('material'))
+            object.userData.initColor = object.material.color;
+        object.children.forEach(function(child){
+            saveColor(child);
+        });
+    }
+    
     function loadModels(){
-        var loader = new THREE.VRMLLoader();
-        function loadModel(object, centerOfMass, connectionPoints){
-            //Extract the part of the Object3D containing the meshes and puts it in a 
-            //new object positioned at the center of mass
-            var obj = new THREE.Object3D();
-            obj.translateX(centerOfMass.x);
-            obj.translateY(centerOfMass.y);
-            obj.translateZ(centerOfMass.z);
-            obj.add(object.children[1]);
-            obj.children[0].translateX(-centerOfMass.x);
-            obj.children[0].translateY(-centerOfMass.y);
-            obj.children[0].translateZ(-centerOfMass.z);
-            obj.children.forEach(function(child) {
-                saveColor(child);
-            });
-            obj.centerOfMass = centerOfMass;
-            obj.connectionPoints = connectionPoints;
-            var scaleFactor = 20;
-            obj.position.set(scaleFactor*(Math.random()*2 - 1), scaleFactor*(Math.random()*2 - 1), scaleFactor*(Math.random()*2 - 1));
-            obj.rotation.set(Math.random()*Math.PI*2, Math.random()*Math.PI*2, Math.random()*Math.PI*2);
+
+        loader.load("Piston_Study.wrl", function(object){
+            var obj = loadModel(object, new THREE.Vector3(0.,-0.15149054405043,0.), new Array(new ConnectionPoint(new THREE.Vector3(0.,-0.14420647088485,0.))));
             objectCollection.push(obj);
             scene.add(obj);
-            
-            obj.scale.set(1,1,1);
-
-            obj.updateMatrixWorld(true);
-            obj.updateMatrix();
-
-            //Corrects the position of the connection points and initializes them
-            for(var i = 0; i < connectionPoints.length; i++){
-                var v = connectionPoints[i].position;
-                v.sub(centerOfMass);
-                connectionPoints[i].position = v;
-                connectionPoints[i].parentObject = obj; //Record the Object3D this ConnectionPoint is attached to for future reference!
-            }
-        }
-        function saveColor(object){
-            if(object.hasOwnProperty('material'))
-                object.userData.initColor = object.material.color;
-            object.children.forEach(function(child){
-                saveColor(child);
-            });
-        }
-        loader.load("Piston_Study.wrl", function(object){
-            loadModel(object, new THREE.Vector3(0.,-0.15149054405043,0.), new Array(new ConnectionPoint(new THREE.Vector3(0.,-0.14420647088485,0.))));
         });
         loader.load("Master_One_Cylinder.wrl", function(object){
-            loadModel(object, new THREE.Vector3(-4.5e-2,0.,0.), new Array(new ConnectionPoint(new THREE.Vector3(-4.5e-2,0.,0.))));
+            var obj = loadModel(object, new THREE.Vector3(-4.5e-2,0.,0.), new Array(new ConnectionPoint(new THREE.Vector3(-4.5e-2,0.,0.))));
+            objectCollection.push(obj);
+            scene.add(obj);
         });
         loader.load("Rod_Study.wrl", function(object){
-            loadModel(object, new THREE.Vector3(0.,-8.9431700693962e-2,2.4489282256523e-2), new Array(new ConnectionPoint(new THREE.Vector3(0.,-3.465692988818e-2,4.8978561933508e-2)), new ConnectionPoint(new THREE.Vector3(0.,-0.14420647088485,0.))));
+            var obj = loadModel(object, new THREE.Vector3(0.,-8.9431700693962e-2,2.4489282256523e-2), new Array(new ConnectionPoint(new THREE.Vector3(0.,-3.465692988818e-2,4.8978561933508e-2)), new ConnectionPoint(new THREE.Vector3(0.,-0.14420647088485,0.))));
+            objectCollection.push(obj);
+            scene.add(obj);
         });
         loader.load("Cranck_Study.wrl", function(object){
-            loadModel(object, new THREE.Vector3(-2.7054598934035e-2,-9.0702960410631e-3,1.2818607418443e-2), new Array(new ConnectionPoint(new THREE.Vector3(0.,-3.465692988818e-2,4.8978561933508e-2)), new ConnectionPoint(new THREE.Vector3(-4.5e-2,0.,0.))));
+            var obj = loadModel(object, new THREE.Vector3(-2.7054598934035e-2,-9.0702960410631e-3,1.2818607418443e-2), new Array(new ConnectionPoint(new THREE.Vector3(0.,-3.465692988818e-2,4.8978561933508e-2)), new ConnectionPoint(new THREE.Vector3(-4.5e-2,0.,0.))));
+            objectCollection.push(obj);
+            scene.add(obj);
         });
         
-          loader.load("models/robot/b0.wrl", function(object){
-            loadModel(object, new THREE.Vector3(0,0,0), new Array(new ConnectionPoint(new THREE.Vector3(0,0.351,0)),new ConnectionPoint(new THREE.Vector3(0,0,0))));
+        loader.load("models/robot/b0.wrl", function(object){
+            var obj = loadModel(object, new THREE.Vector3(0,0,0), new Array(new ConnectionPoint(new THREE.Vector3(0,0.351,0)),new ConnectionPoint(new THREE.Vector3(0,0,0))));
+            objectCollection.push(obj);
+            scene.add(obj);
         });
         loader.load("models/robot/b1.wrl", function(object){
-            loadModel(object, new THREE.Vector3(0,0,0), new Array(new ConnectionPoint(new THREE.Vector3(0,0.324,0.3)),new ConnectionPoint(new THREE.Vector3(0,0,0))));
+            var obj = loadModel(object, new THREE.Vector3(0,0,0), new Array(new ConnectionPoint(new THREE.Vector3(0,0.324,0.3)),new ConnectionPoint(new THREE.Vector3(0,0,0))));
+            objectCollection.push(obj);
+            scene.add(obj);
         });
         loader.load("models/robot/b2.wrl", function(object){
-            loadModel(object, new THREE.Vector3(0.172,0.205,0), new Array(new ConnectionPoint(new THREE.Vector3(0,0.65,0)),new ConnectionPoint(new THREE.Vector3(0,0,0))));
+            var obj = loadModel(object, new THREE.Vector3(0.172,0.205,0), new Array(new ConnectionPoint(new THREE.Vector3(0,0.65,0)),new ConnectionPoint(new THREE.Vector3(0,0,0))));
+            objectCollection.push(obj);
+            scene.add(obj);
         });
         loader.load("models/robot/b3.wrl", function(object){
-            loadModel(object, new THREE.Vector3(0.064,-0.034,0), new Array(new ConnectionPoint(new THREE.Vector3(0,0.414,-0.155)),new ConnectionPoint(new THREE.Vector3(0,0,0))));
+            var obj = loadModel(object, new THREE.Vector3(0.064,-0.034,0), new Array(new ConnectionPoint(new THREE.Vector3(0,0.414,-0.155)),new ConnectionPoint(new THREE.Vector3(0,0,0))));
+            objectCollection.push(obj);
+            scene.add(obj);
         });
         
         loader.load("models/robot/b4.wrl", function(object){
-            loadModel(object, new THREE.Vector3(0,0,0), new Array(new ConnectionPoint(new THREE.Vector3(0,0.186,0)),new ConnectionPoint(new THREE.Vector3(0,0,0))));
+            var obj = loadModel(object, new THREE.Vector3(0,0,0), new Array(new ConnectionPoint(new THREE.Vector3(0,0.186,0)),new ConnectionPoint(new THREE.Vector3(0,0,0))));
+            objectCollection.push(obj);
+            scene.add(obj);
         });
         loader.load("models/robot/b5.wrl", function(object){
-            loadModel(object, new THREE.Vector3(0,0,0), new Array(new ConnectionPoint(new THREE.Vector3(0,0.125,0)),new ConnectionPoint(new THREE.Vector3(0,0,0))));
+            var obj = loadModel(object, new THREE.Vector3(0,0,0), new Array(new ConnectionPoint(new THREE.Vector3(0,0.125,0)),new ConnectionPoint(new THREE.Vector3(0,0,0))));
+            objectCollection.push(obj);
+            scene.add(obj);
         });
         loader.load("models/robot/b6.wrl", function(object){
-            loadModel(object, new THREE.Vector3(0.05,0.05,0.05), new Array(new ConnectionPoint(new THREE.Vector3(0,0,0))));
+            var obj = loadModel(object, new THREE.Vector3(0.05,0.05,0.05), new Array(new ConnectionPoint(new THREE.Vector3(0,0,0))));
+            objectCollection.push(obj);
+            scene.add(obj);
         });
     }
     
@@ -719,7 +796,9 @@ function Playmola(){
             var mouseX = (mousePos.x + 1)/2 * window.innerWidth;
             var mouseY = -(mousePos.y - 1)/2 * window.innerHeight;
 
-            $('#test').css('left', '' + mouseX + 'px').css('top', '' + mouseY + 'px').show();
+            //$('#test').css('left', '' + mouseX + 'px').css('top', '' + mouseY + 'px').show();
+            $( "#jointPopup" ).popup( "open", { x: mouseX, y: mouseY, transition: "slideup" } );
+
             disableControls = true;
             transformControls.detach(selectedObject);
             foregroundScene.remove(connectionMarker);
