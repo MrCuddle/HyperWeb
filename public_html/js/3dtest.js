@@ -141,7 +141,15 @@ function Playmola(){
         THREE.Object3D.call(this);
         this.typeName = null;
         this.connectors = [];
-        var self = this;
+        var selfie = this;
+        
+        this.clone = function(){
+            var newDymComp = new DymolaComponent();
+            DymolaComponent.prototype.clone.call(selfie, newDymComp);
+            newDymComp.typeName = this.typeName;
+            newDymComp.connectors = this.connectors.slice(0);
+            return newDymComp;
+        };
     };
     
     DymolaComponent.prototype = Object.create(THREE.Object3D.prototype);
@@ -149,23 +157,26 @@ function Playmola(){
     function loadDymolaComponent(componentString){
         var component = new DymolaComponent();
         var exportModelSource = dymolaInterface.exportWebGL(componentString);
- 
-        console.log(exportModelSource);
-        eval(exportModelSource);
-        
+        exportModelSource = exportModelSource.replace(/mesh.userData.parent = meshGroup;/g, '');
+        exportModelSource = exportModelSource.replace(/mesh.userData.parent = group;/g, '');
+        console.log(exportModelSource); 
+        var temp = new Function(exportModelSource)();
+        component.add(temp);
+        scene.add(component.children);
+        //component.scale.set(0.005,0.005,0.005);
         var subcomponents = dymolaInterface.Dymola_AST_ComponentsInClass(componentString);
-        for(var i = 0; i < subcomponents.length; i++){
-            var subcomponentAttribute = dymolaInterface.ModelManagement_Structure_AST_GetComponentAttributes(componentString, subcomponents[i]);
-            if(subcomponentAttribute.fullTypeName.indexOf("Interfaces") != -1){
-                component.connectors.push(subcomponentAttribute.fullTypeName);
-            }
-        }
-        dymolaComponentStorage.push(component);
+//        for(var i = 0; i < subcomponents.length; i++){
+//            var subcomponentAttribute = dymolaInterface.ModelManagement_Structure_AST_GetComponentAttributes(componentString, subcomponents[i]);
+//            if(subcomponentAttribute.fullTypeName.indexOf("Interfaces") != -1){
+//                component.connectors.push(subcomponentAttribute.fullTypeName);
+//            }
+//        }
+        dymolaComponentStorage[componentString] = component;
     }
     
-    function Joint(){
+    function Joint(type){
         THREE.Object3D.call( this );
-        
+        this.dymolaType = type;
         this.connectionA = null;
         this.connectionB = null;
         var self = this;
@@ -174,10 +185,7 @@ function Playmola(){
         
         function init(){
             self.visible = false;
-            var geometry = new THREE.CylinderGeometry( 1, 1, 2, 32 );
-            var material = new THREE.MeshBasicMaterial( {color: 0xffff00} );
-            var cylinder = new THREE.Mesh( geometry, material );
-            self.add(cylinder);
+            self.add(dymolaComponentStorage[type].clone());
         }
         
         //Return the ConnectionPoint on the "other" side of the joint
@@ -261,13 +269,12 @@ function Playmola(){
     
     function init(){
         
-//        try{
-//            dymolaInterface = new DymolaInterface();
-//            alert("Success!");
-//        }
-//        catch(err){
-//            alert("Dymola interface initialization failed");
-//        }
+        try{
+            dymolaInterface = new DymolaInterface();
+        }
+        catch(err){
+            alert("Dymola interface initialization failed");
+        }
         
         renderer = new THREE.WebGLRenderer({antialias:true});
         renderer.setClearColor( 0x7EC0EE, 1 );
@@ -277,8 +284,6 @@ function Playmola(){
 
         camera = new THREE.PerspectiveCamera(45,window.innerWidth/window.innerHeight,0.1,1000);
         camera.position.set(50,0,0);
-        
-       
         
         transformControls = new THREE.TransformControls( camera, renderer.domElement );
         transformControls.addEventListener( 'objectChange', checkForConnections );
@@ -329,8 +334,9 @@ function Playmola(){
         
 
         createCameraControls();
-        //loadDymolaComponent("Modelica.Mechanics.MultiBody.Joints.Revolute");
-        
+        loadDymolaComponent(revoluteJoint);
+//        loadDymolaComponent(prismaticJoint);
+//        loadDymolaComponent(cylindricalJoint);
         //scene.add(dymolaComponentStorage["Modelica.Mechanics.MultiBody.Joints.Revolute"]);	
     }
     
@@ -805,12 +811,12 @@ function Playmola(){
             //self.connectObjects();
         }
     }
-    this.connectObjects = function(){
+    this.connectObjects = function(type){
         connectionMarker = null;
         if(connectionPoint1.connectable && connectionPoint2.connectable){
             //Set up the logical connection:
             
-            var joint = new Joint();
+            var joint = new Joint(type);
             scene.add(joint);
             
             joint.visible = false;
@@ -915,9 +921,9 @@ function Playmola(){
             var y = new THREE.Vector3();
             var z = new THREE.Vector3();
             obj.connectionPoints[i].coordinateSystem.extractBasis(translation,y,z);
-            translation.multiplyScalar(20);
+            translation.multiplyScalar(2);
             var m = new THREE.Matrix4();
-            m.extractRotation(obj.matrix)
+            m.extractRotation(obj.matrix);
             translation.applyMatrix4(m);
             
             

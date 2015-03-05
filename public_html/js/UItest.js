@@ -13,9 +13,18 @@
             if(this.id === 'button_close'){
                 playmola.cancelConnectObjects();
                 $( "#jointPopup" ).popup('close');
-            } else {
-                 playmola.connectObjects();
-                 $( "#jointPopup" ).popup('close');
+            }
+            else if(this.id === 'buttonRevolute'){
+                playmola.connectObjects(revoluteJoint);
+                $( "#jointPopup" ).popup('close');
+            }
+            else if(this.id === 'buttonCylindrical'){
+                playmola.connectObjects(cylindricalJoint);
+                $( "#jointPopup" ).popup('close');
+            }
+            else if(this.id === 'buttonPrismatic'){
+                playmola.connectObjects(prismaticJoint);
+                $( "#jointPopup" ).popup('close');
             }
         });
 

@@ -8104,7 +8104,6 @@ THREE.Object3D.prototype = {
 
 				var child = this.children[ i ];
 				object.add( child.clone() );
-
 			}
 
 		}
@@ -14584,9 +14583,7 @@ THREE.VideoTexture.prototype.constructor = THREE.VideoTexture;
 THREE.Group = function () {
 
 	THREE.Object3D.call( this );
-
 	this.type = 'Group';
-
 };
 
 THREE.Group.prototype = Object.create( THREE.Object3D.prototype );
