@@ -216,8 +216,7 @@ function Playmola(){
         console.log(exportModelSource); 
         var temp = new Function(exportModelSource)();
         component.add(temp);
-        scene.add(component.children);
-        //component.scale.set(0.005,0.005,0.005);
+        component.scale.set(0.005,0.005,0.005);
         var subcomponents = dymolaInterface.Dymola_AST_ComponentsInClass(componentString);
 //        for(var i = 0; i < subcomponents.length; i++){
 //            var subcomponentAttribute = dymolaInterface.ModelManagement_Structure_AST_GetComponentAttributes(componentString, subcomponents[i]);
