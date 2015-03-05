@@ -39,24 +39,38 @@ function Playmola(){
         var scope = this;
         var models = [];
         var dragging = null;
+        var mouseover = false;
+        var bounds = new THREE.Box2(new THREE.Vector2(50,50), new THREE.Vector2(250,550));
+        
+        //Sizing
+        var tileWidth = 80;
+        var tileHeight = 80;
+        var tilesX = 3;
+        var tilesY = 5;
+        var tileSpacing = 10;
+        var tileInnerSize = 60;
+        
 
         this.scene = new THREE.Scene();
         
-        $(domElement).on('mousedown',function(){
-            mouseDown(event);
-        });
-        
-        $(domElement).on('mouseup',function(){
-            mouseDown(event);
-        });
-        
-        $(domElement).on('mousemove',function(){
-            mouseDown(event);
-        });
-        
-        function mouseDown(event){
+        $(domElement).on('mousedown',function(event){
             
-        }
+            //event.stopImmediatePropagation();
+        });
+        
+        $(domElement).on('mouseup',function(event){
+
+        });
+        
+        $(domElement).on('mousemove',function(event){
+            var pointer = new THREE.Vector2(event.offsetX, event.offsetY);
+            if(bounds.containsPoint(pointer)){
+                mouseover = true;
+            } else {
+                mouseover = false;
+            }
+        });
+       
         
         var directionalLight = new THREE.DirectionalLight();
         directionalLight.position.set(0,0,1);
@@ -67,60 +81,100 @@ function Playmola(){
         var height = domElement.getBoundingClientRect().height;
         this.camera = new THREE.OrthographicCamera(width / -2, width / 2, height / 2, height / -2, 1, 1000);
 
-        var testplane = new THREE.Mesh(new THREE.PlaneGeometry(100, 100), new THREE.MeshBasicMaterial( {color: 0xffffff, side: THREE.DoubleSide , opacity: 0.3, transparent: true} ));
-        
-        this.scene.add(testplane);
-        testplane.position.set(width / -2 + 60,height / 2 - 60,-500);
-        
-        testplane = new THREE.Mesh(new THREE.PlaneGeometry(100, 100), new THREE.MeshBasicMaterial( {color: 0xffffff, side: THREE.DoubleSide , opacity: 0.3, transparent: true} ));
-        
-        this.scene.add(testplane);
-        testplane.position.set(width / -2 + 170,height / 2 - 60,-500);
-        
-        testplane = new THREE.Mesh(new THREE.PlaneGeometry(100, 100), new THREE.MeshBasicMaterial( {color: 0xffffff, side: THREE.DoubleSide , opacity: 0.3, transparent: true} ));
-        
-        this.scene.add(testplane);
-        testplane.position.set(width / -2 + 60,height / 2 - 170,-500);
-        
-        
         loader.load("Piston_Study.wrl", function(object){
             var obj = loadModel(object, new THREE.Vector3(0.,-0.15149054405043,0.), new Array(new ConnectionPoint(new THREE.Vector3(0.,-0.14420647088485,0.))));
-            obj.rotation.set(0.1,0,-0.1);
-            var bbh = new THREE.BoundingBoxHelper(obj, 0xffffff);
-            bbh.update();
-            var size = bbh.box.size()
-            var max = Math.max(size.x, size.y, size.z);
-            var scaleFactor = 80 / max;
-            scope.scene.add(obj);
-            obj.position.set(width/-2 + 60,height/2 - 60,-100);
-            
-            obj.scale.set(scaleFactor,scaleFactor,scaleFactor);
-            models.push(obj);
+            scope.add(obj);
         });
-        
+        loader.load("Master_One_Cylinder.wrl", function(object){
+            var obj = loadModel(object, new THREE.Vector3(-4.5e-2,0.,0.), new Array(new ConnectionPoint(new THREE.Vector3(-4.5e-2,0.,0.))));
+            scope.add(obj);
+        });
         loader.load("Rod_Study.wrl", function(object){
             var obj = loadModel(object, new THREE.Vector3(0.,-8.9431700693962e-2,2.4489282256523e-2), new Array(new ConnectionPoint(new THREE.Vector3(0.,-3.465692988818e-2,4.8978561933508e-2)), new ConnectionPoint(new THREE.Vector3(0.,-0.14420647088485,0.))));
-            obj.rotation.set(0.1,0,-0.1);
-            var bbh = new THREE.BoundingBoxHelper(obj, 0xffffff);
-            bbh.update();
-            var size = bbh.box.size()
-            var max = Math.max(size.x, size.y, size.z);
-            var scaleFactor = 80 / max;
-            scope.scene.add(obj);
-            obj.position.set(width/-2 + 170,height/2-60,-100);
-            obj.scale.set(scaleFactor,scaleFactor,scaleFactor);
-            models.push(obj);
+            scope.add(obj);
+        });
+        loader.load("Cranck_Study.wrl", function(object){
+            var obj = loadModel(object, new THREE.Vector3(-2.7054598934035e-2,-9.0702960410631e-3,1.2818607418443e-2), new Array(new ConnectionPoint(new THREE.Vector3(0.,-3.465692988818e-2,4.8978561933508e-2)), new ConnectionPoint(new THREE.Vector3(-4.5e-2,0.,0.))));
+            scope.add(obj);
+        });
+        
+        loader.load("models/robot/b0.wrl", function(object){
+            var obj = loadModel(object, new THREE.Vector3(0,0,0), new Array(new ConnectionPoint(new THREE.Vector3(0,0.351,0)),new ConnectionPoint(new THREE.Vector3(0,0,0))));
+            scope.add(obj);
+        });
+        loader.load("models/robot/b1.wrl", function(object){
+            var obj = loadModel(object, new THREE.Vector3(0,0,0), new Array(new ConnectionPoint(new THREE.Vector3(0,0.324,0.3)),new ConnectionPoint(new THREE.Vector3(0,0,0))));
+            scope.add(obj);
+        });
+        loader.load("models/robot/b2.wrl", function(object){
+            var obj = loadModel(object, new THREE.Vector3(0.172,0.205,0), new Array(new ConnectionPoint(new THREE.Vector3(0,0.65,0)),new ConnectionPoint(new THREE.Vector3(0,0,0))));
+            scope.add(obj);
+        });
+        loader.load("models/robot/b3.wrl", function(object){
+            var obj = loadModel(object, new THREE.Vector3(0.064,-0.034,0), new Array(new ConnectionPoint(new THREE.Vector3(0,0.414,-0.155)),new ConnectionPoint(new THREE.Vector3(0,0,0))));
+            scope.add(obj);
+        });
+        
+        loader.load("models/robot/b4.wrl", function(object){
+            var obj = loadModel(object, new THREE.Vector3(0,0,0), new Array(new ConnectionPoint(new THREE.Vector3(0,0.186,0)),new ConnectionPoint(new THREE.Vector3(0,0,0))));
+            scope.add(obj);
+        });
+        loader.load("models/robot/b5.wrl", function(object){
+            var obj = loadModel(object, new THREE.Vector3(0,0,0), new Array(new ConnectionPoint(new THREE.Vector3(0,0.125,0)),new ConnectionPoint(new THREE.Vector3(0,0,0))));
+            scope.add(obj);
+        });
+        loader.load("models/robot/b6.wrl", function(object){
+            var obj = loadModel(object, new THREE.Vector3(0.05,0.05,0.05), new Array(new ConnectionPoint(new THREE.Vector3(0,0,0))));
+            scope.add(obj);
         });
 
         this.update = function(){
-            for(var i = 0; i < models.length; i++){
-                models[i].rotateOnAxis(new THREE.Vector3(0,-1,0), 0.01);
+            if(mouseover){
+                for(var i = 0; i < models.length; i++){
+                    models[i].rotateOnAxis(new THREE.Vector3(0,-1,0), 0.02);
+                }
             }
         };
 
         this.render = function(renderer){
             renderer.render(scope.scene,scope.camera);
         };
+        
+        this.resize = function(){
+            var width = domElement.getBoundingClientRect().width;
+            var height = domElement.getBoundingClientRect().height;
+            scope.camera.left = width / -2;
+            scope.camera.right = width / 2;
+            scope.camera.top = height / 2;
+            scope.camera.bottom = height / -2;
+            scope.camera.updateProjectionMatrix();
+        }
+        
+        this.add = function(obj){
+            obj.rotation.set(0.1,0,-0.1);
+            obj.updateMatrix();
+            obj.updateMatrixWorld(true);
+            var bbh = new THREE.BoundingBoxHelper(obj, 0xffffff);
+            bbh.update();
+            var size = bbh.box.size();
+            var scaleFactor = tileInnerSize / Math.max(size.x, size.y, size.z);
+            scope.scene.add(obj);
+            var center = bbh.box.center();
+            models.push(obj);
+            
+            //Don't forgot to move back again before "spawning"
+            obj.children[0].position.sub(center);
+            
+            //obj.add(bbh);
+            obj.scale.set(scaleFactor,scaleFactor,scaleFactor);
+            //obj.position.set(((models.length-1)%tilesX) * (tileSpacing + tileWidth) - width/2 + tileWidth/2 + tileSpacing + center.x * scaleFactor, -Math.floor((models.length-1)/tilesX) * (tileSpacing + tileHeight) + height/2 - tileHeight/2 - tileSpacing - center.y*scaleFactor,-100);
+            obj.position.set(((models.length-1)%tilesX) * (tileSpacing + tileWidth) - width/2 + tileWidth/2 + tileSpacing, -Math.floor((models.length-1)/tilesX) * (tileSpacing + tileHeight) + height/2 - tileHeight/2 - tileSpacing,-100);
+            
+            
+            var backplane = new THREE.Mesh(new THREE.PlaneGeometry(tileWidth, tileHeight), new THREE.MeshBasicMaterial( {color: 0xffffff, side: THREE.DoubleSide , opacity: 0.3, transparent: true} ));        
+            scope.scene.add(backplane);
+            backplane.position.set(((models.length-1)%tilesX) * (tileSpacing + tileWidth) - width/2 + tileWidth/2 + tileSpacing, -Math.floor((models.length-1)/tilesX) * (tileSpacing + tileHeight) + height/2 - tileHeight/2 - tileSpacing,-500);
+        }
 
 
     };
@@ -278,13 +332,13 @@ function Playmola(){
         camera = new THREE.PerspectiveCamera(45,window.innerWidth/window.innerHeight,0.1,1000);
         camera.position.set(50,0,0);
         
-       
+        palette = new Palette(renderer.domElement);       
         
         transformControls = new THREE.TransformControls( camera, renderer.domElement );
         transformControls.addEventListener( 'objectChange', checkForConnections );
         transformControls.addEventListener('mouseUp', onMouseUp );
         
-        palette = new Palette(renderer.domElement);
+        
        
         
         scene = new THREE.Scene();
@@ -339,13 +393,8 @@ function Playmola(){
         //Extract the part of the Object3D containing the meshes and puts it in a 
         //new object positioned at the center of mass
         var obj = new THREE.Object3D();
-        obj.translateX(centerOfMass.x);
-        obj.translateY(centerOfMass.y);
-        obj.translateZ(centerOfMass.z);
         obj.add(object.children[1]);
-        obj.children[0].translateX(-centerOfMass.x);
-        obj.children[0].translateY(-centerOfMass.y);
-        obj.children[0].translateZ(-centerOfMass.z);
+        obj.children[0].position.sub(centerOfMass);
         obj.children.forEach(function(child) {
             saveColor(child);
         });
@@ -379,10 +428,11 @@ function Playmola(){
     }
     //Resets the camera and renderer when the window is resized
     function onWindowResize() {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize( window.innerWidth, window.innerHeight );
-            createCameraControls();
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize( window.innerWidth, window.innerHeight );
+        createCameraControls();
+        palette.resize();
     }
     
     function saveColor(object){
@@ -459,7 +509,7 @@ function Playmola(){
 	mousePos.y = - ( event.clientY / window.innerHeight ) * 2 + 1;	
     }
     function generateSphere(x,y,z, valid){
-        var geometry = new THREE.SphereGeometry(1, 10,10);
+        var geometry = new THREE.SphereGeometry(0.1, 10,10);
         var material = valid ? new THREE.MeshBasicMaterial( {color: 0xffffff} ) : new THREE.MeshBasicMaterial( {color: 0x000000} );
         var sphere = new THREE.Mesh( geometry, material );
         sphere.position.set(x,y,z);
