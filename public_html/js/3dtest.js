@@ -40,7 +40,8 @@ function Playmola(){
         var models = [];
         var dragging = null;
         var mouseover = false;
-        var bounds = new THREE.Box2(new THREE.Vector2(50,50), new THREE.Vector2(250,550));
+        var hoverTileX = -1;
+        var hoverTileY = -1;
         
         //Sizing
         var tileWidth = 80;
@@ -49,7 +50,7 @@ function Playmola(){
         var tilesY = 5;
         var tileSpacing = 10;
         var tileInnerSize = 60;
-        
+        var bounds = new THREE.Box2(new THREE.Vector2(0,0), new THREE.Vector2(0,0));
 
         this.scene = new THREE.Scene();
         
@@ -66,6 +67,25 @@ function Playmola(){
             var pointer = new THREE.Vector2(event.offsetX, event.offsetY);
             if(bounds.containsPoint(pointer)){
                 mouseover = true;
+                
+                var hoverTileX_ = Math.floor(pointer.x / (tileSpacing + tileWidth));
+                var hoverTileY_ = Math.floor(pointer.y / (tileSpacing + tileHeight));
+                if(hoverTileX == hoverTileX_ && hoverTileY == hoverTileY_){
+                    
+                } else {
+                    if(hoverTileX != -1){
+                        models[hoverTileX + hoverTileY * tilesX].scale.multiplyScalar(1/1.6);
+                    }
+                    hoverTileX = hoverTileX_;
+                    hoverTileY = hoverTileY_;
+                    if(hoverTileX + hoverTileY * tilesX < models.length){
+                         models[hoverTileX + hoverTileY * tilesX].scale.multiplyScalar(1.6);
+                    } else {
+                        hoverTileX = -1;
+                        hoverTileY = -1;
+                    }
+                }
+                
             } else {
                 mouseover = false;
             }
@@ -165,6 +185,7 @@ function Playmola(){
             //Don't forgot to move back again before "spawning"
             obj.children[0].position.sub(center);
             
+           
             //obj.add(bbh);
             obj.scale.set(scaleFactor,scaleFactor,scaleFactor);
             //obj.position.set(((models.length-1)%tilesX) * (tileSpacing + tileWidth) - width/2 + tileWidth/2 + tileSpacing + center.x * scaleFactor, -Math.floor((models.length-1)/tilesX) * (tileSpacing + tileHeight) + height/2 - tileHeight/2 - tileSpacing - center.y*scaleFactor,-100);
@@ -174,6 +195,8 @@ function Playmola(){
             var backplane = new THREE.Mesh(new THREE.PlaneGeometry(tileWidth, tileHeight), new THREE.MeshBasicMaterial( {color: 0xffffff, side: THREE.DoubleSide , opacity: 0.3, transparent: true} ));        
             scope.scene.add(backplane);
             backplane.position.set(((models.length-1)%tilesX) * (tileSpacing + tileWidth) - width/2 + tileWidth/2 + tileSpacing, -Math.floor((models.length-1)/tilesX) * (tileSpacing + tileHeight) + height/2 - tileHeight/2 - tileSpacing,-500);
+            bounds.min.set(tileSpacing,tileSpacing);
+            bounds.max.set((models.length < 3 ? models.length :tilesX)*(tileSpacing + tileWidth),Math.ceil((models.length)/tilesX) * (tileSpacing + tileHeight));
         }
 
 
