@@ -52,19 +52,62 @@ function Playmola(){
         var tileInnerSize = 60;
         var bounds = new THREE.Box2(new THREE.Vector2(0,0), new THREE.Vector2(0,0));
 
-        this.scene = new THREE.Scene();
+        this.palettescene = new THREE.Scene();
         
         $(domElement).on('mousedown',function(event){
-            
-            //event.stopImmediatePropagation();
+            var pointer = new THREE.Vector2(event.offsetX, event.offsetY);
+            if(bounds.containsPoint(pointer)){
+                event.stopImmediatePropagation();
+                if(hoverTileX != -1){
+                    dragging = models[hoverTileX + hoverTileY * tilesX].clone();
+                    
+                    //clone doesn't copy connection points, so do that manually here (FIX THIS LATER!!!!!)    
+                    dragging.connectionPoints = [];
+    
+                    if(models[hoverTileX + hoverTileY * tilesX].connectionPoints !== undefined){
+                        for(var i = 0; i < models[hoverTileX + hoverTileY * tilesX].connectionPoints.length; i++){
+                            var cp = new ConnectionPoint(models[hoverTileX + hoverTileY * tilesX].connectionPoints[i].position);
+                            cp.coordinateSystem = models[hoverTileX + hoverTileY * tilesX].connectionPoints[i].coordinateSystem.clone();
+                            cp.parentObject = dragging;
+                            dragging.connectionPoints.push(cp);
+                        }
+                    }
+                    
+                    
+                    dragging.rotation.set(0,0,0);
+                    scope.palettescene.add(dragging);
+                }
+            }
         });
         
         $(domElement).on('mouseup',function(event){
-
+            if(dragging !== null){
+                //Spawn object here
+                scope.palettescene.remove(dragging);
+                
+                objectCollection.push(dragging);
+                scene.add(dragging);
+                dragging.position.set(0,0,0);
+                dragging.scale.set(1,1,1);
+                dragging.children[0].position.add(dragging.userData.centerOffset);
+                dragging.updateMatrix();
+                dragging.updateMatrixWorld(true);
+                dragging.castShadow = true;
+                dragging.receiveShadow = true;
+                
+                
+                dragging = null;
+            }
         });
         
         $(domElement).on('mousemove',function(event){
+            
+            
             var pointer = new THREE.Vector2(event.offsetX, event.offsetY);
+            if(dragging !== null){
+                dragging.position.set(-width/2 + pointer.x, height/2 - pointer.y, -50);
+            }
+            
             if(bounds.containsPoint(pointer)){
                 mouseover = true;
                 
@@ -88,20 +131,118 @@ function Playmola(){
                 
             } else {
                 mouseover = false;
+                if(hoverTileX != -1){
+                    models[hoverTileX + hoverTileY * tilesX].scale.multiplyScalar(1/1.6);
+                    hoverTileX = -1;
+                    hoverTileY = -1;
+                }
             }
         });
        
-        
         var directionalLight = new THREE.DirectionalLight();
-        directionalLight.position.set(0,0,1);
+        directionalLight.position.set(0,0,-1);
         directionalLight.intensity = 0.75;
-        this.scene.add(directionalLight);
+        this.palettescene.add(directionalLight);
+
+        directionalLight = directionalLight.clone();
+        directionalLight.position.set(1,-1,1);
+        this.palettescene.add(directionalLight);
+
+        directionalLight = directionalLight.clone();
+        directionalLight.position.set(-1,1,1);
+        this.palettescene.add(directionalLight);
+        
+        this.palettescene.add(new THREE.AmbientLight(new THREE.Color(0.1,0.1,0.1)));
 
         var width = domElement.getBoundingClientRect().width;
         var height = domElement.getBoundingClientRect().height;
         this.camera = new THREE.OrthographicCamera(width / -2, width / 2, height / 2, height / -2, 1, 1000);
 
-        loader.load("Piston_Study.wrl", function(object){
+
+        
+        
+
+        this.update = function(){
+            if(mouseover){
+                //Rotate models
+                for(var i = 0; i < models.length; i++){
+                    switch(models[i].userData.rotationMode){
+                        case 0:
+                            models[i].rotateOnAxis(new THREE.Vector3(0,-1,0), 0.02);
+                            break;
+                        case 1:
+                            if(models[i].userData.rotateDirection === 1){
+                                models[i].rotateOnAxis(new THREE.Vector3(0,-1,0), 0.01);
+                                models[i].userData.rotateAmount += 0.01;
+                                if(models[i].userData.rotateAmount > 0.3){
+                                    models[i].userData.rotateDirection = -1;
+                                }
+                            } else {
+                                models[i].rotateOnAxis(new THREE.Vector3(0,-1,0), -0.01);
+                                models[i].userData.rotateAmount -= 0.01;
+                                if(models[i].userData.rotateAmount < -0.3){
+                                    models[i].userData.rotateDirection = 1;
+                                }
+                            }
+                            
+                            break;
+                    }  
+                }
+            }
+        };
+
+        this.render = function(renderer){
+            renderer.render(scope.palettescene,scope.camera);
+        };
+        
+        this.resize = function(){
+            var width = domElement.getBoundingClientRect().width;
+            var height = domElement.getBoundingClientRect().height;
+            scope.camera.left = width / -2;
+            scope.camera.right = width / 2;
+            scope.camera.top = height / 2;
+            scope.camera.bottom = height / -2;
+            scope.camera.updateProjectionMatrix();
+        }
+        
+        this.add = function(obj, tilt, rotationMode){
+            if(tilt === undefined) tilt = true;
+            if(rotationMode === undefined) rotationMode = 0;
+            if(tilt)
+                obj.rotation.set(0.1,0,-0.1);
+            obj.updateMatrix();
+            obj.updateMatrixWorld(true);
+            var bbh = new THREE.BoundingBoxHelper(obj, 0xffffff);
+            bbh.update();
+            var size = bbh.box.size();
+            var scaleFactor = tileInnerSize / Math.max(size.x, size.y, size.z);
+            scope.palettescene.add(obj);
+            var center = bbh.box.center();
+            models.push(obj);
+            
+            //Don't forgot to move back again before "spawning"!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+            obj.userData.centerOffset = center.clone();
+            obj.children[0].position.sub(center);
+            obj.userData.rotationMode = rotationMode;
+            obj.userData.rotateAmount = 0;
+            obj.userData.rotateDirection = 1;
+            
+           
+            //obj.add(bbh);
+            obj.scale.set(scaleFactor,scaleFactor,scaleFactor);
+            //obj.position.set(((models.length-1)%tilesX) * (tileSpacing + tileWidth) - width/2 + tileWidth/2 + tileSpacing + center.x * scaleFactor, -Math.floor((models.length-1)/tilesX) * (tileSpacing + tileHeight) + height/2 - tileHeight/2 - tileSpacing - center.y*scaleFactor,-100);
+            obj.position.set(((models.length-1)%tilesX) * (tileSpacing + tileWidth) - width/2 + tileWidth/2 + tileSpacing, -Math.floor((models.length-1)/tilesX) * (tileSpacing + tileHeight) + height/2 - tileHeight/2 - tileSpacing,-100);
+            
+            
+            var backplane = new THREE.Mesh(new THREE.PlaneBufferGeometry(tileWidth, tileHeight), new THREE.MeshBasicMaterial( {color: 0xffffff, side: THREE.DoubleSide , opacity: 0.3, transparent: true} ));        
+            scope.palettescene.add(backplane);
+            backplane.position.set(((models.length-1)%tilesX) * (tileSpacing + tileWidth) - width/2 + tileWidth/2 + tileSpacing, -Math.floor((models.length-1)/tilesX) * (tileSpacing + tileHeight) + height/2 - tileHeight/2 - tileSpacing,-500);
+            bounds.min.set(tileSpacing,tileSpacing);
+            bounds.max.set((models.length < 3 ? models.length :tilesX)*(tileSpacing + tileWidth),Math.ceil((models.length)/tilesX) * (tileSpacing + tileHeight));
+        }
+        
+        
+                loader.load("Piston_Study.wrl", function(object){
             var obj = loadModel(object, new THREE.Vector3(0.,-0.15149054405043,0.), new Array(new ConnectionPoint(new THREE.Vector3(0.,-0.14420647088485,0.))));
             scope.add(obj);
         });
@@ -147,57 +288,39 @@ function Playmola(){
             var obj = loadModel(object, new THREE.Vector3(0.05,0.05,0.05), new Array(new ConnectionPoint(new THREE.Vector3(0,0,0))));
             scope.add(obj);
         });
-
-        this.update = function(){
-            if(mouseover){
-                for(var i = 0; i < models.length; i++){
-                    models[i].rotateOnAxis(new THREE.Vector3(0,-1,0), 0.02);
+        
+        
+        
+        //Add some joints:
+        //Find all the classes in Modelica.Mechanics.MultiBody.Joints, ignoring sub-packages
+        var jointclasses = dymolaInterface.ModelManagement_Structure_AST_ClassesInPackageAttributes("Modelica.Mechanics.MultiBody.Joints");
+        for(var i = 0; i < jointclasses.length; i++){
+            if(jointclasses[i].restricted != "package"){
+                //This isn't a package, so load and add to the palette
+                var exportModelSource = dymolaInterface.exportWebGL(jointclasses[i].fullName);
+                exportModelSource = exportModelSource.replace(/mesh.userData.parent = meshGroup;/g, '');
+                exportModelSource = exportModelSource.replace(/mesh.userData.parent = group;/g, '');
+                var obj = new Function(exportModelSource)();
+                
+                //Remove TextGeometry
+                for(var j = 0; j < obj.children.length; j++){
+                    if(obj.children[j].type == 'Mesh' && obj.children[j].geometry.type == 'TextGeometry'){
+                        obj.remove(obj.children[j]);
+                        j--;
+                    }
                 }
+                
+                var obj2 = new THREE.Object3D();
+                obj2.add(obj);
+                
+                scope.add(obj2, false, 1);
             }
-        };
+        }
 
-        this.render = function(renderer){
-            renderer.render(scope.scene,scope.camera);
-        };
         
-        this.resize = function(){
-            var width = domElement.getBoundingClientRect().width;
-            var height = domElement.getBoundingClientRect().height;
-            scope.camera.left = width / -2;
-            scope.camera.right = width / 2;
-            scope.camera.top = height / 2;
-            scope.camera.bottom = height / -2;
-            scope.camera.updateProjectionMatrix();
-        }
-        
-        this.add = function(obj){
-            obj.rotation.set(0.1,0,-0.1);
-            obj.updateMatrix();
-            obj.updateMatrixWorld(true);
-            var bbh = new THREE.BoundingBoxHelper(obj, 0xffffff);
-            bbh.update();
-            var size = bbh.box.size();
-            var scaleFactor = tileInnerSize / Math.max(size.x, size.y, size.z);
-            scope.scene.add(obj);
-            var center = bbh.box.center();
-            models.push(obj);
-            
-            //Don't forgot to move back again before "spawning"
-            obj.children[0].position.sub(center);
-            
-           
-            //obj.add(bbh);
-            obj.scale.set(scaleFactor,scaleFactor,scaleFactor);
-            //obj.position.set(((models.length-1)%tilesX) * (tileSpacing + tileWidth) - width/2 + tileWidth/2 + tileSpacing + center.x * scaleFactor, -Math.floor((models.length-1)/tilesX) * (tileSpacing + tileHeight) + height/2 - tileHeight/2 - tileSpacing - center.y*scaleFactor,-100);
-            obj.position.set(((models.length-1)%tilesX) * (tileSpacing + tileWidth) - width/2 + tileWidth/2 + tileSpacing, -Math.floor((models.length-1)/tilesX) * (tileSpacing + tileHeight) + height/2 - tileHeight/2 - tileSpacing,-100);
-            
-            
-            var backplane = new THREE.Mesh(new THREE.PlaneGeometry(tileWidth, tileHeight), new THREE.MeshBasicMaterial( {color: 0xffffff, side: THREE.DoubleSide , opacity: 0.3, transparent: true} ));        
-            scope.scene.add(backplane);
-            backplane.position.set(((models.length-1)%tilesX) * (tileSpacing + tileWidth) - width/2 + tileWidth/2 + tileSpacing, -Math.floor((models.length-1)/tilesX) * (tileSpacing + tileHeight) + height/2 - tileHeight/2 - tileSpacing,-500);
-            bounds.min.set(tileSpacing,tileSpacing);
-            bounds.max.set((models.length < 3 ? models.length :tilesX)*(tileSpacing + tileWidth),Math.ceil((models.length)/tilesX) * (tileSpacing + tileHeight));
-        }
+//        component.add(temp);
+//        component.scale.set(0.005,0.005,0.005);
+//        dymolaComponentStorage[componentString] = component;
 
 
     };
@@ -236,7 +359,7 @@ function Playmola(){
         var exportModelSource = dymolaInterface.exportWebGL(componentString);
         exportModelSource = exportModelSource.replace(/mesh.userData.parent = meshGroup;/g, '');
         exportModelSource = exportModelSource.replace(/mesh.userData.parent = group;/g, '');
-        console.log(exportModelSource); 
+        //console.log(exportModelSource); 
         var temp = new Function(exportModelSource)();
         component.add(temp);
         component.scale.set(0.005,0.005,0.005);
@@ -413,8 +536,8 @@ function Playmola(){
 
         createCameraControls();
         loadDymolaComponent(revoluteJoint);
-//        loadDymolaComponent(prismaticJoint);
-//        loadDymolaComponent(cylindricalJoint);
+        loadDymolaComponent(prismaticJoint);
+        loadDymolaComponent(cylindricalJoint);
         //scene.add(dymolaComponentStorage["Modelica.Mechanics.MultiBody.Joints.Revolute"]);	
     }
     
@@ -586,8 +709,11 @@ function Playmola(){
         
         
         selectedObject.traverse(function(child){
-            if(child instanceof THREE.Mesh)
-                 child.material.color = new THREE.Color(0xB0E2FF);
+            if(child instanceof THREE.Mesh){
+                if(child.userData.initColor === undefined)
+                    child.userData.initColor = child.material.color;
+                child.material.color = new THREE.Color(0xB0E2FF);
+             }
         });
     }
     //Generates a new Object3D based on the two parameters, removes the parameters from the objectCollection
@@ -1061,7 +1187,7 @@ function Playmola(){
     }
     
     init();
-    loadModels();
+    //loadModels();
     setInterval(logic, 1000/60);
 }
 
