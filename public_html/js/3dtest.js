@@ -37,7 +37,9 @@ function Playmola(){
     function Palette(domElement){
         //THREE.Object3D.call(this);
         var scope = this;
-        var models = [];
+        var selectedCategory = "";
+        var categories = [];
+        var backplanes = [];
         var dragging = null;
         var mouseover = false;
         var hoverTileX = -1;
@@ -50,7 +52,7 @@ function Playmola(){
         var tilesY = 5;
         var tileSpacing = 10;
         var tileInnerSize = 60;
-        var bounds = new THREE.Box2(new THREE.Vector2(0,0), new THREE.Vector2(0,0));
+        var bounds = new THREE.Box2(new THREE.Vector2(10,110), new THREE.Vector2(10,110));
 
         this.palettescene = new THREE.Scene();
         
@@ -59,15 +61,15 @@ function Playmola(){
             if(bounds.containsPoint(pointer)){
                 event.stopImmediatePropagation();
                 if(hoverTileX != -1){
-                    dragging = models[hoverTileX + hoverTileY * tilesX].clone();
+                    dragging = categories[selectedCategory][hoverTileX + hoverTileY * tilesX].clone();
                     
                     //clone doesn't copy connection points, so do that manually here (FIX THIS LATER!!!!!)    
                     dragging.connectionPoints = [];
     
-                    if(models[hoverTileX + hoverTileY * tilesX].connectionPoints !== undefined){
-                        for(var i = 0; i < models[hoverTileX + hoverTileY * tilesX].connectionPoints.length; i++){
-                            var cp = new ConnectionPoint(models[hoverTileX + hoverTileY * tilesX].connectionPoints[i].position);
-                            cp.coordinateSystem = models[hoverTileX + hoverTileY * tilesX].connectionPoints[i].coordinateSystem.clone();
+                    if(categories[selectedCategory][hoverTileX + hoverTileY * tilesX].connectionPoints !== undefined){
+                        for(var i = 0; i < categories[selectedCategory][hoverTileX + hoverTileY * tilesX].connectionPoints.length; i++){
+                            var cp = new ConnectionPoint(categories[selectedCategory][hoverTileX + hoverTileY * tilesX].connectionPoints[i].position);
+                            cp.coordinateSystem = categories[selectedCategory][hoverTileX + hoverTileY * tilesX].connectionPoints[i].coordinateSystem.clone();
                             cp.parentObject = dragging;
                             dragging.connectionPoints.push(cp);
                         }
@@ -111,18 +113,18 @@ function Playmola(){
             if(bounds.containsPoint(pointer)){
                 mouseover = true;
                 
-                var hoverTileX_ = Math.floor(pointer.x / (tileSpacing + tileWidth));
-                var hoverTileY_ = Math.floor(pointer.y / (tileSpacing + tileHeight));
+                var hoverTileX_ = Math.floor((pointer.x - bounds.min.x) / (tileSpacing + tileWidth));
+                var hoverTileY_ = Math.floor((pointer.y - bounds.min.y) / (tileSpacing + tileHeight));
                 if(hoverTileX == hoverTileX_ && hoverTileY == hoverTileY_){
                     
                 } else {
                     if(hoverTileX != -1){
-                        models[hoverTileX + hoverTileY * tilesX].scale.multiplyScalar(1/1.6);
+                        categories[selectedCategory][hoverTileX + hoverTileY * tilesX].scale.multiplyScalar(1/1.6);
                     }
                     hoverTileX = hoverTileX_;
                     hoverTileY = hoverTileY_;
-                    if(hoverTileX + hoverTileY * tilesX < models.length){
-                         models[hoverTileX + hoverTileY * tilesX].scale.multiplyScalar(1.6);
+                    if(hoverTileX + hoverTileY * tilesX < categories[selectedCategory].length){
+                         categories[selectedCategory][hoverTileX + hoverTileY * tilesX].scale.multiplyScalar(1.6);
                     } else {
                         hoverTileX = -1;
                         hoverTileY = -1;
@@ -132,7 +134,7 @@ function Playmola(){
             } else {
                 mouseover = false;
                 if(hoverTileX != -1){
-                    models[hoverTileX + hoverTileY * tilesX].scale.multiplyScalar(1/1.6);
+                    categories[selectedCategory][hoverTileX + hoverTileY * tilesX].scale.multiplyScalar(1/1.6);
                     hoverTileX = -1;
                     hoverTileY = -1;
                 }
@@ -165,23 +167,23 @@ function Playmola(){
         this.update = function(){
             if(mouseover){
                 //Rotate models
-                for(var i = 0; i < models.length; i++){
-                    switch(models[i].userData.rotationMode){
+                for(var i = 0; i < categories[selectedCategory].length; i++){
+                    switch(categories[selectedCategory][i].userData.rotationMode){
                         case 0:
-                            models[i].rotateOnAxis(new THREE.Vector3(0,-1,0), 0.02);
+                            categories[selectedCategory][i].rotateOnAxis(new THREE.Vector3(0,-1,0), 0.02);
                             break;
                         case 1:
-                            if(models[i].userData.rotateDirection === 1){
-                                models[i].rotateOnAxis(new THREE.Vector3(0,-1,0), 0.01);
-                                models[i].userData.rotateAmount += 0.01;
-                                if(models[i].userData.rotateAmount > 0.3){
-                                    models[i].userData.rotateDirection = -1;
+                            if(categories[selectedCategory][i].userData.rotateDirection === 1){
+                                categories[selectedCategory][i].rotateOnAxis(new THREE.Vector3(0,-1,0), 0.01);
+                                categories[selectedCategory][i].userData.rotateAmount += 0.01;
+                                if(categories[selectedCategory][i].userData.rotateAmount > 0.3){
+                                    categories[selectedCategory][i].userData.rotateDirection = -1;
                                 }
                             } else {
-                                models[i].rotateOnAxis(new THREE.Vector3(0,-1,0), -0.01);
-                                models[i].userData.rotateAmount -= 0.01;
-                                if(models[i].userData.rotateAmount < -0.3){
-                                    models[i].userData.rotateDirection = 1;
+                                categories[selectedCategory][i].rotateOnAxis(new THREE.Vector3(0,-1,0), -0.01);
+                                categories[selectedCategory][i].userData.rotateAmount -= 0.01;
+                                if(categories[selectedCategory][i].userData.rotateAmount < -0.3){
+                                    categories[selectedCategory][i].userData.rotateDirection = 1;
                                 }
                             }
                             
@@ -203,9 +205,9 @@ function Playmola(){
             scope.camera.top = height / 2;
             scope.camera.bottom = height / -2;
             scope.camera.updateProjectionMatrix();
-        }
+        };
         
-        this.add = function(obj, tilt, rotationMode){
+        this.add = function(obj, category, tilt, rotationMode){
             if(tilt === undefined) tilt = true;
             if(rotationMode === undefined) rotationMode = 0;
             if(tilt)
@@ -216,9 +218,10 @@ function Playmola(){
             bbh.update();
             var size = bbh.box.size();
             var scaleFactor = tileInnerSize / Math.max(size.x, size.y, size.z);
-            scope.palettescene.add(obj);
             var center = bbh.box.center();
-            models.push(obj);
+            categories[category].push(obj);
+            
+   
             
             //Don't forgot to move back again before "spawning"!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
             obj.userData.centerOffset = center.clone();
@@ -227,95 +230,159 @@ function Playmola(){
             obj.userData.rotateAmount = 0;
             obj.userData.rotateDirection = 1;
             
+            var len = categories[category].length;
+            
+            if(selectedCategory === category) scope.palettescene.add(obj);
            
             //obj.add(bbh);
             obj.scale.set(scaleFactor,scaleFactor,scaleFactor);
             //obj.position.set(((models.length-1)%tilesX) * (tileSpacing + tileWidth) - width/2 + tileWidth/2 + tileSpacing + center.x * scaleFactor, -Math.floor((models.length-1)/tilesX) * (tileSpacing + tileHeight) + height/2 - tileHeight/2 - tileSpacing - center.y*scaleFactor,-100);
-            obj.position.set(((models.length-1)%tilesX) * (tileSpacing + tileWidth) - width/2 + tileWidth/2 + tileSpacing, -Math.floor((models.length-1)/tilesX) * (tileSpacing + tileHeight) + height/2 - tileHeight/2 - tileSpacing,-100);
+            obj.position.set(((len-1)%tilesX) * (tileSpacing + tileWidth) - width/2 + tileWidth/2 + bounds.min.x, -Math.floor((len-1)/tilesX) * (tileSpacing + tileHeight) + height/2 - tileHeight/2 - bounds.min.y,-100);
             
+           
+            //bounds.min.set(tileSpacing,tileSpacing);
+            if(category === selectedCategory) bounds.max.set((len < 3 ? len :tilesX)*(tileSpacing + tileWidth) + bounds.min.x, Math.ceil((len)/tilesX) * (tileSpacing + tileHeight) + bounds.min.y);
+        };
+        
+        this.selectCategory = function(category){
+            if(hoverTileX !== -1){
+                categories[selectedCategory][hoverTileX + hoverTileY * tilesX].scale.multiplyScalar(1/1.6);
+                hoverTileX = -1;
+                hoverTileY = -1;
+            }
             
-            var backplane = new THREE.Mesh(new THREE.PlaneBufferGeometry(tileWidth, tileHeight), new THREE.MeshBasicMaterial( {color: 0xffffff, side: THREE.DoubleSide , opacity: 0.3, transparent: true} ));        
-            scope.palettescene.add(backplane);
-            backplane.position.set(((models.length-1)%tilesX) * (tileSpacing + tileWidth) - width/2 + tileWidth/2 + tileSpacing, -Math.floor((models.length-1)/tilesX) * (tileSpacing + tileHeight) + height/2 - tileHeight/2 - tileSpacing,-500);
-            bounds.min.set(tileSpacing,tileSpacing);
-            bounds.max.set((models.length < 3 ? models.length :tilesX)*(tileSpacing + tileWidth),Math.ceil((models.length)/tilesX) * (tileSpacing + tileHeight));
+            if(selectedCategory !== ""){
+                for(var i = 0; i < categories[selectedCategory].length; i++){
+                    scope.palettescene.remove(categories[selectedCategory][i]);
+                }
+            }
+            
+            selectedCategory = category;
+            
+            for(var i = 0; i < categories[selectedCategory].length; i++){
+                scope.palettescene.add(categories[selectedCategory][i]);
+            }     
+            
+            var len = categories[category].length;
+            bounds.max.set((len < 3 ? len :tilesX)*(tileSpacing + tileWidth) + bounds.min.x, Math.ceil((len)/tilesX) * (tileSpacing + tileHeight) + bounds.min.y);
+            
+            //Show the required number of background planes
+            for(var i = 0; i < backplanes.length; i++){
+                if(i < len)
+                    backplanes[i].visible = true;
+                else
+                    backplanes[i].visible = false;
+            }
+        };
+        
+        this.addCategory = function(name){
+            categories[name] = [];
+            $("#select-custom-1").append("<option value='" + name + "'>" + name + "</option>");
         }
         
+        //generate backing planes...
+        for(var i = 0; i < 25; i++){
+            var backplane = new THREE.Mesh(new THREE.PlaneBufferGeometry(tileWidth, tileHeight), new THREE.MeshBasicMaterial( {color: 0xffffff, side: THREE.DoubleSide , opacity: 0.3, transparent: true} ));        
+            scope.palettescene.add(backplane);
+            backplane.position.set(((i)%tilesX) * (tileSpacing + tileWidth) - width/2 + tileWidth/2 + bounds.min.x, -Math.floor((i)/tilesX) * (tileSpacing + tileHeight) + height/2 - tileHeight/2 - bounds.min.y,-500);
+            backplane.visible = false;
+            backplanes.push(backplane);
+        }
         
-                loader.load("Piston_Study.wrl", function(object){
+        //Make a bunch of categories
+        this.addCategory("Parts");
+        
+        $("#select-custom-1").on('change', function(event){
+            scope.selectCategory(event.target.value);
+        });
+        categories["misc"] = [];
+        
+        //this.selectCategory("joints");
+        
+        loader.load("Piston_Study.wrl", function(object){
             var obj = loadModel(object, new THREE.Vector3(0.,-0.15149054405043,0.), new Array(new ConnectionPoint(new THREE.Vector3(0.,-0.14420647088485,0.))));
-            scope.add(obj);
+            scope.add(obj, "Parts");
         });
         loader.load("Master_One_Cylinder.wrl", function(object){
             var obj = loadModel(object, new THREE.Vector3(-4.5e-2,0.,0.), new Array(new ConnectionPoint(new THREE.Vector3(-4.5e-2,0.,0.))));
-            scope.add(obj);
+            scope.add(obj, "Parts");
         });
         loader.load("Rod_Study.wrl", function(object){
             var obj = loadModel(object, new THREE.Vector3(0.,-8.9431700693962e-2,2.4489282256523e-2), new Array(new ConnectionPoint(new THREE.Vector3(0.,-3.465692988818e-2,4.8978561933508e-2)), new ConnectionPoint(new THREE.Vector3(0.,-0.14420647088485,0.))));
-            scope.add(obj);
+            scope.add(obj, "Parts");
         });
         loader.load("Cranck_Study.wrl", function(object){
             var obj = loadModel(object, new THREE.Vector3(-2.7054598934035e-2,-9.0702960410631e-3,1.2818607418443e-2), new Array(new ConnectionPoint(new THREE.Vector3(0.,-3.465692988818e-2,4.8978561933508e-2)), new ConnectionPoint(new THREE.Vector3(-4.5e-2,0.,0.))));
-            scope.add(obj);
+            scope.add(obj, "Parts");
         });
         
         loader.load("models/robot/b0.wrl", function(object){
             var obj = loadModel(object, new THREE.Vector3(0,0,0), new Array(new ConnectionPoint(new THREE.Vector3(0,0.351,0)),new ConnectionPoint(new THREE.Vector3(0,0,0))));
-            scope.add(obj);
+            scope.add(obj, "Parts");
         });
         loader.load("models/robot/b1.wrl", function(object){
             var obj = loadModel(object, new THREE.Vector3(0,0,0), new Array(new ConnectionPoint(new THREE.Vector3(0,0.324,0.3)),new ConnectionPoint(new THREE.Vector3(0,0,0))));
-            scope.add(obj);
+            scope.add(obj, "Parts");
         });
         loader.load("models/robot/b2.wrl", function(object){
             var obj = loadModel(object, new THREE.Vector3(0.172,0.205,0), new Array(new ConnectionPoint(new THREE.Vector3(0,0.65,0)),new ConnectionPoint(new THREE.Vector3(0,0,0))));
-            scope.add(obj);
+            scope.add(obj, "Parts");
         });
         loader.load("models/robot/b3.wrl", function(object){
             var obj = loadModel(object, new THREE.Vector3(0.064,-0.034,0), new Array(new ConnectionPoint(new THREE.Vector3(0,0.414,-0.155)),new ConnectionPoint(new THREE.Vector3(0,0,0))));
-            scope.add(obj);
+            scope.add(obj, "Parts");
         });
         
         loader.load("models/robot/b4.wrl", function(object){
             var obj = loadModel(object, new THREE.Vector3(0,0,0), new Array(new ConnectionPoint(new THREE.Vector3(0,0.186,0)),new ConnectionPoint(new THREE.Vector3(0,0,0))));
-            scope.add(obj);
+            scope.add(obj, "Parts");
         });
         loader.load("models/robot/b5.wrl", function(object){
             var obj = loadModel(object, new THREE.Vector3(0,0,0), new Array(new ConnectionPoint(new THREE.Vector3(0,0.125,0)),new ConnectionPoint(new THREE.Vector3(0,0,0))));
-            scope.add(obj);
+            scope.add(obj, "Parts");
         });
         loader.load("models/robot/b6.wrl", function(object){
             var obj = loadModel(object, new THREE.Vector3(0.05,0.05,0.05), new Array(new ConnectionPoint(new THREE.Vector3(0,0,0))));
-            scope.add(obj);
+            scope.add(obj, "Parts");
+            
         });
         
-        
+        this.addPackage = function(package, category){
+            if(categories[category] === undefined){
+                scope.addCategory(category);
+            }
+            
+            var classes = dymolaInterface.ModelManagement_Structure_AST_ClassesInPackageAttributes(package);
+            for(var i = 0; i < classes.length; i++){
+                if(classes[i].restricted != "package"){
+                    //This isn't a package, so load and add to the palette
+                    var exportModelSource = dymolaInterface.exportWebGL(classes[i].fullName);
+                    exportModelSource = exportModelSource.replace(/mesh.userData.parent = meshGroup;/g, '');
+                    exportModelSource = exportModelSource.replace(/mesh.userData.parent = group;/g, '');
+                    var obj = new Function(exportModelSource)();
+
+                    //Remove TextGeometry
+                    for(var j = 0; j < obj.children.length; j++){
+                        if(obj.children[j].type == 'Mesh' && obj.children[j].geometry.type == 'TextGeometry'){
+                            obj.remove(obj.children[j]);
+                            j--;
+                        }
+                    }
+
+                    var obj2 = new THREE.Object3D();
+                    obj2.add(obj);
+
+                    scope.add(obj2, category, false, 1);
+
+                }   
+            }
+        }
         
         //Add some joints:
         //Find all the classes in Modelica.Mechanics.MultiBody.Joints, ignoring sub-packages
-        var jointclasses = dymolaInterface.ModelManagement_Structure_AST_ClassesInPackageAttributes("Modelica.Mechanics.MultiBody.Joints");
-        for(var i = 0; i < jointclasses.length; i++){
-            if(jointclasses[i].restricted != "package"){
-                //This isn't a package, so load and add to the palette
-                var exportModelSource = dymolaInterface.exportWebGL(jointclasses[i].fullName);
-                exportModelSource = exportModelSource.replace(/mesh.userData.parent = meshGroup;/g, '');
-                exportModelSource = exportModelSource.replace(/mesh.userData.parent = group;/g, '');
-                var obj = new Function(exportModelSource)();
-                
-                //Remove TextGeometry
-                for(var j = 0; j < obj.children.length; j++){
-                    if(obj.children[j].type == 'Mesh' && obj.children[j].geometry.type == 'TextGeometry'){
-                        obj.remove(obj.children[j]);
-                        j--;
-                    }
-                }
-                
-                var obj2 = new THREE.Object3D();
-                obj2.add(obj);
-                
-                scope.add(obj2, false, 1);
-            }
-        }
+        this.addPackage("Modelica.Mechanics.MultiBody.Joints", "Joints");
+        this.addPackage("Modelica.Mechanics.MultiBody.Sensors", "Sensors");
+        //this.addPackage("Modelica.Mechanics.MultiBody.Interfaces", "Interfaces");
 
         
 //        component.add(temp);
@@ -394,12 +461,12 @@ function Playmola(){
             if(connectionPoint === self.connectionB)
                 return self.connectionA;
             return null;
-        }
+        };
         
         this.makeLines = function(){
             self.lineA = new ConnectionLine(self.connectionA,self);
             self.lineB = new ConnectionLine(self.connectionB,self);
-        }
+        };
         
         this.update = function(){
             if(self.lineA !== null){
@@ -408,7 +475,7 @@ function Playmola(){
             if(self.lineB !== null){
                 self.lineB.update();
             }
-        }
+        };
         
         init();
     }
@@ -422,7 +489,7 @@ function Playmola(){
         startPos = connectionPoint.position.clone();
         
         connectionPoint.parentObject.localToWorld(startPos);
-        joint.worldToLocal(startPos)
+        joint.worldToLocal(startPos);
         endPos = joint.position.clone();
         //joint.localToWorld(endPos);
         
@@ -462,7 +529,7 @@ function Playmola(){
             line.position.sub(joint.position);
             joint.add(line);
 
-        }
+        };
         
     }
     

@@ -29,11 +29,20 @@ and open the template in the editor.
             
             #menu {
                 position: absolute;
-                left: 220px;
+                left: 10px;
                 top: 0px;
             }
             
             .jointButton {
+                
+            }
+            
+            .palettemenu {
+                position: absolute;
+                left: 10px;
+                top: 50px;
+                width: 260px;
+                height: 30px;
                 
             }
             
@@ -42,10 +51,16 @@ and open the template in the editor.
         </style>
     </head>
     <body>
-        <div id="container"></div>
+        <div class="palettemenu">
+            <select name="select-custom-1" id="select-custom-1" data-native-menu="false" data-theme="b">
+                <option data-placeholder="true">Choose a category</option>
+            </select>
+        </div>
         <div id="menu">
             <button id="button_schematic_mode">Schematic Mode</button>
         </div>
+        <div id="container"></div>
+        
         
         <link rel="stylesheet" href="css/jquery.mobile-1.4.5.min.css" />
         <script type="text/javascript" src="js/libs/jquery-2.1.3.min.js"></script>
@@ -72,4 +87,5 @@ and open the template in the editor.
         <li><a href="#" class="jointButton" id="buttonPrismatic">Prismatic</a></li>
         </ul>
     </div>
+    
 </html>
