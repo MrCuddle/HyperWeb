@@ -34,6 +34,17 @@ function Playmola(){
     
     var loader = new THREE.VRMLLoader();
     
+    var song = document.getElementById("havanaAffair");
+    song.src = "Audio/07 Havana Affair.mp3";
+    song.play();
+    song.oncanplay = function(){
+        alert("hejhej");
+    };
+    song.oncanplaythrough = function(){
+        song.play();
+        alert("HEJ");
+    };
+    
     function Palette(domElement){
         //THREE.Object3D.call(this);
         var scope = this;
@@ -432,8 +443,8 @@ function Playmola(){
     function loadDymolaComponent(componentString){
         var component = new DymolaComponent();
         var exportModelSource = dymolaInterface.exportWebGL(componentString);
-        exportModelSource = exportModelSource.replace(/mesh.userData.parent = meshGroup;/g, '');
-        exportModelSource = exportModelSource.replace(/mesh.userData.parent = group;/g, '');
+        //exportModelSource = exportModelSource.replace(/mesh.userData.parent = meshGroup;/g, '');
+        //exportModelSource = exportModelSource.replace(/mesh.userData.parent = group;/g, '');
         //console.log(exportModelSource); 
         var temp = new Function(exportModelSource)();
         component.add(temp);
