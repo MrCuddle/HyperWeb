@@ -74,6 +74,11 @@ function Playmola(){
                 if(hoverTileX != -1){
                     dragging = categories[selectedCategory][hoverTileX + hoverTileY * tilesX].clone();
                     
+                    //Materials are not cloned, so do it manually here...
+                    dragging.traverse(function(o){
+                        if(o.material !== undefined) o.material = o.material.clone();
+                    });
+                    
                     //clone doesn't copy connection points, so do that manually here (FIX THIS LATER!!!!!)    
                     dragging.connectionPoints = [];
     
@@ -102,12 +107,7 @@ function Playmola(){
                 scene.add(dragging);
                 dragging.position.set(0,0,0);
                 dragging.scale.set(1,1,1);
-                dragging.children[0].position.add(dragging.userData.centerOffset);
-                dragging.updateMatrix();
-                dragging.updateMatrixWorld(true);
-                dragging.castShadow = true;
-                dragging.receiveShadow = true;
-                
+                dragging.children[0].position.add(dragging.userData.centerOffset);               
                 
                 dragging = null;
             }
@@ -170,10 +170,6 @@ function Playmola(){
         var width = domElement.getBoundingClientRect().width;
         var height = domElement.getBoundingClientRect().height;
         this.camera = new THREE.OrthographicCamera(width / -2, width / 2, height / 2, height / -2, 1, 1000);
-
-
-        
-        
 
         this.update = function(){
             if(mouseover){
@@ -250,6 +246,10 @@ function Playmola(){
             //obj.position.set(((models.length-1)%tilesX) * (tileSpacing + tileWidth) - width/2 + tileWidth/2 + tileSpacing + center.x * scaleFactor, -Math.floor((models.length-1)/tilesX) * (tileSpacing + tileHeight) + height/2 - tileHeight/2 - tileSpacing - center.y*scaleFactor,-100);
             obj.position.set(((len-1)%tilesX) * (tileSpacing + tileWidth) - width/2 + tileWidth/2 + bounds.min.x, -Math.floor((len-1)/tilesX) * (tileSpacing + tileHeight) + height/2 - tileHeight/2 - bounds.min.y,-100);
             
+           
+            obj.traverse(function(o){
+                o.castShadow = true;
+            })
            
             //bounds.min.set(tileSpacing,tileSpacing);
             if(category === selectedCategory) bounds.max.set((len < 3 ? len :tilesX)*(tileSpacing + tileWidth) + bounds.min.x, Math.ceil((len)/tilesX) * (tileSpacing + tileHeight) + bounds.min.y);
@@ -331,6 +331,13 @@ function Playmola(){
             loader.load("models/robot/b0.wrl", function(object){
                 var obj = loadModel(object, new THREE.Vector3(0,0,0), new Array(new ConnectionPoint(new THREE.Vector3(0,0.351,0)),new ConnectionPoint(new THREE.Vector3(0,0,0))));
                 scope.add(obj, "Parts");
+                //obj.position.set(-1,-1,0);
+                //obj.castShadow = true;
+//                obj.traverse(function(o){
+//                    o.castShadow = true;
+//                })
+                //scene.add(obj);
+                
             });
             loader.load("models/robot/b1.wrl", function(object){
                 var obj = loadModel(object, new THREE.Vector3(0,0,0), new Array(new ConnectionPoint(new THREE.Vector3(0,0.324,0.3)),new ConnectionPoint(new THREE.Vector3(0,0,0))));
@@ -398,9 +405,9 @@ function Playmola(){
         
         $(document).ready(function(){
             scope.loadParts();
-            scope.addPackage("Modelica.Mechanics.MultiBody.Joints", "Joints");
-            scope.addPackage("Modelica.Mechanics.MultiBody.Sensors", "Sensors");
-            scope.addPackage("Modelica.Mechanics.MultiBody.Interfaces", "Interfaces");
+            //scope.addPackage("Modelica.Mechanics.MultiBody.Joints", "Joints");
+            //scope.addPackage("Modelica.Mechanics.MultiBody.Sensors", "Sensors");
+            //scope.addPackage("Modelica.Mechanics.MultiBody.Parts", "DymolaParts");
         });
 
         
@@ -556,19 +563,24 @@ function Playmola(){
         
         try{
             dymolaInterface = new DymolaInterface();
+            if(!dymolaInterface.isDymolaRunning()){
+                alert("Dymola interface initialization failed");
+            }
         }
         catch(err){
             alert("Dymola interface initialization failed");
         }
         
         renderer = new THREE.WebGLRenderer({antialias:true});
+        renderer.shadowMapEnabled = true;
+        renderer.shadowMapType=THREE.PCFSoftShadowMap;
         renderer.setClearColor( 0x7EC0EE, 1 );
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.autoClear = false;
         document.querySelector("#container").appendChild(renderer.domElement);
 
         camera = new THREE.PerspectiveCamera(45,window.innerWidth/window.innerHeight,0.1,1000);
-        camera.position.set(50,0,0);
+        camera.position.set(3,-2,0);
         
         palette = new Palette(renderer.domElement);       
 
@@ -585,19 +597,47 @@ function Playmola(){
         foregroundScene = new THREE.Scene();
 
         var directionalLight = new THREE.DirectionalLight();
-        directionalLight.position.set(0,0,-1);
+        directionalLight.position.set(5,10,10);
         directionalLight.intensity = 0.75;
         directionalLight.castShadow = true;
-        renderer.shadowMapEnabled = true;
-        scene.add(directionalLight);
+        directionalLight.shadowCameraVisible = true;
+        
+        directionalLight.shadowCameraNear = 5;
+        directionalLight.shadowCameraFar = 30;
+        directionalLight.shadowCameraLeft = -10; // or whatever value works for the scale of your scene
+        directionalLight.shadowCameraRight = 10;
+        directionalLight.shadowCameraTop = 10;
+        directionalLight.shadowCameraBottom = -10;
 
-        directionalLight = directionalLight.clone();
-        directionalLight.position.set(1,-1,1);
-        scene.add(directionalLight);
+				//light.shadowCameraVisible = true;
 
-        directionalLight = directionalLight.clone();
-        directionalLight.position.set(-1,1,1);
+        directionalLight.shadowBias = 0.0003;
+        directionalLight.shadowDarkness = 0.5;
+
+        directionalLight.shadowMapWidth = 8192;
+        directionalLight.shadowMapHeight = 8192;
         scene.add(directionalLight);
+        
+        directionalLight = new THREE.DirectionalLight();
+        directionalLight.position.set(5,10,-10);
+        directionalLight.intensity = 0.75;
+        directionalLight.castShadow = false;
+        scene.add(directionalLight);
+        
+
+//        directionalLight = directionalLight.clone();
+//        directionalLight.position.set(10,-10,10);
+//        directionalLight.intensity = 0.75;
+//        directionalLight.castShadow = true;
+//        //directionalLight.shadowCameraVisible = true;
+//        scene.add(directionalLight);
+//
+//        directionalLight = directionalLight.clone();
+//        directionalLight.position.set(-10,10,10);
+//        directionalLight.intensity = 0.75;
+//        directionalLight.castShadow = true;
+//        directionalLight.shadowCameraVisible = true;
+//        scene.add(directionalLight);
         
         scene.add(new THREE.AmbientLight(new THREE.Color(0.1,0.1,0.1)));
         
@@ -625,6 +665,24 @@ function Playmola(){
         loadDymolaComponent(prismaticJoint);
         loadDymolaComponent(cylindricalJoint);
         //scene.add(dymolaComponentStorage["Modelica.Mechanics.MultiBody.Joints.Revolute"]);	
+        
+        
+        
+        //Add some scenery!
+        var room = new THREE.Mesh(new THREE.BoxGeometry(10,5,10), new THREE.MeshLambertMaterial({color: 0xffffff, side: THREE.DoubleSide }));
+        room.receiveShadow = true;
+        room.castShadow = false;
+        scene.add(room);
+        var desk = new THREE.Mesh(new THREE.BoxGeometry(1.5,0.5,0.75), new THREE.MeshLambertMaterial({color: 0xccaa22 }));
+        desk.position.set(0,-2.25,0);
+        desk.castShadow = true;
+        desk.receiveShadow = true;
+        scene.add(desk);
+        
+
+        var pointlight = new THREE.PointLight(0xffffff, 1, 100);
+        pointlight.position.set(2,2,2);
+        scene.add(pointlight);
     }
     
     
@@ -655,15 +713,16 @@ function Playmola(){
     }
     
     function createCameraControls(){
-        cameraControls = new THREE.TrackballControls( camera );
-        cameraControls.rotateSpeed = 5.0;
-        cameraControls.zoomSpeed = 1.2;
-        cameraControls.panSpeed = 0.8;
-        cameraControls.noZoom = false;
-        cameraControls.noPan = false;
-        cameraControls.staticMoving = true;
-        cameraControls.dynamicDampingFactor = 0.3;
-        cameraControls.keys = [ 65, 83, 68 ];
+//        cameraControls = new THREE.TrackballControls( camera );
+//        cameraControls.rotateSpeed = 5.0;
+//        cameraControls.zoomSpeed = 1.2;
+//        cameraControls.panSpeed = 0.8;
+//        cameraControls.noZoom = false;
+//        cameraControls.noPan = false;
+//        cameraControls.staticMoving = true;
+//        cameraControls.dynamicDampingFactor = 0.3;
+//        cameraControls.keys = [ 65, 83, 68 ];
+        cameraControls = new CustomCameraControls(camera, renderer.domElement, new THREE.Box3(), new THREE.Vector3(0,-1,0));
     }
     //Resets the camera and renderer when the window is resized
     function onWindowResize() {
@@ -1278,3 +1337,4 @@ function Playmola(){
 }
 
 var playmola = new Playmola();
+
