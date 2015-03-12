@@ -34,16 +34,16 @@ function Playmola(){
     
     var loader = new THREE.VRMLLoader();
     
-    var song = document.getElementById("havanaAffair");
-    song.src = "Audio/07 Havana Affair.mp3";
-    song.play();
-    song.oncanplay = function(){
-        alert("hejhej");
-    };
-    song.oncanplaythrough = function(){
-        song.play();
-        alert("HEJ");
-    };
+//    var song = document.getElementById("havanaAffair");
+//    song.src = "Audio/07 Havana Affair.mp3";
+//    song.play();
+//    song.oncanplay = function(){
+//        alert("hejhej");
+//    };
+//    song.oncanplaythrough = function(){
+//        song.play();
+//        alert("HEJ");
+//    };
     
     function Palette(domElement){
         //THREE.Object3D.call(this);
@@ -722,7 +722,7 @@ function Playmola(){
 //        cameraControls.staticMoving = true;
 //        cameraControls.dynamicDampingFactor = 0.3;
 //        cameraControls.keys = [ 65, 83, 68 ];
-        cameraControls = new CustomCameraControls(camera, renderer.domElement, new THREE.Box3(), new THREE.Vector3(0,-1,0));
+        cameraControls = new CustomCameraControls(camera, renderer.domElement, new THREE.Box3(new THREE.Vector3(-5,-2.5,-5), new THREE.Vector3(5,2.5,5)), new THREE.Vector3(0,-1,0));
     }
     //Resets the camera and renderer when the window is resized
     function onWindowResize() {

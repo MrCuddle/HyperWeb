@@ -18,7 +18,7 @@ CustomCameraControls = function ( camera, domElement, bounds, target ) {
     var curPos = new THREE.Vector2();
     
     this.rotateSpeed = 0.005;
-    this.zoomSpeed = 0.001;
+    this.zoomSpeed = 0.0013;
     
     function init(){
         camera.lookAt(target);
@@ -58,18 +58,21 @@ CustomCameraControls = function ( camera, domElement, bounds, target ) {
     
     $(domElement).on('mousewheel', function(event){
         event.preventDefault();
+       
         
         self.camera.position.sub(target);
         
         var l = self.camera.position.length();
-        self.camera.position.normalize();
-        self.camera.position.multiplyScalar(l - event.deltaY * event.deltaFactor * self.zoomSpeed);
+        self.camera.position.normalize().multiplyScalar(l - event.deltaY * event.deltaFactor * self.zoomSpeed);
         
         self.camera.position.add(target);
+        
+        camera.position.clamp(self.bounds.min, self.bounds.max);
         
     });
 
     this.update = function(){
+        
         if(dragging){
             
             self.camera.position.sub(target);
@@ -80,6 +83,9 @@ CustomCameraControls = function ( camera, domElement, bounds, target ) {
             self.camera.position.add(target);
              
         }
+        
+
+        camera.position.clamp(self.bounds.min, self.bounds.max);
         
         camera.lookAt(target);
         prevPos.copy(curPos);
