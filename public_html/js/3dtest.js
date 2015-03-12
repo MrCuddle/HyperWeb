@@ -320,19 +320,19 @@ function Playmola(){
             
             loader.load("Piston_Study.wrl", function(object){
                 var obj = loadModel(object, new THREE.Vector3(0.,-0.15149054405043,0.), new Array(new ConnectionPoint(new THREE.Vector3(0.,-0.14420647088485,0.))));
-                scope.add(obj, "Parts");
+                scope.add(obj, "Parts",true, 0, 4);
             });
             loader.load("Master_One_Cylinder.wrl", function(object){
                 var obj = loadModel(object, new THREE.Vector3(-4.5e-2,0.,0.), new Array(new ConnectionPoint(new THREE.Vector3(-4.5e-2,0.,0.))));
-                scope.add(obj, "Parts");
+                scope.add(obj, "Parts", true, 0, 4);
             });
             loader.load("Rod_Study.wrl", function(object){
                 var obj = loadModel(object, new THREE.Vector3(0.,-8.9431700693962e-2,2.4489282256523e-2), new Array(new ConnectionPoint(new THREE.Vector3(0.,-3.465692988818e-2,4.8978561933508e-2)), new ConnectionPoint(new THREE.Vector3(0.,-0.14420647088485,0.))));
-                scope.add(obj, "Parts");
+                scope.add(obj, "Parts", true, 0, 4);
             });
             loader.load("Cranck_Study.wrl", function(object){
                 var obj = loadModel(object, new THREE.Vector3(-2.7054598934035e-2,-9.0702960410631e-3,1.2818607418443e-2), new Array(new ConnectionPoint(new THREE.Vector3(0.,-3.465692988818e-2,4.8978561933508e-2)), new ConnectionPoint(new THREE.Vector3(-4.5e-2,0.,0.))));
-                scope.add(obj, "Parts");
+                scope.add(obj, "Parts", true, 0, 4);
             });
 
             loader.load("models/robot/b0.wrl", function(object){
@@ -669,7 +669,7 @@ function Playmola(){
             onMouseUp();
         });
         
-        $(document).on('mousedown', function(event){
+        $(renderer.domElement).on('mousedown', function(event){
             if(intersectionTest() === true){
                 event.preventDefault();
                 event.stopImmediatePropagation();
