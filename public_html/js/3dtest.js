@@ -106,8 +106,11 @@ function Playmola(){
                 
                 objectCollection.push(dragging);
                 scene.add(dragging);
-                dragging.position.set(0,0,0);
+
                 dragging.scale.set(dragging.userData.sceneScale,dragging.userData.sceneScale,dragging.userData.sceneScale);
+                raycaster.setFromCamera(new THREE.Vector2(( event.clientX / domElement.getBoundingClientRect().width ) * 2 - 1, - ( event.clientY / domElement.getBoundingClientRect().height ) * 2 + 1), camera);
+                var projPlane = new THREE.Plane().setFromNormalAndCoplanarPoint(new THREE.Vector3(0,0, -1).applyQuaternion(camera.quaternion),new THREE.Vector3());
+                projPlane.intersectLine(new THREE.Line3(camera.position, camera.position.clone().add(raycaster.ray.direction.clone().multiplyScalar(100.0))),dragging.position);
                 dragging.children[0].position.add(dragging.userData.centerOffset);               
                 
                 dragging = null;
@@ -310,7 +313,7 @@ function Playmola(){
         $("#select-custom-1").on('change', function(event){
             scope.selectCategory(event.target.value);
         });
-        //categories["misc"] = [];
+
         
         //this.selectCategory("joints");
         this.loadParts = function(){
@@ -616,36 +619,30 @@ function Playmola(){
         
         palette = new Palette(renderer.domElement);       
 
-        transformControls = new THREE.TransformControls( camera, renderer.domElement );
-        transformControls.addEventListener( 'objectChange', checkForConnections );
-        transformControls.addEventListener('mouseUp', onMouseUp );
+//        transformControls = new THREE.TransformControls( camera, renderer.domElement );
+//        transformControls.addEventListener( 'objectChange', checkForConnections );
+//        transformControls.addEventListener('mouseUp', onMouseUp );
         
-        
+        transformControls = new CustomTransformControls(camera, renderer.domElement,new THREE.Box3(new THREE.Vector3(-5,-2.5,-5), new THREE.Vector3(5,2.5,5)));
        
         
         scene = new THREE.Scene();
         //scene.add(camera);
-        scene.add(transformControls);
+        //scene.add(transformControls);
         foregroundScene = new THREE.Scene();
 
         var directionalLight = new THREE.DirectionalLight();
         directionalLight.position.set(5,10,10);
         directionalLight.intensity = 0.75;
         directionalLight.castShadow = true;
-        directionalLight.shadowCameraVisible = true;
-        
         directionalLight.shadowCameraNear = 5;
         directionalLight.shadowCameraFar = 30;
-        directionalLight.shadowCameraLeft = -10; // or whatever value works for the scale of your scene
+        directionalLight.shadowCameraLeft = -10; 
         directionalLight.shadowCameraRight = 10;
         directionalLight.shadowCameraTop = 10;
         directionalLight.shadowCameraBottom = -10;
-
-				//light.shadowCameraVisible = true;
-
         directionalLight.shadowBias = 0.0003;
         directionalLight.shadowDarkness = 0.5;
-
         directionalLight.shadowMapWidth = 1024;
         directionalLight.shadowMapHeight = 1024;
         scene.add(directionalLight);
@@ -655,21 +652,7 @@ function Playmola(){
         directionalLight.intensity = 0.75;
         directionalLight.castShadow = false;
         scene.add(directionalLight);
-        
 
-//        directionalLight = directionalLight.clone();
-//        directionalLight.position.set(10,-10,10);
-//        directionalLight.intensity = 0.75;
-//        directionalLight.castShadow = true;
-//        //directionalLight.shadowCameraVisible = true;
-//        scene.add(directionalLight);
-//
-//        directionalLight = directionalLight.clone();
-//        directionalLight.position.set(-10,10,10);
-//        directionalLight.intensity = 0.75;
-//        directionalLight.castShadow = true;
-//        directionalLight.shadowCameraVisible = true;
-//        scene.add(directionalLight);
         
         scene.add(new THREE.AmbientLight(new THREE.Color(0.1,0.1,0.1)));
         
@@ -677,7 +660,16 @@ function Playmola(){
         mousePos = new THREE.Vector2(-1,-1);
         
         window.addEventListener('mousemove', onMouseMove, false);
-        $(renderer.domElement).on('mousedown', function(event){
+        
+        $(document).on('mousemove', function(){
+            checkForConnections();
+        });
+        
+        $(document).on('mouseup', function(){
+            onMouseUp();
+        });
+        
+        $(document).on('mousedown', function(event){
             if(intersectionTest() === true){
                 event.preventDefault();
                 event.stopImmediatePropagation();
@@ -685,18 +677,15 @@ function Playmola(){
                 return false;
             }
         });
-        //$(transformControls).on('mouseDown', intersectionTest);
-//        $(cameraControls).on('start', function(){
-//            var blah = true;
-//        });
+
         window.addEventListener('resize', onWindowResize, false);
         
 
-        createCameraControls();
+        cameraControls = new CustomCameraControls(camera, renderer.domElement, new THREE.Box3(new THREE.Vector3(-5,-2.5,-5), new THREE.Vector3(5,2.5,5)), new THREE.Vector3(0,-1,0));
         loadDymolaComponent(revoluteJoint);
         loadDymolaComponent(prismaticJoint);
         loadDymolaComponent(cylindricalJoint);
-        //scene.add(dymolaComponentStorage["Modelica.Mechanics.MultiBody.Joints.Revolute"]);	
+
         
         
         
@@ -744,24 +733,11 @@ function Playmola(){
         return obj;
     }
     
-    function createCameraControls(){
-//        cameraControls = new THREE.TrackballControls( camera );
-//        cameraControls.rotateSpeed = 5.0;
-//        cameraControls.zoomSpeed = 1.2;
-//        cameraControls.panSpeed = 0.8;
-//        cameraControls.noZoom = false;
-//        cameraControls.noPan = false;
-//        cameraControls.staticMoving = true;
-//        cameraControls.dynamicDampingFactor = 0.3;
-//        cameraControls.keys = [ 65, 83, 68 ];
-        cameraControls = new CustomCameraControls(camera, renderer.domElement, new THREE.Box3(new THREE.Vector3(-5,-2.5,-5), new THREE.Vector3(5,2.5,5)), new THREE.Vector3(0,-1,0));
-    }
     //Resets the camera and renderer when the window is resized
     function onWindowResize() {
         camera.aspect = window.innerWidth / window.innerHeight;
         camera.updateProjectionMatrix();
         renderer.setSize( window.innerWidth, window.innerHeight );
-        createCameraControls();
         palette.resize();
     }
     
@@ -867,7 +843,7 @@ function Playmola(){
             }
             //Don't reselect the currently selected object
             if(intersectionFound === selectedObject && selectedObject !== null){
-                transformControls.forceDrag();
+                //transformControls.forceDrag();
                 return true;
             }
             //Deselect the selected object if there is one
@@ -876,7 +852,7 @@ function Playmola(){
             //Select the new object
             if(intersectionFound !== null){
                 selectObject(intersectionFound);
-                transformControls.forceDrag();
+                //transformControls.forceDrag();
                 return true;
             }
             return false;
@@ -886,8 +862,7 @@ function Playmola(){
     function selectObject(object){
         selectedObject = object;
         transformControls.attach(selectedObject);
-        transformControls.setMode("translate");
-        transformControls.setSpace("world");
+        transformControls.dragging = true;
         
         
         selectedObject.traverse(function(child){

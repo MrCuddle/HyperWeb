@@ -46,7 +46,7 @@ CustomCameraControls = function ( camera, domElement, bounds, target ) {
     
     $(domElement).on('mouseup', function(event){
         //Right mouse button
-        if(event.button == 2){
+        if(event.button == 2 && dragging){
             dragging = false;
             event.stopImmediatePropagation();
             event.stopPropagation();
