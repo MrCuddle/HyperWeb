@@ -42,8 +42,12 @@ and open the template in the editor.
                 left: 10px;
                 top: 50px;
                 width: 260px;
-                height: 30px;
-                
+                height: 30px;   
+            }
+            
+            .whatever {
+                overflow: visible !important;
+                white-space: normal !important;
             }
             
         </style>
@@ -59,7 +63,7 @@ and open the template in the editor.
         </div>
         <div id="container"></div>
         
-        <div data-role="panel" id="detailsPanel" data-position="right" data-position-fixed="true" data-display="overlay">
+        <div data-role="panel" id="detailsPanel" data-dismissible="false" data-position="right" data-position-fixed="true" data-display="overlay">
         </div>
         
         

@@ -107,7 +107,7 @@ function Playmola(){
                 objectCollection.push(dragging);
                 scene.add(dragging);
                 dragging.position.set(0,0,0);
-                dragging.scale.set(1,1,1);
+                dragging.scale.set(dragging.userData.sceneScale,dragging.userData.sceneScale,dragging.userData.sceneScale);
                 dragging.children[0].position.add(dragging.userData.centerOffset);               
                 
                 dragging = null;
@@ -215,13 +215,15 @@ function Playmola(){
             scope.camera.updateProjectionMatrix();
         };
         
-        this.add = function(obj, category, tilt, rotationMode){
+        this.add = function(obj, category, tilt, rotationMode, sceneScale){
             if(tilt === undefined) tilt = true;
             if(rotationMode === undefined) rotationMode = 0;
             if(tilt)
                 obj.rotation.set(0.1,0,-0.1);
+            if(sceneScale === undefined) sceneScale = 1;
             obj.updateMatrix();
             obj.updateMatrixWorld(true);
+            obj.userData.sceneScale = sceneScale;
             var bbh = new THREE.BoundingBoxHelper(obj, 0xffffff);
             bbh.update();
             var size = bbh.box.size();
@@ -389,12 +391,26 @@ function Playmola(){
                         }
                     }
                     var obj2 = new DymolaComponent();
+                    var componentsInClass = dymolaInterface.Dymola_AST_ComponentsInClass(classes[i].fullName);
                     
-                    var componentsInClassAttributes = dymolaInterface.ModelManagement_Structure_AST_ComponentsInClassAttributes(classes[i].fullName);
-                    for(var k = 0; k < componentsInClassAttributes.length; k++){
-                        if(componentsInClassAttributes[k].variability === "parameter")
-                            obj2.parameters.push(componentsInClassAttributes[k]);
+                    for(var j = 0; j < componentsInClass.length; j++){
+                        var params = [];
+                        params.push(classes[i].fullName);
+                        params.push(componentsInClass[j]);
+                        if(dymolaInterface.callDymolaFunction("Dymola_AST_ComponentVariability", params) === "parameter"){
+                            var componentParam = [];
+                            componentParam["name"] = componentsInClass[j];
+                            componentParam["sizes"] = dymolaInterface.callDymolaFunction("Dymola_AST_ComponentSizes",params);
+                            componentParam["fullTypeName"] = dymolaInterface.callDymolaFunction("Dymola_AST_ComponentFullTypeName", params);
+                            componentParam["description"] = dymolaInterface.callDymolaFunction("Dymola_AST_ComponentDescription",params);
+                            obj2.parameters.push(componentParam);
+                        }
                     }
+//                    var componentsInClassAttributes = dymolaInterface.ModelManagement_Structure_AST_ComponentsInClassAttributes(classes[i].fullName);
+//                    for(var k = 0; k < componentsInClassAttributes.length; k++){
+//                        if(componentsInClassAttributes[k].variability === "parameter")
+//                            obj2.parameters.push(componentsInClassAttributes[k]);
+//                    }
                     obj2.add(obj);
                     obj.traverse(function(currentObj){
                     if(currentObj.userData.isConnector === true)
@@ -403,7 +419,7 @@ function Playmola(){
                     
                     
                     
-                    scope.add(obj2, category, false, 1);
+                    scope.add(obj2, category, false, 1, 0.005);
 
                 }   
             }
@@ -630,8 +646,8 @@ function Playmola(){
         directionalLight.shadowBias = 0.0003;
         directionalLight.shadowDarkness = 0.5;
 
-        directionalLight.shadowMapWidth = 8192;
-        directionalLight.shadowMapHeight = 8192;
+        directionalLight.shadowMapWidth = 1024;
+        directionalLight.shadowMapHeight = 1024;
         scene.add(directionalLight);
         
         directionalLight = new THREE.DirectionalLight();
@@ -661,7 +677,7 @@ function Playmola(){
         mousePos = new THREE.Vector2(-1,-1);
         
         window.addEventListener('mousemove', onMouseMove, false);
-        $(document).on('mousedown', function(event){
+        $(renderer.domElement).on('mousedown', function(event){
             if(intersectionTest() === true){
                 event.preventDefault();
                 event.stopImmediatePropagation();
@@ -904,19 +920,26 @@ function Playmola(){
     }
     
     function generateNewDetailsForm(parameter){
-        $("#detailsPanel").append('<div class="ui-field-contain">');
-        $("#detailsPanel").append('<label>'+ parameter.name + '' +'</label>'); 
-        $("#detailsPanel").append('</div>');
+        var id = "id"+parameter.name;
+        $("#detailsPanel").append('<div id="' + id +'_" class="ui-field-contain">');
+        $("#"+id+"_").append('<label class="whatever" for="'+id+'">'+ parameter.name + '' +'</label>'); 
+        var value = (typeof parameter.currentValue !== 'undefined') ? 'value="' + parameter.currentValue + '"' : "";
         if(parameter.fullTypeName === "Boolean"){
-            $("#detailsPanel").append('<select data-role="slider"><option value="off">False</option><option value="on">True</option></select>');
+            $("#"+id+"_").append('<select name="' + id + '" id="' + id + '" data-role="slider"><option value="off">False</option><option value="on">True</option></select>');
         }
         else if(parameter.fullTypeName === "Real" && parameter.sizes[0] === 3){
-            $("#detailsPanel").append('<input placeholder="x,y,z"></input>');
+            $("#"+id+"_").append('<input name="' + id + '" id="' + id + '" placeholder="x,y,z"' + value + '></input>');
         }
         else{
-            $("#detailsPanel").append('<input></input>');
+            $("#"+id+"_").append('<input name="' + id + '" id="' + id + '"' + value + '></input>');
         }
-        $("#detailsPanel").append('<a href="#popup' + parameter.name + '" data-rel="popup" class="ui-btn ui-corner-all ui-shadow ui-btn-inline" data-transition="pop">?</a><div data-role="popup" id="popup' + parameter.name + '"><p>' + parameter.description + '</p></div>');
+        //$("#"+id+"_").append('<a href="#popup' + parameter.name + '" data-rel="popup" class="ui-btn ui-corner-all ui-shadow ui-btn-inline" data-transition="pop">?</a><div data-role="popup" id="popup' + parameter.name + '"><p>' + parameter.description + '</p></div>');
+        $("#"+id).on('input', function(){
+           parameter.currentValue = $(this).val(); 
+        });
+        $("#detailsPanel").enhanceWithin();
+        
+        //alert($("#"+id+"_ label").attr('class'));
     }
    
     //Generates a new Object3D based on the two parameters, removes the parameters from the objectCollection
@@ -1133,7 +1156,7 @@ function Playmola(){
         }
     }
     function deselectObject(){
-        //$("#detailsPanel").panel("close");
+        $("#detailsPanel").panel("close");
         if(selectedObject)
         {
             selectedObject.traverse(function(child){
