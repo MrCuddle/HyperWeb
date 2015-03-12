@@ -34,6 +34,7 @@ function Playmola(){
     
     var loader = new THREE.VRMLLoader();
     
+//Ljudexempel   
 //    var song = document.getElementById("havanaAffair");
 //    song.src = "Audio/07 Havana Affair.mp3";
 //    song.play();
@@ -293,6 +294,7 @@ function Playmola(){
         this.addCategory = function(name){
             categories[name] = [];
             $("#select-custom-1").append("<option value='" + name + "'>" + name + "</option>");
+            $("#select-custom-1").enhanceWithin();
         }
         
         //generate backing planes...
@@ -310,6 +312,7 @@ function Playmola(){
         $("#select-custom-1").on('change', function(event){
             scope.selectCategory(event.target.value);
         });
+
         
         //this.selectCategory("joints");
         this.loadParts = function(){
@@ -376,12 +379,10 @@ function Playmola(){
             }
             
             var classes = dymolaInterface.ModelManagement_Structure_AST_ClassesInPackageAttributes(package);
-            for(var i = 0; i < classes.length; i++){
+            for(var i = 0; i < 3; i++){
                 if(classes[i].restricted != "package"){
                     //This isn't a package, so load and add to the palette
                     var exportModelSource = dymolaInterface.exportWebGL(classes[i].fullName);
-                    exportModelSource = exportModelSource.replace(/mesh.userData.parent = meshGroup;/g, '');
-                    exportModelSource = exportModelSource.replace(/mesh.userData.parent = group;/g, '');
                     var obj = new Function(exportModelSource)();
 
                     //Remove TextGeometry
@@ -391,10 +392,21 @@ function Playmola(){
                             j--;
                         }
                     }
-
-                    var obj2 = new THREE.Object3D();
+                    var obj2 = new DymolaComponent();
+                    
+                    var componentsInClassAttributes = dymolaInterface.ModelManagement_Structure_AST_ComponentsInClassAttributes(classes[i].fullName);
+                    for(var k = 0; k < componentsInClassAttributes.length; k++){
+                        if(componentsInClassAttributes[k].variability === "parameter")
+                            obj2.parameters.push(componentsInClassAttributes[k]);
+                    }
                     obj2.add(obj);
-
+                    obj.traverse(function(currentObj){
+                    if(currentObj.userData.isConnector === true)
+                        obj2.connectors.push(obj);
+                    });
+                    
+                    
+                    
                     scope.add(obj2, category, false, 1);
 
                 }   
@@ -405,13 +417,12 @@ function Playmola(){
         //Find all the classes in Modelica.Mechanics.MultiBody.Joints, ignoring sub-packages
         
         
-        
-        $(document).ready(function(){
+
             scope.loadParts();
-            //scope.addPackage("Modelica.Mechanics.MultiBody.Joints", "Joints");
-            //scope.addPackage("Modelica.Mechanics.MultiBody.Sensors", "Sensors");
-            //scope.addPackage("Modelica.Mechanics.MultiBody.Parts", "DymolaParts");
-        });
+            scope.addPackage("Modelica.Mechanics.MultiBody.Joints", "Joints");
+//            scope.addPackage("Modelica.Mechanics.MultiBody.Sensors", "Sensors");
+//            scope.addPackage("Modelica.Mechanics.MultiBody.Interfaces", "Interfaces");
+        //});
 
         
 //        component.add(temp);
@@ -437,6 +448,7 @@ function Playmola(){
         THREE.Object3D.call(this);
         this.typeName = null;
         this.connectors = [];
+        this.parameters = [];
         var selfie = this;
         
         this.clone = function(){
@@ -444,6 +456,7 @@ function Playmola(){
             DymolaComponent.prototype.clone.call(selfie, newDymComp);
             newDymComp.typeName = this.typeName;
             newDymComp.connectors = this.connectors.slice(0);
+            newDymComp.parameters = this.parameters.slice(0);
             return newDymComp;
         };
     };
@@ -453,19 +466,23 @@ function Playmola(){
     function loadDymolaComponent(componentString){
         var component = new DymolaComponent();
         var exportModelSource = dymolaInterface.exportWebGL(componentString);
-        //exportModelSource = exportModelSource.replace(/mesh.userData.parent = meshGroup;/g, '');
-        //exportModelSource = exportModelSource.replace(/mesh.userData.parent = group;/g, '');
-        //console.log(exportModelSource); 
         var temp = new Function(exportModelSource)();
         component.add(temp);
         component.scale.set(0.005,0.005,0.005);
-        var subcomponents = dymolaInterface.Dymola_AST_ComponentsInClass(componentString);
+        
+        component.traverse(function(obj){
+           if(obj.userData.isConnector === true){
+               component.connectors.push(obj);
+           }
+        });
+//        var subcomponents = dymolaInterface.Dymola_AST_ComponentsInClass(componentString);
 //        for(var i = 0; i < subcomponents.length; i++){
 //            var subcomponentAttribute = dymolaInterface.ModelManagement_Structure_AST_GetComponentAttributes(componentString, subcomponents[i]);
 //            if(subcomponentAttribute.fullTypeName.indexOf("Interfaces") != -1){
 //                component.connectors.push(subcomponentAttribute.fullTypeName);
 //            }
 //        }
+        
         dymolaComponentStorage[componentString] = component;
     }
     
@@ -805,6 +822,10 @@ function Playmola(){
                     }
                 }
             }
+            if(intersectionFound !== null && intersectionFound.userData.isConnector === true){
+                selectObject(intersectFound);
+                return true;
+            }
             //Don't reselect the currently selected object
             if(intersectionFound === selectedObject && selectedObject !== null){
                 //transformControls.forceDrag();
@@ -822,6 +843,7 @@ function Playmola(){
             return false;
         }
     }
+    var numOfDetailElements = 3;
     function selectObject(object){
         selectedObject = object;
         transformControls.attach(selectedObject);
@@ -835,7 +857,44 @@ function Playmola(){
                 child.material.color = new THREE.Color(0xB0E2FF);
              }
         });
+        if(selectedObject instanceof DymolaComponent){
+            $("#detailsPanel").css({"overflow":"scroll"});
+            $("#detailsPanel").panel("open");
+            for(var i = 0; i < selectedObject.parameters.length; i++){
+                generateNewDetailsForm(selectedObject.parameters[i]);
+            }
+//            $('#detailsPanel').on('mousedown', function(event){
+//                //event.stopImmediatePropagation();
+//                event.stopPropagation();
+//            });
+//            $('#detailsPanel').on('mouseup', function(event){
+//                //event.stopImmediatePropagation();
+//                event.stopPropagation();
+//            });
+//            $('#detailsPanel').on('click', function(event){
+//                //event.stopImmediatePropagation();
+//                event.stopPropagation();
+//            });
+            $("#detailsPanel").enhanceWithin();
+        }
     }
+    
+    function generateNewDetailsForm(parameter){
+        $("#detailsPanel").append('<div class="ui-field-contain">');
+        $("#detailsPanel").append('<label>'+ parameter.name + '' +'</label>'); 
+        $("#detailsPanel").append('</div>');
+        if(parameter.fullTypeName === "Boolean"){
+            $("#detailsPanel").append('<select data-role="slider"><option value="off">False</option><option value="on">True</option></select>');
+        }
+        else if(parameter.fullTypeName === "Real" && parameter.sizes[0] === 3){
+            $("#detailsPanel").append('<input placeholder="x,y,z"></input>');
+        }
+        else{
+            $("#detailsPanel").append('<input></input>');
+        }
+        $("#detailsPanel").append('<a href="#popup' + parameter.name + '" data-rel="popup" class="ui-btn ui-corner-all ui-shadow ui-btn-inline" data-transition="pop">?</a><div data-role="popup" id="popup' + parameter.name + '"><p>' + parameter.description + '</p></div>');
+    }
+   
     //Generates a new Object3D based on the two parameters, removes the parameters from the objectCollection
     //and adds the newly generated object instead
     function generateNewObject(obj1, obj2){
@@ -1050,6 +1109,7 @@ function Playmola(){
         }
     }
     function deselectObject(){
+        //$("#detailsPanel").panel("close");
         if(selectedObject)
         {
             selectedObject.traverse(function(child){
