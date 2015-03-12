@@ -32,7 +32,7 @@
              playmola.cancelConnectObjects();
              $( "#jointPopup" ).popup('close');
         });
-       
+        
        
        var schematicMode = false;
        $('#button_schematic_mode').on('click', function(){
@@ -46,6 +46,10 @@
                 $('#button_schematic_mode').html('Schematic Mode');
                 schematicMode = false;
             }
+       });
+       
+       $('#detailsPanel').on('panelclose', function(){
+           $('#detailsPanel').empty();
        });
        
    });
