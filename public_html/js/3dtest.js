@@ -434,7 +434,7 @@ function Playmola(){
         
 
             scope.loadParts();
-            scope.addPackage("Modelica.Mechanics.MultiBody.Joints", "Joints");
+            //scope.addPackage("Modelica.Mechanics.MultiBody.Joints", "Joints");
 //            scope.addPackage("Modelica.Mechanics.MultiBody.Sensors", "Sensors");
 //            scope.addPackage("Modelica.Mechanics.MultiBody.Interfaces", "Interfaces");
         //});
