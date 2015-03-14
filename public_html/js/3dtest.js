@@ -374,13 +374,55 @@ function Playmola(){
             });
         }
         
+        this.loadDymolaBox = function(){
+            if(categories["DymBox"] === undefined){
+                scope.addCategory("DymBox");
+            }
+            var bodyBoxClassName = "Modelica.Mechanics.MultiBody.Parts.BodyBox";
+            var dymBox = new DymolaBox();
+            var componentsInClass = dymolaInterface.Dymola_AST_ComponentsInClass(bodyBoxClassName);
+            for(var i = 0; i < componentsInClass.length; i++){
+                var params = [];
+                params.push(bodyBoxClassName);
+                params.push(componentsInClass[i]);
+                if(dymolaInterface.callDymolaFunction("Dymola_AST_ComponentVariability", params) === "parameter"){
+                    var componentParam = [];
+                    componentParam["name"] = componentsInClass[i];
+                    componentParam["sizes"] = dymolaInterface.callDymolaFunction("Dymola_AST_ComponentSizes",params);
+                    componentParam["fullTypeName"] = dymolaInterface.callDymolaFunction("Dymola_AST_ComponentFullTypeName", params);
+                    componentParam["description"] = dymolaInterface.callDymolaFunction("Dymola_AST_ComponentDescription",params);
+                    dymBox.parameters.push(componentParam);
+                }
+            }
+            dymBox.length = 0.5;
+            dymBox.width = 0.5;
+            dymBox.height = 0.5;
+            dymBox.parameters.forEach(function(entry){
+                if(entry.name === "length"){
+                    entry.currentValue = dymBox.length;
+                }
+                else if(entry.name ==="width"){
+                    entry.currentValue = dymBox.width;
+                }
+                else if(entry.name ==="height"){
+                    entry.currentValue = dymBox.height;
+                }
+            });
+            var geometry = new THREE.BoxGeometry(dymBox.width,dymBox.height,dymBox.length);
+            var material = new THREE.MeshBasicMaterial({color:0x00ff00});
+            var mesh = new THREE.Mesh(geometry, material);
+            dymBox.mesh = mesh;
+            dymBox.add(mesh);
+            scope.add(dymBox, "DymBox", false, 1, 1);
+        };
+        
         this.addPackage = function(package, category){
             if(categories[category] === undefined){
                 scope.addCategory(category);
             }
             
             var classes = dymolaInterface.ModelManagement_Structure_AST_ClassesInPackageAttributes(package);
-            for(var i = 0; i < 3; i++){
+            for(var i = 0; i < classes.length; i++){
                 if(classes[i].restricted != "package"){
                     //This isn't a package, so load and add to the palette
                     var exportModelSource = dymolaInterface.exportWebGL(classes[i].fullName);
@@ -434,6 +476,8 @@ function Playmola(){
         
 
             scope.loadParts();
+            scope.loadDymolaBox();
+            //scope.addPackage("Modelica.Mechanics.MultiBody.Parts", "DymolaParts");
             //scope.addPackage("Modelica.Mechanics.MultiBody.Joints", "Joints");
 //            scope.addPackage("Modelica.Mechanics.MultiBody.Sensors", "Sensors");
 //            scope.addPackage("Modelica.Mechanics.MultiBody.Interfaces", "Interfaces");
@@ -471,12 +515,48 @@ function Playmola(){
             DymolaComponent.prototype.clone.call(selfie, newDymComp);
             newDymComp.typeName = this.typeName;
             newDymComp.connectors = this.connectors.slice(0);
-            newDymComp.parameters = this.parameters.slice(0);
+            newDymComp.parameters = $.extends(true, [], this.parameters);
             return newDymComp;
         };
     };
     
     DymolaComponent.prototype = Object.create(THREE.Object3D.prototype);
+    
+        function DymolaBox(){
+        DymolaComponent.call(this);
+        this.mesh;
+        this.length;
+        this.width;
+        this.height;
+        var moi = this;
+        
+        this.clone = function(){
+          var newDymBox = new DymolaBox();
+          DymolaBox.prototype.clone.call(moi, newDymBox);
+          newDymBox.mesh = newDymBox.children[0];
+          newDymBox.length = this.length;
+          newDymBox.width = this.width;
+          newDymBox.height = this.height;
+//          //Lite skumt?
+          newDymBox.parameters = $.extend(true,[], this.parameters);
+          return newDymBox;
+        };
+        this.resize = function(){    
+            if(typeof this.mesh !== 'undefined'){
+                scene.remove(this);
+                this.remove(this.mesh);
+                geometry = new THREE.BoxGeometry(this.width, this.height, this.length);
+                material = new THREE.MeshBasicMaterial( {color: 0x00ff00} );
+                this.mesh = new THREE.Mesh(geometry, material);
+                this.mesh.userData.initColor = this.mesh.material.color;
+                this.mesh.material.color = new THREE.Color(0xB0E2FF);
+                this.add(this.mesh);
+                scene.add(this);
+            }
+        };
+    };
+    
+    DymolaBox.prototype = Object.create(DymolaComponent.prototype);
     
     function loadDymolaComponent(componentString){
         var component = new DymolaComponent();
@@ -630,7 +710,7 @@ function Playmola(){
         //scene.add(camera);
         //scene.add(transformControls);
         foregroundScene = new THREE.Scene();
-
+        
         var directionalLight = new THREE.DirectionalLight();
         directionalLight.position.set(5,10,10);
         directionalLight.intensity = 0.75;
@@ -877,6 +957,29 @@ function Playmola(){
             $("#detailsPanel").panel("open");
             for(var i = 0; i < selectedObject.parameters.length; i++){
                 generateNewDetailsForm(selectedObject.parameters[i]);
+            }
+            if(selectedObject instanceof DymolaBox){
+                $("#idlength").on('input', function(){
+                    var lengthValInForm = $(this).val(); 
+                    if(!isNaN(lengthValInForm)){
+                        selectedObject.length = lengthValInForm;
+                        selectedObject.resize();
+                    }
+            });
+                $("#idwidth").on('input', function(){
+                    var widthValInForm = $(this).val(); 
+                    if(!isNaN(widthValInForm)){
+                        selectedObject.width = widthValInForm;
+                        selectedObject.resize();
+                    }
+            });
+                 $("#idheight").on('input', function(){
+                    var heightValInForm = $(this).val(); 
+                    if(!isNaN(heightValInForm)){
+                        selectedObject.height = heightValInForm;
+                        selectedObject.resize();
+                    }
+            });
             }
 //            $('#detailsPanel').on('mousedown', function(event){
 //                //event.stopImmediatePropagation();
