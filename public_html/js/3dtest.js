@@ -121,7 +121,6 @@ function Playmola(){
                 var projPlane = new THREE.Plane().setFromNormalAndCoplanarPoint(new THREE.Vector3(0,0, -1).applyQuaternion(camera.quaternion),new THREE.Vector3());
                 projPlane.intersectLine(new THREE.Line3(camera.position, camera.position.clone().add(raycaster.ray.direction.clone().multiplyScalar(100.0))),dragging.position);
                 dragging.children[0].position.add(dragging.userData.centerOffset);               
-                
                 dragging = null;
             }
         });
@@ -412,11 +411,49 @@ function Playmola(){
                 }
             });
             var geometry = new THREE.BoxGeometry(dymBox.width,dymBox.height,dymBox.length);
-            var material = new THREE.MeshBasicMaterial({color:0x00ff00});
+            var material = new THREE.MeshLambertMaterial({color:0x00ff00});
             var mesh = new THREE.Mesh(geometry, material);
             dymBox.mesh = mesh;
             dymBox.add(mesh);
             scope.add(dymBox, "DymBox", false, 1, 1);
+        };
+        
+        this.loadDymolaCylinder = function(){
+            if(categories["DymCyl"] === undefined){
+                scope.addCategory("DymCyl");
+            }
+            var bodyCylinderClassName = "Modelica.Mechanics.MultiBody.Parts.BodyCylinder";
+            var dymCyl = new DymolaCylinder();
+            var componentsInClass = dymolaInterface.Dymola_AST_ComponentsInClass(bodyCylinderClassName);
+            for(var i = 0; i < componentsInClass.length; i++){
+                var params = [];
+                params.push(bodyCylinderClassName);
+                params.push(componentsInClass[i]);
+                if(dymolaInterface.callDymolaFunction("Dymola_AST_ComponentVariability", params) === "parameter"){
+                    var componentParam = [];
+                    componentParam["name"] = componentsInClass[i];
+                    componentParam["sizes"] = dymolaInterface.callDymolaFunction("Dymola_AST_ComponentSizes",params);
+                    componentParam["fullTypeName"] = dymolaInterface.callDymolaFunction("Dymola_AST_ComponentFullTypeName", params);
+                    componentParam["description"] = dymolaInterface.callDymolaFunction("Dymola_AST_ComponentDescription",params);
+                    dymCyl.parameters.push(componentParam);
+                }
+            }
+            dymCyl.length = 0.5;
+            dymCyl.diameter = 0.1;
+            dymCyl.parameters.forEach(function(entry){
+                if(entry.name === "length"){
+                    entry.currentValue = dymCyl.length;
+                }
+                else if(entry.name ==="diameter"){
+                    entry.currentValue = dymCyl.diameter;
+                }
+            });
+            var geometry = new THREE.CylinderGeometry(dymCyl.diameter * 0.5, dymCyl.diameter * 0.5, dymCyl.length, dymCyl.numOfRadiusSeg);
+            var material = new THREE.MeshLambertMaterial({color:0x00ff00});
+            var mesh = new THREE.Mesh(geometry, material);
+            dymCyl.mesh = mesh;
+            dymCyl.add(mesh);
+            scope.add(dymCyl, "DymCyl", false, 1, 1);
         };
         
         this.addPackage = function(package, category){
@@ -492,6 +529,7 @@ function Playmola(){
 
             scope.loadParts();
             scope.loadDymolaBox();
+            scope.loadDymolaCylinder();
             //scope.addPackage("Modelica.Mechanics.MultiBody.Parts", "DymolaParts");
             scope.addPackage("Modelica.Mechanics.MultiBody.Joints", "Joints");
 //            scope.addPackage("Modelica.Mechanics.MultiBody.Sensors", "Sensors");
@@ -600,7 +638,7 @@ function Playmola(){
           newDymBox.length = this.length;
           newDymBox.width = this.width;
           newDymBox.height = this.height;
-//          //Lite skumt?
+          //Lite skumt?
           newDymBox.parameters = $.extend(true,[], this.parameters);
           return newDymBox;
         };
@@ -609,7 +647,7 @@ function Playmola(){
                 scene.remove(this);
                 this.remove(this.mesh);
                 geometry = new THREE.BoxGeometry(this.width, this.height, this.length);
-                material = new THREE.MeshBasicMaterial( {color: 0x00ff00} );
+                material = new THREE.MeshLambertMaterial( {color: 0x00ff00} );
                 this.mesh = new THREE.Mesh(geometry, material);
                 this.mesh.userData.initColor = this.mesh.material.color;
                 this.mesh.material.color = new THREE.Color(0xB0E2FF);
@@ -620,6 +658,39 @@ function Playmola(){
     };
     
     DymolaBox.prototype = Object.create(DymolaComponent.prototype);
+    
+    function DymolaCylinder(){
+        DymolaComponent.call(this);
+        this.mesh;
+        this.length;
+        this.diameter;
+        this.numOfRadiusSeg = 32;
+        var moi = this;
+        this.clone = function(){
+          var newDymCyl = new DymolaCylinder();
+          DymolaCylinder.prototype.clone.call(moi, newDymCyl);
+          newDymCyl.mesh = newDymCyl.children[0];
+          newDymCyl.length = this.length;;
+          //Lite skumt?
+          newDymCyl.parameters = $.extend(true,[], this.parameters);
+          return newDymCyl;
+        };
+        this.resize = function(){
+                if(typeof this.mesh !== 'undefined'){
+                scene.remove(this);
+                this.remove(this.mesh);
+                geometry = new THREE.CylinderGeometry(this.diameter * 0.5, this.diameter * 0.5, this.length, this.numOfRadiusSeg);
+                material = new THREE.MeshLambertMaterial( {color: 0x00ff00} );
+                this.mesh = new THREE.Mesh(geometry, material);
+                this.mesh.userData.initColor = this.mesh.material.color;
+                this.mesh.material.color = new THREE.Color(0xB0E2FF);
+                this.add(this.mesh);
+                scene.add(this);
+            }
+        };
+    };
+    
+    DymolaCylinder.prototype = Object.create(DymolaComponent.prototype);
     
     function loadDymolaComponent(componentString){
         var component = new DymolaComponent();
@@ -1112,6 +1183,22 @@ function Playmola(){
                     var heightValInForm = $(this).val(); 
                     if(!isNaN(heightValInForm)){
                         selectedObject.height = heightValInForm;
+                        selectedObject.resize();
+                    }
+            });
+            }
+            else if(selectedObject instanceof DymolaCylinder){
+                $("#idlength").on('input', function(){
+                    var lengthValInForm = $(this).val(); 
+                    if(!isNaN(lengthValInForm)){
+                        selectedObject.length = lengthValInForm;
+                        selectedObject.resize();
+                    }
+            });
+                $("#iddiameter").on('input', function(){
+                    var diameterValInForm = $(this).val(); 
+                    if(!isNaN(diameterValInForm)){
+                        selectedObject.diameter = diameterValInForm;
                         selectedObject.resize();
                     }
             });
