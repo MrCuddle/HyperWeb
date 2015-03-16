@@ -54,6 +54,41 @@ function Playmola(){
 //        song.play();
 //        alert("HEJ");
 //    };
+
+    function generateModelicaCode(){  
+        var source = "";
+          objectCollection.forEach(function(obj){
+              source += obj.typeName + " " + obj.name;
+              var first = true;
+              if(obj.parameters.length > 0){
+                source +="(";
+                obj.parameters.forEach(function(param){
+                   if(param.changed){
+                       if(!first)
+                           source += ",";
+                       else
+                           first = false;
+                       source += param.name + "=" + param.currentValue;
+                   } 
+                });
+                source +=")";
+            }
+              source += "/n";
+          });
+          connections.forEach(function(conn){
+              source += "connect(";
+              
+              conn.connectorA.traverseAncestors(function(anc){
+                 if(anc instanceof DymolaComponent)
+                     source += anc.name;
+              });
+              source += ",";
+              conn.connectorB.traverseAncestors(function(anc){
+                 if(anc instanceof DymolaComponent)
+                 source += anc.name + ")";
+              });
+          });
+    };
     
     function Palette(domElement){
         //THREE.Object3D.call(this);
@@ -107,7 +142,7 @@ function Playmola(){
                 }
             }
         });
-        
+        var objCounter = 0;
         $(domElement).on('mouseup',function(event){
             if(dragging !== null){
                 //Spawn object here
@@ -115,6 +150,8 @@ function Playmola(){
                 
                 objectCollection.push(dragging);
                 scene.add(dragging);
+                dragging.name = "Obj" + objCounter;
+                objCounter++;
 
                 dragging.scale.set(dragging.userData.sceneScale,dragging.userData.sceneScale,dragging.userData.sceneScale);
                 raycaster.setFromCamera(new THREE.Vector2(( event.clientX / domElement.getBoundingClientRect().width ) * 2 - 1, - ( event.clientY / domElement.getBoundingClientRect().height ) * 2 + 1), camera);
@@ -377,8 +414,8 @@ function Playmola(){
         }
         
         this.loadDymolaBox = function(){
-            if(categories["DymBox"] === undefined){
-                scope.addCategory("DymBox");
+            if(categories["Bodies"] === undefined){
+                scope.addCategory("Bodies");
             }
             var bodyBoxClassName = "Modelica.Mechanics.MultiBody.Parts.BodyBox";
             var dymBox = new DymolaBox();
@@ -399,6 +436,14 @@ function Playmola(){
             dymBox.length = 0.5;
             dymBox.width = 0.5;
             dymBox.height = 0.5;
+            
+            var connPoint1 = new THREE.Object3D();
+            var connPoint2 = new THREE.Object3D();
+            connPoint1.position.set(0,0,0);
+            connPoint1.userData.isConnector = true;
+            dymBox.add(connPoint1);
+            dymBox.connectors.push(connPoint1);
+            
             dymBox.parameters.forEach(function(entry){
                 if(entry.name === "length"){
                     entry.currentValue = dymBox.length;
@@ -415,12 +460,12 @@ function Playmola(){
             var mesh = new THREE.Mesh(geometry, material);
             dymBox.mesh = mesh;
             dymBox.add(mesh);
-            scope.add(dymBox, "DymBox", false, 1, 1);
+            scope.add(dymBox, "Bodies", true, 0, 1);
         };
         
         this.loadDymolaCylinder = function(){
-            if(categories["DymCyl"] === undefined){
-                scope.addCategory("DymCyl");
+            if(categories["Bodies"] === undefined){
+                scope.addCategory("Bodies");
             }
             var bodyCylinderClassName = "Modelica.Mechanics.MultiBody.Parts.BodyCylinder";
             var dymCyl = new DymolaCylinder();
@@ -453,7 +498,7 @@ function Playmola(){
             var mesh = new THREE.Mesh(geometry, material);
             dymCyl.mesh = mesh;
             dymCyl.add(mesh);
-            scope.add(dymCyl, "DymCyl", false, 1, 1);
+            scope.add(dymCyl, "Bodies", true, 0, 1);
         };
         
         this.addPackage = function(package, category){
@@ -467,7 +512,6 @@ function Playmola(){
                     //This isn't a package, so load and add to the palette
                     var exportModelSource = dymolaInterface.exportWebGL(classes[i].fullName);
                     var obj = new Function(exportModelSource)();
-
                     //Remove TextGeometry
                     for(var j = 0; j < obj.children.length; j++){
                         if(obj.children[j].type == 'Mesh' && obj.children[j].geometry.type == 'TextGeometry'){
@@ -476,6 +520,7 @@ function Playmola(){
                         }
                     }
                     var obj2 = new DymolaComponent();
+                    obj2.typeName = classes[i].fullName;
                     var componentsInClass = dymolaInterface.Dymola_AST_ComponentsInClass(classes[i].fullName);
                     
                     for(var j = 0; j < componentsInClass.length; j++){
@@ -488,6 +533,7 @@ function Playmola(){
                             componentParam["sizes"] = dymolaInterface.callDymolaFunction("Dymola_AST_ComponentSizes",params);
                             componentParam["fullTypeName"] = dymolaInterface.callDymolaFunction("Dymola_AST_ComponentFullTypeName", params);
                             componentParam["description"] = dymolaInterface.callDymolaFunction("Dymola_AST_ComponentDescription",params);
+                            componentParam["changed"] = false;
                             obj2.parameters.push(componentParam);
                         }
                     }
@@ -604,7 +650,7 @@ function Playmola(){
         this.clone = function(){
             var newDymComp = new DymolaComponent();
             DymolaComponent.prototype.clone.call(selfie, newDymComp);
-            newDymComp.typeName = this.typeName;
+            newDymComp.typeName = selfie.typeName;
             
             newDymComp.connectors = [];
 //            selfie.connectors.forEach(function(c){
@@ -847,6 +893,13 @@ function Playmola(){
                 completeConnection(event);
             }
         });
+        
+        $(document).bind('keypress', function(e) {
+	if(e.keyCode==13){
+		generateModelicaCode();
+	}
+    });
+        
         
         transformControls = new CustomTransformControls(camera, renderer.domElement,new THREE.Box3(new THREE.Vector3(-5,-2.5,-5), new THREE.Vector3(5,2.5,5)));
        
@@ -1235,7 +1288,8 @@ function Playmola(){
         }
         //$("#"+id+"_").append('<a href="#popup' + parameter.name + '" data-rel="popup" class="ui-btn ui-corner-all ui-shadow ui-btn-inline" data-transition="pop">?</a><div data-role="popup" id="popup' + parameter.name + '"><p>' + parameter.description + '</p></div>');
         $("#"+id).on('input', function(){
-           parameter.currentValue = $(this).val(); 
+           parameter.currentValue = $(this).val();
+           parameter.changed = true;
         });
         $("#detailsPanel").enhanceWithin();
         
