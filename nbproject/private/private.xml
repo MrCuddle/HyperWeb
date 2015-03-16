@@ -3,15 +3,13 @@
     <editor-bookmarks xmlns="http://www.netbeans.org/ns/editor-bookmarks/2" lastBookmarkId="0"/>
     <open-files xmlns="http://www.netbeans.org/ns/projectui-open-files/2">
         <group>
-            <file>file:/D:/WebGL/HTML5ApplicationTest/HyperWeb/public_html/js/libs/three.js/three.js</file>
-            <file>file:/D:/WebGL/HTML5ApplicationTest/HyperWeb/public_html/js/libs/ModelManagement.js</file>
-            <file>file:/D:/WebGL/HTML5ApplicationTest/HyperWeb/public_html/js/PlaymolaPalette.js</file>
-            <file>file:/D:/WebGL/HTML5ApplicationTest/HyperWeb/public_html/js/libs/dymola_interface.js</file>
-            <file>file:/D:/WebGL/HTML5ApplicationTest/HyperWeb/public_html/js/libs/jquery-2.1.3.min.js</file>
-            <file>file:/D:/WebGL/HTML5ApplicationTest/HyperWeb/public_html/js/UItest.js</file>
-            <file>file:/D:/WebGL/HTML5ApplicationTest/HyperWeb/public_html/index.html</file>
-            <file>file:/D:/WebGL/HTML5ApplicationTest/HyperWeb/public_html/js/3dtest.js</file>
-            <file>file:/D:/WebGL/HTML5ApplicationTest/HyperWeb/public_html/js/libs/dymola_interface2.js</file>
+            <file>file:/C:/Users/Perlwin/Documents/Exjobb/HyperWeb/public_html/js/TrackBallControls.js</file>
+            <file>file:/C:/Users/Perlwin/Documents/Exjobb/HyperWeb/public_html/js/CustomCameraControls.js</file>
+            <file>file:/C:/Users/Perlwin/Documents/Exjobb/HyperWeb/public_html/js/UItest.js</file>
+            <file>file:/C:/Users/Perlwin/Documents/Exjobb/HyperWeb/public_html/js/libs/jquery.mousewheel.min.js</file>
+            <file>file:/C:/Users/Perlwin/Documents/Exjobb/HyperWeb/public_html/js/3dtest.js</file>
+            <file>file:/C:/Users/Perlwin/Documents/Exjobb/HyperWeb/public_html/js/CustomTransformControls.js</file>
+            <file>file:/C:/Users/Perlwin/Documents/Exjobb/HyperWeb/public_html/index.html</file>
         </group>
     </open-files>
 </project-private>

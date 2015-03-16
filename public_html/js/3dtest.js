@@ -25,6 +25,15 @@ function Playmola(){
     var connectionPoint2; //Connection point of targeted object
     var connectionMarker; //Sphere for visualising connection on target object
     
+    
+    //DymolaComponent Connection-related:
+    var draggingConnection = false;
+    var draggingFrom = null; //The Connector the connection line starts at
+    var connectionLine = null; //A line representing the connection being dragged
+    var connections = []; //An array of connections - consists of a line and data about the connectors involved
+       
+   
+    
     var mousePos;
     var disableControls = false;
     var schematicMode = false;
@@ -338,12 +347,6 @@ function Playmola(){
             loader.load("models/robot/b0.wrl", function(object){
                 var obj = loadModel(object, new THREE.Vector3(0,0,0), new Array(new ConnectionPoint(new THREE.Vector3(0,0.351,0)),new ConnectionPoint(new THREE.Vector3(0,0,0))));
                 scope.add(obj, "Parts");
-                //obj.position.set(-1,-1,0);
-                //obj.castShadow = true;
-//                obj.traverse(function(o){
-//                    o.castShadow = true;
-//                })
-                //scene.add(obj);
                 
             });
             loader.load("models/robot/b1.wrl", function(object){
@@ -422,7 +425,7 @@ function Playmola(){
             }
             
             var classes = dymolaInterface.ModelManagement_Structure_AST_ClassesInPackageAttributes(package);
-            for(var i = 0; i < classes.length; i++){
+            for(var i = 0; i < 1/*classes.length*/; i++){
                 if(classes[i].restricted != "package"){
                     //This isn't a package, so load and add to the palette
                     var exportModelSource = dymolaInterface.exportWebGL(classes[i].fullName);
@@ -458,8 +461,20 @@ function Playmola(){
 //                    }
                     obj2.add(obj);
                     obj.traverse(function(currentObj){
-                    if(currentObj.userData.isConnector === true)
-                        obj2.connectors.push(obj);
+                        if(currentObj.userData.isConnector === true){
+                        
+                            //Move the connectors to the center of their bounding boxes
+                            var bbh = new THREE.BoundingBoxHelper(currentObj, 0xffffff);
+                            bbh.update();
+
+                            currentObj.children.forEach(function(o){
+                                o.position.sub(bbh.box.center());
+                            });
+
+                            currentObj.position.copy(bbh.box.center().clone());
+
+                            obj2.connectors.push(currentObj);
+                        }
                     });
                     
                     
@@ -478,7 +493,7 @@ function Playmola(){
             scope.loadParts();
             scope.loadDymolaBox();
             //scope.addPackage("Modelica.Mechanics.MultiBody.Parts", "DymolaParts");
-            //scope.addPackage("Modelica.Mechanics.MultiBody.Joints", "Joints");
+            scope.addPackage("Modelica.Mechanics.MultiBody.Joints", "Joints");
 //            scope.addPackage("Modelica.Mechanics.MultiBody.Sensors", "Sensors");
 //            scope.addPackage("Modelica.Mechanics.MultiBody.Interfaces", "Interfaces");
         //});
@@ -503,19 +518,67 @@ function Playmola(){
         this.coordinateSystem.makeBasis(new THREE.Vector3(1,0,0),new THREE.Vector3(0,1,0),new THREE.Vector3(0,0,1)); //Default coordinate system
     }
     
+    //This object holds two connectors and is visually represented by a line
+    function Connection(A,B){
+        THREE.Object3D.call(this);
+        this.connectorA = A;
+        this.connectorB = B;
+        this.type = 'DymolaComponent';
+        var scope = this;
+        var line;
+        
+//        this.clone = function(){
+//            //TO DO
+//        };
+        
+        //Updates the connection line
+        this.update = function(){
+            var startPos = scope.connectorA.position.clone();
+            scope.connectorA.parent.localToWorld(startPos);
+
+            var endPos = scope.connectorB.position.clone();
+            scope.connectorB.parent.localToWorld(endPos);
+
+            var geometry = new THREE.Geometry();
+            geometry.vertices.push(
+                    startPos,
+                    endPos
+            );
+            
+            scope.remove(line);
+            line = new THREE.Line( geometry, new THREE.LineBasicMaterial({ color: 0x0000ff }));
+            scope.add(line);
+        };
+        
+        scope.update();
+    }
+    
+    Connection.prototype = Object.create(THREE.Object3D.prototype);
+    
     function DymolaComponent(){
         THREE.Object3D.call(this);
         this.typeName = null;
         this.connectors = [];
         this.parameters = [];
+        this.type = 'DymolaComponent';
         var selfie = this;
         
         this.clone = function(){
             var newDymComp = new DymolaComponent();
             DymolaComponent.prototype.clone.call(selfie, newDymComp);
             newDymComp.typeName = this.typeName;
-            newDymComp.connectors = this.connectors.slice(0);
-            newDymComp.parameters = $.extends(true, [], this.parameters);
+            
+            newDymComp.connectors = [];
+//            selfie.connectors.forEach(function(c){
+//                newDymComp.connectors.push(c.clone());
+//            });
+            
+            newDymComp.traverse(function(currentObj){
+                if(currentObj.userData.isConnector === true)
+                    newDymComp.connectors.push(currentObj);
+            });
+            
+            newDymComp.parameters = $.extend(true, [], this.parameters);
             return newDymComp;
         };
     };
@@ -699,9 +762,20 @@ function Playmola(){
         
         palette = new Palette(renderer.domElement);       
 
-//        transformControls = new THREE.TransformControls( camera, renderer.domElement );
-//        transformControls.addEventListener( 'objectChange', checkForConnections );
-//        transformControls.addEventListener('mouseUp', onMouseUp );
+
+        $(document).on('mousemove', function(event){
+            if(draggingConnection){
+                event.stopImmediatePropagation();
+                dragConnection(event);
+            }
+        });
+        
+        $(document).on('mouseup', function(event){
+            if(draggingConnection){
+                event.stopImmediatePropagation();
+                completeConnection(event);
+            }
+        });
         
         transformControls = new CustomTransformControls(camera, renderer.domElement,new THREE.Box3(new THREE.Vector3(-5,-2.5,-5), new THREE.Vector3(5,2.5,5)));
        
@@ -762,9 +836,9 @@ function Playmola(){
         
 
         cameraControls = new CustomCameraControls(camera, renderer.domElement, new THREE.Box3(new THREE.Vector3(-5,-2.5,-5), new THREE.Vector3(5,2.5,5)), new THREE.Vector3(0,-1,0));
-        loadDymolaComponent(revoluteJoint);
-        loadDymolaComponent(prismaticJoint);
-        loadDymolaComponent(cylindricalJoint);
+//        loadDymolaComponent(revoluteJoint);
+//        loadDymolaComponent(prismaticJoint);
+//        loadDymolaComponent(cylindricalJoint);
 
         
         
@@ -917,9 +991,23 @@ function Playmola(){
                     }
                 }
             }
-            if(intersectionFound !== null && intersectionFound.userData.isConnector === true){
-                selectObject(intersectFound);
-                return true;
+//            if(intersectionFound !== null && intersectionFound.userData.isConnector === true){
+//                selectObject(intersectFound);
+//                return true;
+//            }
+            //Check if the intersected  object was a DymolaComponent and check if the intersection was on a connector
+            if(intersectionFound !== null && intersectionFound.type == 'DymolaComponent'){
+                //Loop through the connectors to see if one is intersected
+                var connectorPicked = false;
+                for(var i = 0; i < intersectionFound.connectors.length; i++){
+                    if(raycaster.intersectObject(intersectionFound.connectors[i],true).length > 0){
+                        connectorPicked = true;
+                        draggingConnection = true;
+                        draggingFrom = intersectionFound.connectors[i];
+                        break;
+                    }
+                }
+                if(connectorPicked) return true;
             }
             //Don't reselect the currently selected object
             if(intersectionFound === selectedObject && selectedObject !== null){
@@ -938,6 +1026,53 @@ function Playmola(){
             return false;
         }
     }
+    
+    function dragConnection(event){
+        if(draggingConnection){
+            //Update the line here:
+        }
+    }
+    
+    //If a connection line is being drawn and the mouse button is released, check for a potential connection
+    function completeConnection(event){
+        if(draggingConnection){
+            var widthHalf = window.innerWidth / 2;
+            var heightHalf = window.innerHeight / 2;
+            var found = false;
+            
+            var pointer = new THREE.Vector3(event.clientX, event.clientY, 0);
+
+            for(var i = 0; i < objectCollection.length; i++){
+                if(objectCollection[i].type == 'DymolaComponent'){
+                    for(var j = 0; j < objectCollection[i].connectors.length; j++){
+                        //Don't allow connecting a connector to itself
+                        if(objectCollection[i].connectors[j] !== draggingFrom ){
+                            //Get the screen position of the connector
+                            var connectorScreenPos = objectCollection[i].connectors[j].position.clone();
+                            objectCollection[i].connectors[j].parent.localToWorld(connectorScreenPos);
+                            connectorScreenPos.project(camera);
+                            connectorScreenPos.x = ( connectorScreenPos.x * widthHalf ) + widthHalf;
+                            connectorScreenPos.y = - ( connectorScreenPos.y * heightHalf ) + heightHalf;
+                            connectorScreenPos.z = 0;
+
+                            if(pointer.distanceToSquared(connectorScreenPos) < 2500){
+                                var connection = new Connection(draggingFrom, objectCollection[i].connectors[j]);
+                                connections.push(connection);
+                                scene.add(connection);
+                                found = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+                if(found) break;
+            }
+            
+            draggingConnection = false;
+            draggingFrom = null;
+        }
+    }
+    
     var numOfDetailElements = 3;
     function selectObject(object){
         selectedObject = object;
@@ -1481,6 +1616,9 @@ function Playmola(){
         }
         transformControls.update();
         palette.update();
+        connections.forEach(function(c){
+            c.update();
+        });
     }
     function render(){
         renderer.clear();
