@@ -653,9 +653,6 @@ function Playmola(){
             newDymComp.typeName = selfie.typeName;
             
             newDymComp.connectors = [];
-//            selfie.connectors.forEach(function(c){
-//                newDymComp.connectors.push(c.clone());
-//            });
             
             newDymComp.traverse(function(currentObj){
                 if(currentObj.userData.isConnector === true)
@@ -669,7 +666,7 @@ function Playmola(){
     
     DymolaComponent.prototype = Object.create(THREE.Object3D.prototype);
     
-        function DymolaBox(){
+    function DymolaBox(){
         DymolaComponent.call(this);
         this.mesh;
         this.length;
@@ -684,8 +681,16 @@ function Playmola(){
           newDymBox.length = this.length;
           newDymBox.width = this.width;
           newDymBox.height = this.height;
-          //Lite skumt?
-          newDymBox.parameters = $.extend(true,[], this.parameters);
+          newDymBox.typeName = this.typeName;
+            
+            newDymBox.connectors = [];
+            
+            newDymBox.traverse(function(currentObj){
+                if(currentObj.userData.isConnector === true)
+                    newDymBox.connectors.push(currentObj);
+            });
+            
+            newDymBox.parameters = $.extend(true, [], this.parameters);
           return newDymBox;
         };
         this.resize = function(){    
@@ -716,8 +721,18 @@ function Playmola(){
           var newDymCyl = new DymolaCylinder();
           DymolaCylinder.prototype.clone.call(moi, newDymCyl);
           newDymCyl.mesh = newDymCyl.children[0];
-          newDymCyl.length = this.length;;
-          //Lite skumt?
+          newDymCyl.length = this.length;
+          newDymCyl.diameter = this.diameter;
+          newDymCyl.numOfRadiusSeg = this.numOfRadiusSeg;
+          newDymCyl.typeName = this.typeName;
+            
+            newDymCyl.connectors = [];
+            
+            newDymCyl.traverse(function(currentObj){
+                if(currentObj.userData.isConnector === true)
+                    newDymCyl.connectors.push(currentObj);
+            });
+            
           newDymCyl.parameters = $.extend(true,[], this.parameters);
           return newDymCyl;
         };
@@ -1172,12 +1187,49 @@ function Playmola(){
                     startPos,
                     endPos
             );
-            
+    
+    
+
             scene.remove(connectionLine);
-            connectionLine = new THREE.Line( geometry, new THREE.LineBasicMaterial({ color: 0x0000ff }));
+            
+            var closest = checkForConnection(new THREE.Vector3(event.clientX, event.clientY, 0));
+            if(closest !== null)
+                connectionLine = new THREE.Line( geometry, new THREE.LineBasicMaterial({ color: 0xff0000 }));
+            else
+                connectionLine = new THREE.Line( geometry, new THREE.LineBasicMaterial({ color: 0x0000ff }));
             scene.add(connectionLine);
             
         }
+    }
+    
+    function checkForConnection(position){
+        var widthHalf = window.innerWidth / 2;
+        var heightHalf = window.innerHeight / 2;
+        var distance = 1000000;
+        var closest = null;
+
+        for(var i = 0; i < objectCollection.length; i++){
+            if(objectCollection[i].type == 'DymolaComponent'){
+                for(var j = 0; j < objectCollection[i].connectors.length; j++){
+                    //Don't allow connecting a connector to itself
+                    if(objectCollection[i].connectors[j] !== draggingFrom ){
+                        //Get the screen position of the connector
+                        var connectorScreenPos = objectCollection[i].connectors[j].position.clone();
+                        objectCollection[i].connectors[j].parent.localToWorld(connectorScreenPos);
+                        connectorScreenPos.project(camera);
+                        connectorScreenPos.x = ( connectorScreenPos.x * widthHalf ) + widthHalf;
+                        connectorScreenPos.y = - ( connectorScreenPos.y * heightHalf ) + heightHalf;
+                        connectorScreenPos.z = 0;
+                        var distSquared = position.distanceToSquared(connectorScreenPos);
+                        if(distSquared < 400 && distSquared < distance){
+                            distance = distSquared;
+                            closest = objectCollection[i].connectors[j];
+                        }
+                    }
+                }
+            }
+        }
+        return closest;
     }
     
     //If a connection line is being drawn and the mouse button is released, check for a potential connection
@@ -1186,34 +1238,7 @@ function Playmola(){
             scene.remove(connectionLine);
             connectionLine = null;
             
-            var widthHalf = window.innerWidth / 2;
-            var heightHalf = window.innerHeight / 2;
-            var distance = 1000000;
-            var closest = null;
-            
-            var pointer = new THREE.Vector3(event.clientX, event.clientY, 0);
-
-            for(var i = 0; i < objectCollection.length; i++){
-                if(objectCollection[i].type == 'DymolaComponent'){
-                    for(var j = 0; j < objectCollection[i].connectors.length; j++){
-                        //Don't allow connecting a connector to itself
-                        if(objectCollection[i].connectors[j] !== draggingFrom ){
-                            //Get the screen position of the connector
-                            var connectorScreenPos = objectCollection[i].connectors[j].position.clone();
-                            objectCollection[i].connectors[j].parent.localToWorld(connectorScreenPos);
-                            connectorScreenPos.project(camera);
-                            connectorScreenPos.x = ( connectorScreenPos.x * widthHalf ) + widthHalf;
-                            connectorScreenPos.y = - ( connectorScreenPos.y * heightHalf ) + heightHalf;
-                            connectorScreenPos.z = 0;
-                            var distSquared = pointer.distanceToSquared(connectorScreenPos);
-                            if(distSquared < 400 && distSquared < distance){
-                                distance = distSquared;
-                                closest = objectCollection[i].connectors[j];
-                            }
-                        }
-                    }
-                }
-            }
+            var closest = checkForConnection(new THREE.Vector3(event.clientX, event.clientY, 0));
             
             if(closest !== null){
                 var connection = new Connection(draggingFrom, closest);
