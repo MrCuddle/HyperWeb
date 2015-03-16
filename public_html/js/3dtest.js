@@ -507,7 +507,7 @@ function Playmola(){
             }
             
             var classes = dymolaInterface.ModelManagement_Structure_AST_ClassesInPackageAttributes(package);
-            for(var i = 0; i < 1/*classes.length*/; i++){
+            for(var i = 0; i < 2/*classes.length*/; i++){
                 if(classes[i].restricted != "package"){
                     //This isn't a package, so load and add to the palette
                     var exportModelSource = dymolaInterface.exportWebGL(classes[i].fullName);
@@ -574,7 +574,7 @@ function Playmola(){
         
 
             scope.loadParts();
-            //scope.loadDymolaBox();
+            scope.loadDymolaBox();
             //scope.loadDymolaCylinder();
             //scope.addPackage("Modelica.Mechanics.MultiBody.Parts", "DymolaParts");
             scope.addPackage("Modelica.Mechanics.MultiBody.Joints", "Joints");
@@ -1212,7 +1212,7 @@ function Playmola(){
              }
         });
         if(selectedObject instanceof DymolaComponent){
-            $("#detailsPanel").css({"overflow":"scroll"});
+            $("#detailsPanel").css({"overflow-y":"auto"});
             $("#detailsPanel").panel("open");
             for(var i = 0; i < selectedObject.parameters.length; i++){
                 generateNewDetailsForm(selectedObject.parameters[i]);
@@ -1274,18 +1274,19 @@ function Playmola(){
     
     function generateNewDetailsForm(parameter){
         var id = "id"+parameter.name;
-        $("#detailsPanel").append('<div id="' + id +'_" class="ui-field-contain">');
+        $("#parameters").append('<div id="' + id +'_" style="padding-bottom:5px">');
         $("#"+id+"_").append('<label for="'+id+'">'+ parameter.name + '' +'</label>'); 
         var value = (typeof parameter.currentValue !== 'undefined') ? 'value="' + parameter.currentValue + '"' : "";
         if(parameter.fullTypeName === "Boolean"){
-            $("#"+id+"_").append('<select name="' + id + '" id="' + id + '" data-role="slider" data-mini="true"><option value="off" data-mini="true">False</option><option value="on" data-mini="true">True</option></select>');
+            $("#"+id+"_").append('<span><input name="' + id + '" id="' + id + '" type="checkbox" data-role="none" data-mini="true"></span>');
         }
         else if(parameter.fullTypeName === "Real" && parameter.sizes[0] === 3){
-            $("#"+id+"_").append('<input name="' + id + '" id="' + id + '" placeholder="x,y,z"' + value + ' data-mini="true"></input>');
+            $("#"+id+"_").append('<span><input name="' + id + '" id="' + id + '" placeholder="x,y,z"' + value + ' data-mini="true" data-role="none"></span>');
         }
         else{
-            $("#"+id+"_").append('<input name="' + id + '" id="' + id + '"' + value + ' data-mini="true"></input>');
+            $("#"+id+"_").append('<span><input name="' + id + '" id="' + id + '"' + value + ' data-mini="true" data-role="none"></span>');
         }
+        $("#"+id+"_").append('<div class="clear"></div>');
         //$("#"+id+"_").append('<a href="#popup' + parameter.name + '" data-rel="popup" class="ui-btn ui-corner-all ui-shadow ui-btn-inline" data-transition="pop">?</a><div data-role="popup" id="popup' + parameter.name + '"><p>' + parameter.description + '</p></div>');
         $("#"+id).on('input', function(){
            parameter.currentValue = $(this).val();
@@ -1293,6 +1294,7 @@ function Playmola(){
         });
         $("#detailsPanel").enhanceWithin();
         
+        //alert($("#parameters").html());
         //alert($("#"+id+"_ label").attr('class'));
     }
    

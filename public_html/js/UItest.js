@@ -48,8 +48,8 @@
             }
        });
        
-       $('#detailsPanel').on('panelclose', function(){
-           $('#detailsPanel').empty();
+       $('#detailsPanel').on('panelbeforeclose', function(){
+           $('#parameters').empty();
        });
        
    });

@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<!--
+To change this license header, choose License Headers in Project Properties.
+To change this template file, choose Tools | Templates
+and open the template in the editor.
+-->
+
+
+<html>
+    <head>
+        <title>TODO supply a title</title>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link rel="stylesheet" href="css/jquery.mobile-1.4.5.min.css" />
+        <script type="text/javascript" src="js/libs/jquery-2.1.3.min.js"></script>
+        <script src="js/libs/jquery.mobile-1.4.5.min.js"></script>
+        <style>
+            #detailsPanel label {
+                float: left;
+		padding-right: 10px;
+                font-size: smaller;
+                text-align: center;
+            }
+            
+            #detailsPanel input {   
+		width: 100%;
+		margin: 0px;
+                margin-right: 5px;
+            }
+            
+            #detailsPanel span{
+                display: block;
+                overflow: hidden;
+                padding-right: 5px;
+            }
+            
+            #detailsPanel .clear {
+                clear: both;
+            }
+        </style>
+    </head>
+    <body>
+        <div data-role="panel" id="detailsPanel" data-dismissible="false" data-position="right" data-display="overlay" style="width:300px; padding:5px">
+            <div style="padding-bottom:5px; text-align: center">
+                
+                <label data-mini="true" for="test1">Longtextgoeshere</label>
+                <span><input data-role="none" data-mini="true" type="text" name="test1" id="test1" value="" placeholder=""></span>
+                <div class="clear"></div>
+                
+            </div>
+             <div>
+                
+                <label data-mini="true" for="test1">Longereretextgoeshere</label>
+                <span><input data-role="none" data-mini="true" type="text" name="test1" id="test1" value="" placeholder=""></span>
+                <div class="clear"></div>
+                
+            </div>
+        </div>
+        <div><a href="#detailsPanel" data-rel="open" class="ui-btn ui-shadow ui-corner-none ui-btn-a ui-btn-icon-left ui-btn-inline">Open</a></div>
+        
+        
+    </body>
+</html>

@@ -46,7 +46,32 @@ and open the template in the editor.
                 height: 30px;   
             }
             
-
+            #detailsPanel label {
+                float: left;
+                width: 100px;
+		padding-right: 10px;
+                font-size: smaller;
+                text-align: right;
+                text-overflow: ellipsis;
+            }
+            
+            #detailsPanel input:not([type="checkbox"]) {   
+		width: 100%;
+		margin: 0px;
+                margin-right: 5px;
+                
+                
+            }
+            
+            #detailsPanel span{
+                display: block;
+                overflow: hidden;
+                padding-right: 5px;
+            }
+            
+            #detailsPanel .clear {
+                clear: both;
+            }
             
             
         </style>
@@ -62,7 +87,8 @@ and open the template in the editor.
         </div>
         <div id="container"></div>
         
-        <div data-role="panel" id="detailsPanel" data-dismissible="false" data-position="right" data-position-fixed="true" data-display="overlay" style="width:400px; padding:5px">
+        <div data-role="panel" id="detailsPanel" data-dismissible="false" data-position="right" data-position-fixed="true" data-display="overlay" style="width:250px; padding:5px">
+            <div id="parameters"></div>
         </div>
         
         
