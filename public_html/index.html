@@ -9,6 +9,7 @@ and open the template in the editor.
         <title>3D Test</title>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link rel="stylesheet" href="css/jquery.mobile-1.4.5.min.css" />
         <style>
             * {margin: 0;}
             
@@ -45,10 +46,8 @@ and open the template in the editor.
                 height: 30px;   
             }
             
-            .whatever {
-                overflow: visible !important;
-                white-space: normal !important;
-            }
+
+            
             
         </style>
     </head>
@@ -63,11 +62,11 @@ and open the template in the editor.
         </div>
         <div id="container"></div>
         
-        <div data-role="panel" id="detailsPanel" data-dismissible="false" data-position="right" data-position-fixed="true" data-display="overlay">
+        <div data-role="panel" id="detailsPanel" data-dismissible="false" data-position="right" data-position-fixed="true" data-display="overlay" style="width:400px; padding:5px">
         </div>
         
         
-        <link rel="stylesheet" href="css/jquery.mobile-1.4.5.min.css" />
+        
 <!--        <audio id="havanaAffair">
             <source src="" type ="audio/mpeg">
         </audio>-->
@@ -95,6 +94,8 @@ and open the template in the editor.
             <li><a href="#" class="jointButton" id="buttonPrismatic">Prismatic</a></li>
             </ul>
         </div>
+        
+        
     </body>
     
 </html>

@@ -574,8 +574,8 @@ function Playmola(){
         
 
             scope.loadParts();
-            scope.loadDymolaBox();
-            scope.loadDymolaCylinder();
+            //scope.loadDymolaBox();
+            //scope.loadDymolaCylinder();
             //scope.addPackage("Modelica.Mechanics.MultiBody.Parts", "DymolaParts");
             scope.addPackage("Modelica.Mechanics.MultiBody.Joints", "Joints");
 //            scope.addPackage("Modelica.Mechanics.MultiBody.Sensors", "Sensors");
@@ -1275,16 +1275,16 @@ function Playmola(){
     function generateNewDetailsForm(parameter){
         var id = "id"+parameter.name;
         $("#detailsPanel").append('<div id="' + id +'_" class="ui-field-contain">');
-        $("#"+id+"_").append('<label class="whatever" for="'+id+'">'+ parameter.name + '' +'</label>'); 
+        $("#"+id+"_").append('<label for="'+id+'">'+ parameter.name + '' +'</label>'); 
         var value = (typeof parameter.currentValue !== 'undefined') ? 'value="' + parameter.currentValue + '"' : "";
         if(parameter.fullTypeName === "Boolean"){
-            $("#"+id+"_").append('<select name="' + id + '" id="' + id + '" data-role="slider"><option value="off">False</option><option value="on">True</option></select>');
+            $("#"+id+"_").append('<select name="' + id + '" id="' + id + '" data-role="slider" data-mini="true"><option value="off" data-mini="true">False</option><option value="on" data-mini="true">True</option></select>');
         }
         else if(parameter.fullTypeName === "Real" && parameter.sizes[0] === 3){
-            $("#"+id+"_").append('<input name="' + id + '" id="' + id + '" placeholder="x,y,z"' + value + '></input>');
+            $("#"+id+"_").append('<input name="' + id + '" id="' + id + '" placeholder="x,y,z"' + value + ' data-mini="true"></input>');
         }
         else{
-            $("#"+id+"_").append('<input name="' + id + '" id="' + id + '"' + value + '></input>');
+            $("#"+id+"_").append('<input name="' + id + '" id="' + id + '"' + value + ' data-mini="true"></input>');
         }
         //$("#"+id+"_").append('<a href="#popup' + parameter.name + '" data-rel="popup" class="ui-btn ui-corner-all ui-shadow ui-btn-inline" data-transition="pop">?</a><div data-role="popup" id="popup' + parameter.name + '"><p>' + parameter.description + '</p></div>');
         $("#"+id).on('input', function(){
