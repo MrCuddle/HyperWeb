@@ -880,14 +880,14 @@ function Playmola(){
         palette = new Palette(renderer.domElement);       
 
 
-        $(document).on('mousemove', function(event){
+        $(renderer.domElement).on('mousemove', function(event){
             if(draggingConnection){
                 event.stopImmediatePropagation();
                 dragConnection(event);
             }
         });
         
-        $(document).on('mouseup', function(event){
+        $(renderer.domElement).on('mouseup', function(event){
             if(draggingConnection){
                 event.stopImmediatePropagation();
                 completeConnection(event);
@@ -1153,16 +1153,43 @@ function Playmola(){
     
     function dragConnection(event){
         if(draggingConnection){
-            //Update the line here:
+            
+            
+            var startPos = draggingFrom.position.clone();
+            draggingFrom.parent.localToWorld(startPos);
+
+//            var endPos = scope.connectorB.position.clone();
+//            scope.connectorB.parent.localToWorld(endPos);
+
+            var endPos = new THREE.Vector3();
+            var lookAt = new THREE.Vector3(0,0, -1).applyQuaternion(camera.quaternion);
+            raycaster.setFromCamera(new THREE.Vector2(( event.clientX / renderer.domElement.getBoundingClientRect().width ) * 2 - 1, - ( event.clientY / renderer.domElement.getBoundingClientRect().height ) * 2 + 1), camera);
+            var projPlane = new THREE.Plane(lookAt);
+            projPlane.intersectLine(new THREE.Line3(camera.position, camera.position.clone().add(raycaster.ray.direction.clone().multiplyScalar(100.0))),endPos);
+
+            var geometry = new THREE.Geometry();
+            geometry.vertices.push(
+                    startPos,
+                    endPos
+            );
+            
+            scene.remove(connectionLine);
+            connectionLine = new THREE.Line( geometry, new THREE.LineBasicMaterial({ color: 0x0000ff }));
+            scene.add(connectionLine);
+            
         }
     }
     
     //If a connection line is being drawn and the mouse button is released, check for a potential connection
     function completeConnection(event){
         if(draggingConnection){
+            scene.remove(connectionLine);
+            connectionLine = null;
+            
             var widthHalf = window.innerWidth / 2;
             var heightHalf = window.innerHeight / 2;
-            var found = false;
+            var distance = 1000000;
+            var closest = null;
             
             var pointer = new THREE.Vector3(event.clientX, event.clientY, 0);
 
@@ -1178,18 +1205,20 @@ function Playmola(){
                             connectorScreenPos.x = ( connectorScreenPos.x * widthHalf ) + widthHalf;
                             connectorScreenPos.y = - ( connectorScreenPos.y * heightHalf ) + heightHalf;
                             connectorScreenPos.z = 0;
-
-                            if(pointer.distanceToSquared(connectorScreenPos) < 2500){
-                                var connection = new Connection(draggingFrom, objectCollection[i].connectors[j]);
-                                connections.push(connection);
-                                scene.add(connection);
-                                found = true;
-                                break;
+                            var distSquared = pointer.distanceToSquared(connectorScreenPos);
+                            if(distSquared < 400 && distSquared < distance){
+                                distance = distSquared;
+                                closest = objectCollection[i].connectors[j];
                             }
                         }
                     }
                 }
-                if(found) break;
+            }
+            
+            if(closest !== null){
+                var connection = new Connection(draggingFrom, closest);
+                connections.push(connection);
+                scene.add(connection);
             }
             
             draggingConnection = false;
