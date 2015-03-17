@@ -434,7 +434,7 @@ function Playmola(){
                 scope.addCategory("Bodies");
             }
             var bodyBoxClassName = "Modelica.Mechanics.MultiBody.Parts.BodyBox";
-            var dymBox = new DymolaBox();
+            var dymBox = new DymolaBox(0.5,0.5,0.5);
             var componentsInClass = dymolaInterface.Dymola_AST_ComponentsInClass(bodyBoxClassName);
             for(var i = 0; i < componentsInClass.length; i++){
                 var params = [];
@@ -446,12 +446,10 @@ function Playmola(){
                     componentParam["sizes"] = dymolaInterface.callDymolaFunction("Dymola_AST_ComponentSizes",params);
                     componentParam["fullTypeName"] = dymolaInterface.callDymolaFunction("Dymola_AST_ComponentFullTypeName", params);
                     componentParam["description"] = dymolaInterface.callDymolaFunction("Dymola_AST_ComponentDescription",params);
+                    componentParam["changed"] = false;
                     dymBox.parameters.push(componentParam);
                 }
             }
-            dymBox.length = 0.5;
-            dymBox.width = 0.5;
-            dymBox.height = 0.5;
             
             var connPoint1 = new THREE.Object3D();
             var connPoint2 = new THREE.Object3D();
@@ -471,19 +469,17 @@ function Playmola(){
             dymBox.parameters.forEach(function(entry){
                 if(entry.name === "length"){
                     entry.currentValue = dymBox.length;
+                    entry.changed = true;
                 }
                 else if(entry.name ==="width"){
                     entry.currentValue = dymBox.width;
+                    entry.changed = true;
                 }
                 else if(entry.name ==="height"){
                     entry.currentValue = dymBox.height;
+                    entry.changed = true;
                 }
             });
-            var geometry = new THREE.BoxGeometry(dymBox.width,dymBox.height,dymBox.length);
-            var material = new THREE.MeshLambertMaterial({color:0x00ff00});
-            var mesh = new THREE.Mesh(geometry, material);
-            dymBox.mesh = mesh;
-            dymBox.add(mesh);
             scope.add(dymBox, "Bodies", true, 0, 1);
         };
         
@@ -504,6 +500,7 @@ function Playmola(){
                     componentParam["sizes"] = dymolaInterface.callDymolaFunction("Dymola_AST_ComponentSizes",params);
                     componentParam["fullTypeName"] = dymolaInterface.callDymolaFunction("Dymola_AST_ComponentFullTypeName", params);
                     componentParam["description"] = dymolaInterface.callDymolaFunction("Dymola_AST_ComponentDescription",params);
+                    componentParam["changed"] = false;
                     dymCyl.parameters.push(componentParam);
                 }
             }
@@ -512,9 +509,11 @@ function Playmola(){
             dymCyl.parameters.forEach(function(entry){
                 if(entry.name === "length"){
                     entry.currentValue = dymCyl.length;
+                    entry.changed = true;
                 }
                 else if(entry.name ==="diameter"){
                     entry.currentValue = dymCyl.diameter;
+                    entry.changed = true;
                 }
             });
             var geometry = new THREE.CylinderGeometry(dymCyl.diameter * 0.5, dymCyl.diameter * 0.5, dymCyl.length, dymCyl.numOfRadiusSeg);
@@ -599,7 +598,7 @@ function Playmola(){
         
 
 
-        //scope.loadParts();
+        scope.loadParts();
         scope.loadDymolaBox();
         //scope.loadDymolaCylinder();
         //scope.addPackage("Modelica.Mechanics.MultiBody.Parts", "DymolaParts");
@@ -690,22 +689,21 @@ function Playmola(){
     
     DymolaComponent.prototype = Object.create(THREE.Object3D.prototype);
     
-    function DymolaBox(){
+    function DymolaBox(length,width,height){
         DymolaComponent.call(this);
-        this.mesh;
-        this.length;
-        this.width;
-        this.height;
+        var mesh = new THREE.Mesh(new THREE.BoxGeometry(1,1,1), new THREE.MeshLambertMaterial({color:0x00ff00}));
+        this.add(mesh);
+
+        this.length = length;
+        this.width = width;
+        this.height = height;
         var moi = this;
         
         this.clone = function(){
-          var newDymBox = new DymolaBox();
-          DymolaBox.prototype.clone.call(moi, newDymBox);
-          newDymBox.mesh = newDymBox.children[0];
-          newDymBox.length = this.length;
-          newDymBox.width = this.width;
-          newDymBox.height = this.height;
-          newDymBox.typeName = this.typeName;
+            var newDymBox = new DymolaBox(this.length,this.width,this.height);
+            DymolaBox.prototype.clone.call(moi, newDymBox);
+            newDymBox.remove(newDymBox.children[1]);
+            newDymBox.typeName = this.typeName;
             
             newDymBox.connectors = [];
             
@@ -715,21 +713,15 @@ function Playmola(){
             });
             
             newDymBox.parameters = $.extend(true, [], this.parameters);
-          return newDymBox;
+            newDymBox.resize();
+            return newDymBox;
         };
+        
         this.resize = function(){    
-            if(typeof this.mesh !== 'undefined'){
-                scene.remove(this);
-                this.remove(this.mesh);
-                geometry = new THREE.BoxGeometry(this.width, this.height, this.length);
-                material = new THREE.MeshLambertMaterial( {color: 0x00ff00} );
-                this.mesh = new THREE.Mesh(geometry, material);
-                this.mesh.userData.initColor = this.mesh.material.color;
-                this.mesh.material.color = new THREE.Color(0xB0E2FF);
-                this.add(this.mesh);
-                scene.add(this);
-            }
+            mesh.scale.set(this.length,this.width,this.height);
         };
+        
+        this.resize();
     };
     
     DymolaBox.prototype = Object.create(DymolaComponent.prototype);
@@ -905,6 +897,11 @@ function Playmola(){
             alert("Dymola interface initialization failed");
         }
         
+        'use strict';
+
+        Physijs.scripts.worker = 'js/libs/physijs_worker.js';
+        Physijs.scripts.ammo = 'ammo.js';
+        
         renderer = new THREE.WebGLRenderer({antialias:true});
         renderer.shadowMapEnabled = true;
         renderer.shadowMapType=THREE.PCFSoftShadowMap;
@@ -938,10 +935,11 @@ function Playmola(){
 		var source = generateModelicaCode();
                 
                 try{
-                    var result = dymolaInterface.setClassText("", source);
-//                    interface.RunAnimation(false);
-//                    interface.simulateModel("Furuta",0,600000,0,0,"Dassl", 0.0001,0.0, "dsres");
-//                    interface.exportAnimation("D:/WebGL/HTML5ApplicationTest/HyperWeb/blabla2.wrl");
+
+                    if(dymolaInterface.setClassText("", source)){
+                        dymolaInterface.simulateModel("TestModel",0,3,0,0,"Dassl", 0.0001,0.0, "testmodelresults");
+                        
+                    }
 
                 }
                 catch(err)
@@ -956,7 +954,7 @@ function Playmola(){
         transformControls = new CustomTransformControls(camera, renderer.domElement,new THREE.Box3(new THREE.Vector3(-5,-2.5,-5), new THREE.Vector3(5,2.5,5)));
        
         
-        scene = new THREE.Scene();
+        scene = new Physijs.Scene();
         //scene.add(camera);
         //scene.add(transformControls);
         foregroundScene = new THREE.Scene();
@@ -1227,7 +1225,8 @@ function Playmola(){
     
     
 
-            scene.remove(connectionLine);
+            if(connectionLine !== null)
+                scene.remove(connectionLine);
             
             var closest = checkForConnection(new THREE.Vector3(event.clientX, event.clientY, 0));
             if(closest !== null)
@@ -1851,6 +1850,7 @@ function Playmola(){
         }
     }
     function logic() {
+        scene.simulate();
         moveObjects();
         requestAnimationFrame(render);
         if(!disableControls){
