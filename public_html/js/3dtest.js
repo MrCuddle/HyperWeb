@@ -56,39 +56,53 @@ function Playmola(){
 //    };
 
     function generateModelicaCode(){  
-        var source = "";
-          objectCollection.forEach(function(obj){
-              source += obj.typeName + " " + obj.name;
-              var first = true;
-              if(obj.parameters.length > 0){
-                source +="(";
+        var source = "model TestModel\n";
+        objectCollection.forEach(function(obj){
+            if(obj.typeName === "Modelica.Mechanics.MultiBody.World")
+                source += "inner "
+            source += obj.typeName + " " + obj.name;
+            var first = true;
+            if(obj.parameters.length > 0){
+                
                 obj.parameters.forEach(function(param){
-                   if(param.changed){
-                       if(!first)
-                           source += ",";
-                       else
-                           first = false;
-                       source += param.name + "=" + param.currentValue;
-                   } 
+                    if(param.changed){
+                        if(!first){
+                            source += ",";
+                        }
+                        else {
+                            source +="(";
+                            first = false;
+                        }
+                        source += param.name + "=" + param.currentValue;
+                    } 
                 });
-                source +=")";
+                if(first == false)
+                    source +=");\n";
+                else
+                    source +=";\n";
             }
-              source += "/n";
-          });
-          connections.forEach(function(conn){
-              source += "connect(";
-              
-              conn.connectorA.traverseAncestors(function(anc){
-                 if(anc instanceof DymolaComponent)
-                     source += anc.name;
-              });
-              source += ",";
-              conn.connectorB.traverseAncestors(function(anc){
-                 if(anc instanceof DymolaComponent)
-                 source += anc.name + ")";
-              });
-          });
-    };
+              //source += "\n";
+        });
+        
+        source += "equation\n";
+        
+        connections.forEach(function(conn){
+            source += "connect(";
+
+            conn.connectorA.traverseAncestors(function(anc){
+               if(anc instanceof DymolaComponent)
+                   source += anc.name + "." + conn.connectorA.userData.name;
+            });
+            source += ",";
+            conn.connectorB.traverseAncestors(function(anc){
+               if(anc instanceof DymolaComponent)
+                  source += anc.name + "." + conn.connectorB.userData.name + ");\n";
+            });
+        });
+        source += "end TestModel;";
+        alert(source);
+        return source;
+    }
     
     function Palette(domElement){
         //THREE.Object3D.call(this);
@@ -152,6 +166,8 @@ function Playmola(){
                 scene.add(dragging);
                 dragging.name = "Obj" + objCounter;
                 objCounter++;
+                
+                if(dragging.typeName === "Modelica.Mechanics.MultiBody.World") dragging.name = "world";
 
                 dragging.scale.set(dragging.userData.sceneScale,dragging.userData.sceneScale,dragging.userData.sceneScale);
                 raycaster.setFromCamera(new THREE.Vector2(( event.clientX / domElement.getBoundingClientRect().width ) * 2 - 1, - ( event.clientY / domElement.getBoundingClientRect().height ) * 2 + 1), camera);
@@ -439,10 +455,18 @@ function Playmola(){
             
             var connPoint1 = new THREE.Object3D();
             var connPoint2 = new THREE.Object3D();
-            connPoint1.position.set(0,0,0);
+            connPoint1.position.set(-dymBox.length/2,0,0);
             connPoint1.userData.isConnector = true;
+            connPoint1.userData.name = "frame_a";
             dymBox.add(connPoint1);
             dymBox.connectors.push(connPoint1);
+            connPoint2.position.set(dymBox.length/2,0,0);
+            connPoint2.userData.isConnector = true;
+            connPoint2.userData.name = "frame_b";
+            dymBox.add(connPoint2);
+            dymBox.connectors.push(connPoint2);
+            
+            dymBox.typeName = bodyBoxClassName;
             
             dymBox.parameters.forEach(function(entry){
                 if(entry.name === "length"){
@@ -501,91 +525,91 @@ function Playmola(){
             scope.add(dymCyl, "Bodies", true, 0, 1);
         };
         
-        this.addPackage = function(package, category){
+        this.addClass = function(classname, category){
             if(categories[category] === undefined){
                 scope.addCategory(category);
             }
             
-            var classes = dymolaInterface.ModelManagement_Structure_AST_ClassesInPackageAttributes(package);
-            for(var i = 0; i < 2/*classes.length*/; i++){
-                if(classes[i].restricted != "package"){
-                    //This isn't a package, so load and add to the palette
-                    var exportModelSource = dymolaInterface.exportWebGL(classes[i].fullName);
-                    var obj = new Function(exportModelSource)();
-                    //Remove TextGeometry
-                    for(var j = 0; j < obj.children.length; j++){
-                        if(obj.children[j].type == 'Mesh' && obj.children[j].geometry.type == 'TextGeometry'){
-                            obj.remove(obj.children[j]);
-                            j--;
-                        }
-                    }
-                    var obj2 = new DymolaComponent();
-                    obj2.typeName = classes[i].fullName;
-                    var componentsInClass = dymolaInterface.Dymola_AST_ComponentsInClass(classes[i].fullName);
-                    
-                    for(var j = 0; j < componentsInClass.length; j++){
-                        var params = [];
-                        params.push(classes[i].fullName);
-                        params.push(componentsInClass[j]);
-                        if(dymolaInterface.callDymolaFunction("Dymola_AST_ComponentVariability", params) === "parameter"){
-                            var componentParam = [];
-                            componentParam["name"] = componentsInClass[j];
-                            componentParam["sizes"] = dymolaInterface.callDymolaFunction("Dymola_AST_ComponentSizes",params);
-                            componentParam["fullTypeName"] = dymolaInterface.callDymolaFunction("Dymola_AST_ComponentFullTypeName", params);
-                            componentParam["description"] = dymolaInterface.callDymolaFunction("Dymola_AST_ComponentDescription",params);
-                            componentParam["changed"] = false;
-                            obj2.parameters.push(componentParam);
-                        }
-                    }
+            var exportModelSource = dymolaInterface.exportWebGL(classname);
+            var obj = new Function(exportModelSource)();
+            //Remove TextGeometry
+            for(var j = 0; j < obj.children.length; j++){
+                if(obj.children[j].type == 'Mesh' && obj.children[j].geometry.type == 'TextGeometry'){
+                    obj.remove(obj.children[j]);
+                    j--;
+                }
+            }
+            var obj2 = new DymolaComponent();
+            obj2.typeName = classname;
+            var componentsInClass = dymolaInterface.Dymola_AST_ComponentsInClass(classname);
+
+            for(var j = 0; j < componentsInClass.length; j++){
+                var params = [];
+                params.push(classname);
+                params.push(componentsInClass[j]);
+                if(dymolaInterface.callDymolaFunction("Dymola_AST_ComponentVariability", params) === "parameter"){
+                    var componentParam = [];
+                    componentParam["name"] = componentsInClass[j];
+                    componentParam["sizes"] = dymolaInterface.callDymolaFunction("Dymola_AST_ComponentSizes",params);
+                    componentParam["fullTypeName"] = dymolaInterface.callDymolaFunction("Dymola_AST_ComponentFullTypeName", params);
+                    componentParam["description"] = dymolaInterface.callDymolaFunction("Dymola_AST_ComponentDescription",params);
+                    componentParam["changed"] = false;
+                    obj2.parameters.push(componentParam);
+                }
+            }
 //                    var componentsInClassAttributes = dymolaInterface.ModelManagement_Structure_AST_ComponentsInClassAttributes(classes[i].fullName);
 //                    for(var k = 0; k < componentsInClassAttributes.length; k++){
 //                        if(componentsInClassAttributes[k].variability === "parameter")
 //                            obj2.parameters.push(componentsInClassAttributes[k]);
 //                    }
-                    obj2.add(obj);
-                    obj.traverse(function(currentObj){
-                        if(currentObj.userData.isConnector === true){
-                        
-                            //Move the connectors to the center of their bounding boxes
-                            var bbh = new THREE.BoundingBoxHelper(currentObj, 0xffffff);
-                            bbh.update();
+            obj2.add(obj);
+            obj.traverse(function(currentObj){
+                if(currentObj.userData.isConnector === true){
 
-                            currentObj.children.forEach(function(o){
-                                o.position.sub(bbh.box.center());
-                            });
+                    //Move the connectors to the center of their bounding boxes
+                    var bbh = new THREE.BoundingBoxHelper(currentObj, 0xffffff);
+                    bbh.update();
 
-                            currentObj.position.copy(bbh.box.center().clone());
-
-                            obj2.connectors.push(currentObj);
-                        }
+                    currentObj.children.forEach(function(o){
+                        o.position.sub(bbh.box.center());
                     });
-                    
-                    
-                    
-                    scope.add(obj2, category, false, 1, 0.005);
+
+                    currentObj.position.copy(bbh.box.center().clone());
+
+                    obj2.connectors.push(currentObj);
+                }
+            });
+            scope.add(obj2, category, false, 1, 0.005);
+        }
+        
+        
+        
+        this.addPackage = function(package, category){
+            
+            
+            var classes = dymolaInterface.ModelManagement_Structure_AST_ClassesInPackageAttributes(package);
+            for(var i = 0; i < 2/*classes.length*/; i++){
+                if(classes[i].restricted != "package"){
+                    //This isn't a package, so load and add to the palette
+                    scope.addClass(classes[i].fullName,category);
 
                 }   
             }
         };
         
-        //Add some joints:
-        //Find all the classes in Modelica.Mechanics.MultiBody.Joints, ignoring sub-packages
-        
-        
 
-            scope.loadParts();
-            scope.loadDymolaBox();
-            //scope.loadDymolaCylinder();
-            //scope.addPackage("Modelica.Mechanics.MultiBody.Parts", "DymolaParts");
-            scope.addPackage("Modelica.Mechanics.MultiBody.Joints", "Joints");
-//            scope.addPackage("Modelica.Mechanics.MultiBody.Sensors", "Sensors");
-//            scope.addPackage("Modelica.Mechanics.MultiBody.Interfaces", "Interfaces");
-        //});
+
+        //scope.loadParts();
+        scope.loadDymolaBox();
+        //scope.loadDymolaCylinder();
+        //scope.addPackage("Modelica.Mechanics.MultiBody.Parts", "DymolaParts");
+        //scope.addPackage("Modelica.Mechanics.MultiBody.Joints", "Joints");
 
         
-//        component.add(temp);
-//        component.scale.set(0.005,0.005,0.005);
-//        dymolaComponentStorage[componentString] = component;
+        scope.addClass("Modelica.Mechanics.MultiBody.World", "World");
+        scope.addClass("Modelica.Mechanics.MultiBody.Joints.Revolute", "Joints");
+        scope.addClass("Modelica.Mechanics.Rotational.Components.Damper", "Damper");
+
 
 
     };
@@ -910,10 +934,23 @@ function Playmola(){
         });
         
         $(document).bind('keypress', function(e) {
-	if(e.keyCode==13){
-		generateModelicaCode();
-	}
-    });
+            if(e.keyCode==13){
+		var source = generateModelicaCode();
+                
+                try{
+                    var result = dymolaInterface.setClassText("", source);
+//                    interface.RunAnimation(false);
+//                    interface.simulateModel("Furuta",0,600000,0,0,"Dassl", 0.0001,0.0, "dsres");
+//                    interface.exportAnimation("D:/WebGL/HTML5ApplicationTest/HyperWeb/blabla2.wrl");
+
+                }
+                catch(err)
+                {
+                    console.log(err.message);
+                }
+                
+            }
+        });
         
         
         transformControls = new CustomTransformControls(camera, renderer.domElement,new THREE.Box3(new THREE.Vector3(-5,-2.5,-5), new THREE.Vector3(5,2.5,5)));
