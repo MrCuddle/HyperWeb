@@ -1379,10 +1379,18 @@ function Playmola(){
         }
         $("#"+id+"_").append('<div class="clear"></div>');
         //$("#"+id+"_").append('<a href="#popup' + parameter.name + '" data-rel="popup" class="ui-btn ui-corner-all ui-shadow ui-btn-inline" data-transition="pop">?</a><div data-role="popup" id="popup' + parameter.name + '"><p>' + parameter.description + '</p></div>');
-        $("#"+id).on('input', function(){
-           parameter.currentValue = $(this).val();
-           parameter.changed = true;
-        });
+        if(parameter.fullTypeName === "Boolean"){
+            $("#"+id).change(function(){
+               parameter.currentValue = this.checked; 
+               parameter.changed = true;
+            });
+        }
+        else{
+            $("#"+id).on('input', function(){
+               parameter.currentValue = $(this).val();
+               parameter.changed = true;
+            });
+        }
         $("#detailsPanel").enhanceWithin();
         
         //alert($("#parameters").html());
