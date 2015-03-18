@@ -646,21 +646,74 @@ function Playmola(){
                 }
             });
             scope.add(obj2, category, false, 1, 0.005);
-        }
+        };
         
-        
+        this.addPreloadedClass = function(classToLoad, category){
+            if(categories[category] === undefined){
+                scope.addCategory(category);
+            }
+            
+            var exportModelSource = dymolaInterface.exportWebGL(classToLoad.fullPathName);
+            var obj = new Function(exportModelSource)();
+            //Remove TextGeometry
+            for(var j = 0; j < obj.children.length; j++){
+                if(obj.children[j].type == 'Mesh' && obj.children[j].geometry.type == 'TextGeometry'){
+                    obj.remove(obj.children[j]);
+                    j--;
+                }
+            }
+            var obj2 = new DymolaComponent();
+            obj2.typeName = classToLoad.name;
+
+            for(var j = 0; j < classToLoad.components.length; j++){
+                var params = [];
+                if(classToLoad.components[j].variability === "parameter"){
+                    var componentParam = [];
+                    componentParam["name"] = classToLoad.components[j].name;
+                    componentParam["sizes"] = classToLoad.components[j].sizes;
+                    componentParam["fullTypeName"] = classToLoad.components[j].fullTypeName;
+                    componentParam["description"] = classToLoad.components[j].description;
+                    componentParam["changed"] = false;
+                    obj2.parameters.push(componentParam);
+                }
+            }
+            obj2.add(obj);
+            obj.traverse(function(currentObj){
+                if(currentObj.userData.isConnector === true){
+                    //Move the connectors to the center of their bounding boxes
+                    var bbh = new THREE.BoundingBoxHelper(currentObj, 0xffffff);
+                    bbh.update();
+
+                    currentObj.children.forEach(function(o){
+                        o.position.sub(bbh.box.center());
+                    });
+
+                    currentObj.position.copy(bbh.box.center().clone());
+
+                    obj2.connectors.push(currentObj);
+                }
+            });
+            scope.add(obj2, category, false, 1, 0.005);
+        };
         
         this.addPackage = function(package, category){
-            
-            
-            var classes = dymolaInterface.ModelManagement_Structure_AST_ClassesInPackageAttributes(package);
-            for(var i = 0; i < 2/*classes.length*/; i++){
-                if(classes[i].restricted != "package"){
-                    //This isn't a package, so load and add to the palette
-                    scope.addClass(classes[i].fullName,category);
-
-                }   
+            var params = [];
+            params.push(package);
+            var classes = dymolaInterface.callDymolaFunction("Playmola.GetComponents", params);
+            for(var i = 0; i < classes.length; i++){
+                if(classes[i].components.length > 0)
+                    scope.addPreloadedClass(classes[i], category);
             }
+            
+            
+//            var classes = dymolaInterface.ModelManagement_Structure_AST_ClassesInPackageAttributes(package);
+//            for(var i = 0; i < classes.length; i++){
+//                if(classes[i].restricted != "package"){
+//                    //This isn't a package, so load and add to the palette
+//                    scope.addClass(classes[i].fullName,category);
+//
+//                }   
+//            }
         };
         
 
@@ -676,6 +729,17 @@ function Playmola(){
         //scope.addClass("Modelica.Mechanics.MultiBody.World", "World");
         //scope.addClass("Modelica.Mechanics.MultiBody.Joints.Revolute", "Joints");
         //scope.addClass("Modelica.Mechanics.Rotational.Components.Damper", "Damper");
+
+        //scope.loadDymolaCylinder();
+        scope.addPackage("Modelica.Mechanics.MultiBody.Parts", "DymolaParts");
+        //scope.addPackage("Modelica.Mechanics.Rotational.Components", "RotComponents");
+        //scope.addPackage("Modelica.Mechanics.MultiBody.Joints", "Joints");
+        
+        
+        scope.addClass("Modelica.Mechanics.MultiBody.World", "World");
+//        scope.addClass("Modelica.Mechanics.MultiBody.Joints.Revolute", "Joints");
+//        scope.addClass("Modelica.Mechanics.Rotational.Components.Damper", "Damper");
+
 
 
 
@@ -957,7 +1021,6 @@ function Playmola(){
         catch(err){
             alert("Dymola interface initialization failed");
         }
-        
         renderer = new THREE.WebGLRenderer({antialias:true});
         renderer.shadowMapEnabled = true;
         renderer.shadowMapType=THREE.PCFSoftShadowMap;
