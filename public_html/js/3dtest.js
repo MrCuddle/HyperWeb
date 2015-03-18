@@ -897,11 +897,6 @@ function Playmola(){
             alert("Dymola interface initialization failed");
         }
         
-        'use strict';
-
-        Physijs.scripts.worker = 'js/libs/physijs_worker.js';
-        Physijs.scripts.ammo = 'ammo.js';
-        
         renderer = new THREE.WebGLRenderer({antialias:true});
         renderer.shadowMapEnabled = true;
         renderer.shadowMapType=THREE.PCFSoftShadowMap;
@@ -954,7 +949,7 @@ function Playmola(){
         transformControls = new CustomTransformControls(camera, renderer.domElement,new THREE.Box3(new THREE.Vector3(-5,-2.5,-5), new THREE.Vector3(5,2.5,5)));
        
         
-        scene = new Physijs.Scene();
+        scene = new THREE.Scene();
         //scene.add(camera);
         //scene.add(transformControls);
         foregroundScene = new THREE.Scene();
@@ -1848,9 +1843,8 @@ function Playmola(){
                 }
             }
         }
-    }
+    };
     function logic() {
-        scene.simulate();
         moveObjects();
         requestAnimationFrame(render);
         if(!disableControls){
