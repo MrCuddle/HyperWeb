@@ -6,6 +6,10 @@ CustomTransformControls = function(camera, domElement, bounds){
     var raycaster = new THREE.Raycaster();
     this.dragging = false;
     var domElement = domElement;
+    var newPos = new THREE.Vector3();
+    var lookAt = new THREE.Vector3();
+    var projPlane = new THREE.Plane();
+    var moved = false;
     
     this.attach = function(object){
         target = object; 
@@ -26,6 +30,13 @@ CustomTransformControls = function(camera, domElement, bounds){
             var intersect = raycaster.intersectObject(target,true);
             if(intersect.length > 0){
                 //object was clicked
+                
+                
+                lookAt = new THREE.Vector3(0,0, -1).applyQuaternion(camera.quaternion);
+                raycaster.setFromCamera(new THREE.Vector2(( event.clientX / domElement.getBoundingClientRect().width ) * 2 - 1, - ( event.clientY / domElement.getBoundingClientRect().height ) * 2 + 1), camera);
+                projPlane = new THREE.Plane().setFromNormalAndCoplanarPoint(lookAt,target.position);
+                projPlane.intersectLine(new THREE.Line3(camera.position, camera.position.clone().add(raycaster.ray.direction.clone().multiplyScalar(100.0))),newPos);
+            
                 self.dragging = true;
                 event.stopImmediatePropagation();
             }
@@ -35,11 +46,33 @@ CustomTransformControls = function(camera, domElement, bounds){
     
     $(domElement).on('mousemove', function(event){
         if(self.dragging){
-
-            var lookAt = new THREE.Vector3(0,0, -1).applyQuaternion(camera.quaternion);
+            moved = true;
+            lookAt = new THREE.Vector3(0,0, -1).applyQuaternion(camera.quaternion);
             raycaster.setFromCamera(new THREE.Vector2(( event.clientX / domElement.getBoundingClientRect().width ) * 2 - 1, - ( event.clientY / domElement.getBoundingClientRect().height ) * 2 + 1), camera);
-            var projPlane = new THREE.Plane().setFromNormalAndCoplanarPoint(lookAt,target.position);
-            projPlane.intersectLine(new THREE.Line3(camera.position, camera.position.clone().add(raycaster.ray.direction.clone().multiplyScalar(100.0))),target.position);
+            projPlane = new THREE.Plane().setFromNormalAndCoplanarPoint(lookAt,target.position);
+            projPlane.intersectLine(new THREE.Line3(camera.position, camera.position.clone().add(raycaster.ray.direction.clone().multiplyScalar(100.0))),newPos);
+            
+            
+        }
+    });
+    
+    $(domElement).on('mouseup', function(event){
+        //Left mouse button
+        if(event.button == 0 && self.dragging){
+            self.dragging = false;
+            moved = false;
+//            event.stopImmediatePropagation();
+//            event.preventDefault();
+        }
+    });
+    
+    function init(){
+        //perform initialization here
+    }
+    
+    this.update = function(){
+        if(self.dragging && moved){
+            target.position.copy(newPos);
             
             //Clamp target within bounds
             var bbh = new THREE.BoundingBoxHelper(target, 0xffffff);
@@ -85,29 +118,7 @@ CustomTransformControls = function(camera, domElement, bounds){
                 }
                 bbh.update();
             }
-
-            
-            
-            
-            
         }
-    });
-    
-    $(domElement).on('mouseup', function(event){
-        //Left mouse button
-        if(event.button == 0 && self.dragging){
-            self.dragging = false;
-//            event.stopImmediatePropagation();
-//            event.preventDefault();
-        }
-    });
-    
-    function init(){
-        //perform initialization here
-    }
-    
-    this.update = function(){
-        
     };
     
     init();

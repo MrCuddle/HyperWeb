@@ -622,29 +622,35 @@ function Playmola(){
                 }
             }
 
+            var connectors = [];
+
             obj2.add(obj);
             obj.traverse(function(currentObj){
                 if(currentObj.userData.isConnector === true){
 
-                    //Move the connectors to the center of their bounding boxes
-                    var bbh = new THREE.BoundingBoxHelper(currentObj, 0xffffff);
-                    bbh.update();
-
-                    currentObj.children.forEach(function(o){
-                        o.position.sub(bbh.box.center());
-                    });
-
-                    //currentObj.position.copy(bbh.box.center().clone());
-
-                    var conn = new Connector();
-                    conn.userData.name = currentObj.userData.name;
-                    conn.position.copy(bbh.box.center().clone());
-                    conn.add(currentObj);
-                    obj.add(conn);
-                    obj2.connectors.push(conn);
+                    
+                    connectors.push(currentObj);
                     
                 }
             });
+            
+            connectors.forEach(function(currentObj){
+                //Move the connectors to the center of their bounding boxes
+                var bbh = new THREE.BoundingBoxHelper(currentObj, 0xffffff);
+                bbh.update();
+
+                currentObj.children.forEach(function(o){
+                    o.position.sub(bbh.box.center());
+                });
+
+                var conn = new Connector();
+                conn.userData.name = currentObj.userData.name;
+                conn.position.copy(bbh.box.center().clone());
+                conn.add(currentObj);
+                obj.add(conn);
+                obj2.connectors.push(conn); 
+            });
+            
             scope.add(obj2, category, false, 1, 0.005);
         };
         
@@ -677,22 +683,35 @@ function Playmola(){
                     obj2.parameters.push(componentParam);
                 }
             }
+            var connectors = [];
+
             obj2.add(obj);
             obj.traverse(function(currentObj){
                 if(currentObj.userData.isConnector === true){
-                    //Move the connectors to the center of their bounding boxes
-                    var bbh = new THREE.BoundingBoxHelper(currentObj, 0xffffff);
-                    bbh.update();
 
-                    currentObj.children.forEach(function(o){
-                        o.position.sub(bbh.box.center());
-                    });
-
-                    currentObj.position.copy(bbh.box.center().clone());
-
-                    obj2.connectors.push(currentObj);
+                    
+                    connectors.push(currentObj);
+                    
                 }
             });
+            
+            connectors.forEach(function(currentObj){
+                //Move the connectors to the center of their bounding boxes
+                var bbh = new THREE.BoundingBoxHelper(currentObj, 0xffffff);
+                bbh.update();
+
+                currentObj.children.forEach(function(o){
+                    o.position.sub(bbh.box.center());
+                });
+
+                var conn = new Connector();
+                conn.userData.name = currentObj.userData.name;
+                conn.position.copy(bbh.box.center().clone());
+                conn.add(currentObj);
+                obj.add(conn);
+                obj2.connectors.push(conn); 
+            });
+            
             scope.add(obj2, category, false, 1, 0.005);
         };
         
@@ -854,7 +873,7 @@ function Playmola(){
         DymolaComponent.call(this);
         this.frameAConnector = null;
         this.frameBConnector = null;
-        this.phi = 0;
+        this.phi = 1.0;
         this.type = "RevoluteJoint";
         var scope = this;
         
@@ -889,7 +908,18 @@ function Playmola(){
             if(connA === null || connA === undefined || connB === null || connB === undefined){
                 return;
             }
+
             
+            var q = connA.parent.quaternion.clone();
+            q.multiply(connA.quaternion);
+            q.multiply(connB.quaternion);
+            q.multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,0,1),this.phi));
+            connB.getParent().quaternion.copy(q);
+            
+            
+//            connB.getParent().rotation.copy(new THREE.Euler());
+//            connB.getParent().rotateOnAxis(new THREE.Vector3(0,0,1),this.phi);
+            connB.getParent().updateMatrixWorld(true);
             
             //Move the object connected to frame B
             var connAWorld = connA.position.clone();
@@ -897,6 +927,10 @@ function Playmola(){
             var connBWorld = connB.position.clone();
             connB.parent.localToWorld(connBWorld);
             connB.getParent().position.sub(connBWorld.sub(connAWorld));
+            connB.getParent().updateMatrixWorld(true);
+            
+            
+            
             //Rotate the object connected to frame B
             
         }
@@ -1922,20 +1956,25 @@ function Playmola(){
         }
     };
     function logic() {
-        moveObjects();
-        requestAnimationFrame(render);
+        //moveObjects();
+        
         if(!disableControls){
             cameraControls.update();
         }
         transformControls.update();
         palette.update();
+        
+        for(var i = 0; i < joints.length; i++){
+            joints.forEach(function(j){
+               j.enforceConstraint(); 
+            });
+        }
+        
         connections.forEach(function(c){
             c.update();
         });
         
-        joints.forEach(function(j){
-           j.enforceConstraint(); 
-        });
+        requestAnimationFrame(render);
     }
     function render(){
         renderer.clear();
