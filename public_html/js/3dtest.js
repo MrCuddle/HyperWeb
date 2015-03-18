@@ -15,7 +15,6 @@ function Playmola(){
     var raycaster;
     
     var movingObjects = [];
-    var connectionLines = []; //To be removed
     var joints = [];
     var objectCollection = []; //Collection of all active objects in scene
     var dymolaComponentStorage = [];
@@ -168,6 +167,7 @@ function Playmola(){
                 objCounter++;
                 
                 if(dragging.typeName === "Modelica.Mechanics.MultiBody.World") dragging.name = "world";
+                if(dragging.type === "RevoluteJoint") joints.push(dragging);
 
                 dragging.scale.set(dragging.userData.sceneScale,dragging.userData.sceneScale,dragging.userData.sceneScale);
                 raycaster.setFromCamera(new THREE.Vector2(( event.clientX / domElement.getBoundingClientRect().width ) * 2 - 1, - ( event.clientY / domElement.getBoundingClientRect().height ) * 2 + 1), camera);
@@ -451,15 +451,15 @@ function Playmola(){
                 }
             }
             
-            var connPoint1 = new THREE.Object3D();
-            var connPoint2 = new THREE.Object3D();
+            var connPoint1 = new Connector();
+            connPoint1.add(new THREE.Mesh(new THREE.SphereGeometry(0.1,20,20),new THREE.MeshPhongMaterial({color:0xff0000})));
+            var connPoint2 = new Connector();
+            connPoint2.add(new THREE.Mesh(new THREE.SphereGeometry(0.1,20,20),new THREE.MeshPhongMaterial({color:0xff0000})));
             connPoint1.position.set(-dymBox.length/2,0,0);
-            connPoint1.userData.isConnector = true;
             connPoint1.userData.name = "frame_a";
             dymBox.add(connPoint1);
             dymBox.connectors.push(connPoint1);
             connPoint2.position.set(dymBox.length/2,0,0);
-            connPoint2.userData.isConnector = true;
             connPoint2.userData.name = "frame_b";
             dymBox.add(connPoint2);
             dymBox.connectors.push(connPoint2);
@@ -524,6 +524,71 @@ function Playmola(){
             scope.add(dymCyl, "Bodies", true, 0, 1);
         };
         
+        this.loadRevoluteJoint = function(){
+            if(categories["Joints"] === undefined){
+                scope.addCategory("Joints");
+            }
+            
+            var exportModelSource = dymolaInterface.exportWebGL("Modelica.Mechanics.MultiBody.Joints.Revolute");
+            var obj = new Function(exportModelSource)();
+            //Remove TextGeometry
+            for(var j = 0; j < obj.children.length; j++){
+                if(obj.children[j].type == 'Mesh' && obj.children[j].geometry.type == 'TextGeometry'){
+                    obj.remove(obj.children[j]);
+                    j--;
+                }
+            }
+            var obj2 = new RevoluteJoint();
+            obj2.typeName = "Modelica.Mechanics.MultiBody.Joints.Revolute";
+            var componentsInClass = dymolaInterface.Dymola_AST_ComponentsInClass("Modelica.Mechanics.MultiBody.Joints.Revolute");
+
+            for(var j = 0; j < componentsInClass.length; j++){
+                var params = [];
+                params.push("Modelica.Mechanics.MultiBody.Joints.Revolute");
+                params.push(componentsInClass[j]);
+                if(dymolaInterface.callDymolaFunction("Dymola_AST_ComponentVariability", params) === "parameter"){
+                    var componentParam = [];
+                    componentParam["name"] = componentsInClass[j];
+                    componentParam["sizes"] = dymolaInterface.callDymolaFunction("Dymola_AST_ComponentSizes",params);
+                    componentParam["fullTypeName"] = dymolaInterface.callDymolaFunction("Dymola_AST_ComponentFullTypeName", params);
+                    componentParam["description"] = dymolaInterface.callDymolaFunction("Dymola_AST_ComponentDescription",params);
+                    componentParam["changed"] = false;
+                    obj2.parameters.push(componentParam);
+                }
+            }
+            
+            var connectors = [];
+
+            obj2.add(obj);
+            obj.traverse(function(currentObj){
+                if(currentObj.userData.isConnector === true){
+
+                    //Move the connectors to the center of their bounding boxes
+                    connectors.push(currentObj);
+                    
+                }
+            });
+            
+            connectors.forEach(function(currentObj){
+                    var bbh = new THREE.BoundingBoxHelper(currentObj, 0xffffff);
+                    bbh.update();
+
+                    currentObj.children.forEach(function(o){
+                        o.position.sub(bbh.box.center());
+                    });
+
+                    var conn = new Connector();
+                    conn.userData.name = currentObj.userData.name;
+                    conn.position.copy(bbh.box.center().clone());
+                    conn.add(currentObj);
+                    obj.add(conn);
+                    obj2.connectors.push(conn); 
+            });
+            
+            scope.add(obj2, "Joints", false, 1, 0.005);
+        }
+        
+        
         this.addClass = function(classname, category){
             if(categories[category] === undefined){
                 scope.addCategory(category);
@@ -556,11 +621,7 @@ function Playmola(){
                     obj2.parameters.push(componentParam);
                 }
             }
-//                    var componentsInClassAttributes = dymolaInterface.ModelManagement_Structure_AST_ComponentsInClassAttributes(classes[i].fullName);
-//                    for(var k = 0; k < componentsInClassAttributes.length; k++){
-//                        if(componentsInClassAttributes[k].variability === "parameter")
-//                            obj2.parameters.push(componentsInClassAttributes[k]);
-//                    }
+
             obj2.add(obj);
             obj.traverse(function(currentObj){
                 if(currentObj.userData.isConnector === true){
@@ -573,9 +634,15 @@ function Playmola(){
                         o.position.sub(bbh.box.center());
                     });
 
-                    currentObj.position.copy(bbh.box.center().clone());
+                    //currentObj.position.copy(bbh.box.center().clone());
 
-                    obj2.connectors.push(currentObj);
+                    var conn = new Connector();
+                    conn.userData.name = currentObj.userData.name;
+                    conn.position.copy(bbh.box.center().clone());
+                    conn.add(currentObj);
+                    obj.add(conn);
+                    obj2.connectors.push(conn);
+                    
                 }
             });
             scope.add(obj2, category, false, 1, 0.005);
@@ -598,24 +665,26 @@ function Playmola(){
         
 
 
-        scope.loadParts();
+        //scope.loadParts();
         scope.loadDymolaBox();
+        scope.loadRevoluteJoint();
         //scope.loadDymolaCylinder();
         //scope.addPackage("Modelica.Mechanics.MultiBody.Parts", "DymolaParts");
         //scope.addPackage("Modelica.Mechanics.MultiBody.Joints", "Joints");
 
         
-        scope.addClass("Modelica.Mechanics.MultiBody.World", "World");
-        scope.addClass("Modelica.Mechanics.MultiBody.Joints.Revolute", "Joints");
-        scope.addClass("Modelica.Mechanics.Rotational.Components.Damper", "Damper");
+        //scope.addClass("Modelica.Mechanics.MultiBody.World", "World");
+        //scope.addClass("Modelica.Mechanics.MultiBody.Joints.Revolute", "Joints");
+        //scope.addClass("Modelica.Mechanics.Rotational.Components.Damper", "Damper");
 
 
 
     };
     Palette.prototype.constructor = THREE.Palette;
 
-    
+    //TO BE REMOVED!!!!
     function ConnectionPoint(position){
+        
         this.position = new THREE.Vector3();
         this.position.copy(position);
         this.connectable = true;
@@ -625,11 +694,36 @@ function Playmola(){
         this.coordinateSystem.makeBasis(new THREE.Vector3(1,0,0),new THREE.Vector3(0,1,0),new THREE.Vector3(0,0,1)); //Default coordinate system
     }
     
+    //Object to represent a modelica connector
+    function Connector(){
+        THREE.Object3D.call(this);
+        this.connectedTo = null;
+        this.type = "Connector";
+        
+        this.getParent = function(){
+            var component = null;
+            this.traverseAncestors(function(anc){
+               if(anc instanceof DymolaComponent)
+                   component = anc;
+            });
+            return component;
+        };
+        
+        this.clone = function(){
+            var newConn = new Connector();
+            THREE.Object3D.prototype.clone.call(this, newConn);
+            return newConn;
+        };
+    }
+    Connector.prototype = Object.create(THREE.Object3D.prototype);
+    
     //This object holds two connectors and is visually represented by a line
     function Connection(A,B){
         THREE.Object3D.call(this);
         this.connectorA = A;
+        A.connectedTo = B;
         this.connectorB = B;
+        B.connectedTo = A;
         this.type = 'DymolaComponent';
         var scope = this;
         var line;
@@ -662,6 +756,8 @@ function Playmola(){
     
     Connection.prototype = Object.create(THREE.Object3D.prototype);
     
+    
+    
     function DymolaComponent(){
         THREE.Object3D.call(this);
         this.typeName = null;
@@ -678,7 +774,7 @@ function Playmola(){
             newDymComp.connectors = [];
             
             newDymComp.traverse(function(currentObj){
-                if(currentObj.userData.isConnector === true)
+                if(currentObj.type === "Connector")
                     newDymComp.connectors.push(currentObj);
             });
             
@@ -686,8 +782,65 @@ function Playmola(){
             return newDymComp;
         };
     };
-    
     DymolaComponent.prototype = Object.create(THREE.Object3D.prototype);
+    
+    //A Joint represents a revolute joint and the two DymolaComponents it is connected to
+    //Used to enforce a joint's constraints in 3D mode
+    function RevoluteJoint(){
+        DymolaComponent.call(this);
+        this.frameAConnector = null;
+        this.frameBConnector = null;
+        this.phi = 0;
+        this.type = "RevoluteJoint";
+        var scope = this;
+        
+        this.clone = function(){
+            var newRevolute = new RevoluteJoint();
+            RevoluteJoint.prototype.clone.call(this, newRevolute);
+            newRevolute.typeName = this.typeName;
+            newRevolute.phi = this.phi;
+            
+            newRevolute.connectors = [];
+            
+            newRevolute.traverse(function(currentObj){
+                if(currentObj.type === "Connector"){
+                    newRevolute.connectors.push(currentObj);
+                    if(currentObj.userData.name === "frame_a")
+                        newRevolute.frameAConnector = currentObj;
+                    if(currentObj.userData.name === "frame_b")
+                        newRevolute.frameBConnector = currentObj;
+                }
+            });
+            
+            newRevolute.parameters = $.extend(true, [], this.parameters);
+            return newRevolute;
+            
+        }
+        
+        this.enforceConstraint = function(){
+            //Enfore the revolute joint's constraint
+            var connA = this.frameAConnector.connectedTo;
+            var connB = this.frameBConnector.connectedTo;
+            //Check that the joint is connected to two things
+            if(connA === null || connA === undefined || connB === null || connB === undefined){
+                return;
+            }
+            
+            
+            //Move the object connected to frame B
+            var connAWorld = connA.position.clone();
+            connA.parent.localToWorld(connAWorld);
+            var connBWorld = connB.position.clone();
+            connB.parent.localToWorld(connBWorld);
+            connB.getParent().position.sub(connBWorld.sub(connAWorld));
+            //Rotate the object connected to frame B
+            
+        }
+        
+    }
+    RevoluteJoint.prototype = Object.create(DymolaComponent.prototype);
+    
+    
     
     function DymolaBox(length,width,height){
         DymolaComponent.call(this);
@@ -708,7 +861,7 @@ function Playmola(){
             newDymBox.connectors = [];
             
             newDymBox.traverse(function(currentObj){
-                if(currentObj.userData.isConnector === true)
+                if(currentObj.type === "Connector")
                     newDymBox.connectors.push(currentObj);
             });
             
@@ -745,7 +898,7 @@ function Playmola(){
             newDymCyl.connectors = [];
             
             newDymCyl.traverse(function(currentObj){
-                if(currentObj.userData.isConnector === true)
+                if(currentObj.type === "Connector")
                     newDymCyl.connectors.push(currentObj);
             });
             
@@ -791,99 +944,7 @@ function Playmola(){
         
         dymolaComponentStorage[componentString] = component;
     }
-    
-    function Joint(type){
-        THREE.Object3D.call( this );
-        this.dymolaType = type;
-        this.connectionA = null;
-        this.connectionB = null;
-        var self = this;
-        var lineA = null;
-        var lineB = null;
-        
-        function init(){
-            self.visible = false;
-            self.add(dymolaComponentStorage[type].clone());
-        }
-        
-        //Return the ConnectionPoint on the "other" side of the joint
-        this.getConnection = function(connectionPoint){
-            if(connectionPoint === self.connectionA)
-                return self.connectionB;
-            if(connectionPoint === self.connectionB)
-                return self.connectionA;
-            return null;
-        };
-        
-        this.makeLines = function(){
-            self.lineA = new ConnectionLine(self.connectionA,self);
-            self.lineB = new ConnectionLine(self.connectionB,self);
-        };
-        
-        this.update = function(){
-            if(self.lineA !== null){
-                self.lineA.update();
-            }
-            if(self.lineB !== null){
-                self.lineB.update();
-            }
-        };
-        
-        init();
-    }
-    
-    Joint.prototype = Object.create( THREE.Object3D.prototype );
-    
-    function ConnectionLine(connectionPoint, joint){
-        var startPos = new THREE.Vector3();
-        var endPos = new THREE.Vector3();
-        
-        startPos = connectionPoint.position.clone();
-        
-        connectionPoint.parentObject.localToWorld(startPos);
-        joint.worldToLocal(startPos);
-        endPos = joint.position.clone();
-        //joint.localToWorld(endPos);
-        
-        
-        var material = new THREE.LineBasicMaterial({
-                color: 0xffffff
-        });
-
-        var geometry = new THREE.Geometry();
-       
-        
-        geometry.vertices.push(
-                startPos,
-                endPos
-        );
-
-        var line = new THREE.Line( geometry, material);
-        line.position.sub(joint.position);
-        joint.add( line );
-        
-        this.update = function(){
-
-            startPos = connectionPoint.position.clone();
-            connectionPoint.parentObject.localToWorld(startPos);
-            endPos = joint.position.clone();
-            //joint.localToWorld(endPos);
-            
-            var geometry = new THREE.Geometry();
-
-
-            geometry.vertices.push(
-                    startPos,
-                    endPos
-            );
-            joint.remove(line);
-            line = new THREE.Line(geometry, material );
-            line.position.sub(joint.position);
-            joint.add(line);
-
-        };
-        
-    }
+   
     
     function init(){
         
@@ -1005,7 +1066,7 @@ function Playmola(){
         
 
         cameraControls = new CustomCameraControls(camera, renderer.domElement, new THREE.Box3(new THREE.Vector3(-5,-2.5,-5), new THREE.Vector3(5,2.5,5)), new THREE.Vector3(0,-1,0));
-//        loadDymolaComponent(revoluteJoint);
+        loadDymolaComponent(revoluteJoint);
 //        loadDymolaComponent(prismaticJoint);
 //        loadDymolaComponent(cylindricalJoint);
 
@@ -1033,7 +1094,7 @@ function Playmola(){
     function loadModel(object, centerOfMass, connectionPoints){
         //Extract the part of the Object3D containing the meshes and puts it in a 
         //new object positioned at the center of mass
-        var obj = new THREE.Object3D();
+        var obj = new DymolaComponent();
         obj.add(object.children[1]);
         obj.children[0].position.sub(centerOfMass);
         obj.children.forEach(function(child) {
@@ -1048,8 +1109,21 @@ function Playmola(){
         //Corrects the position of the connection points and initializes them
         for(var i = 0; i < connectionPoints.length; i++){
             var v = connectionPoints[i].position;
-            v.sub(centerOfMass);
-            connectionPoints[i].position = v;
+            v.sub(centerOfMass);            
+            
+            var connPoint = new Connector();
+            connPoint.add(new THREE.Mesh(new THREE.SphereGeometry(0.1,20,20),new THREE.MeshPhongMaterial({color:0xff0000})));
+            
+            connPoint.position.copy(connectionPoints[i].position.clone().sub(centerOfMass));
+            connPoint.userData.isConnector = true;
+            connPoint.userData.name = "ADD_ME_LATER";
+            obj.add(connPoint);
+            obj.connectors.push(connPoint);
+            
+            
+            
+            
+            //connectionPoints[i].position = v;
             connectionPoints[i].parentObject = obj; //Record the Object3D this ConnectionPoint is attached to for future reference!
         }
 
@@ -1072,66 +1146,6 @@ function Playmola(){
         });
     }
     
-    function loadModels(){
-
-        loader.load("Piston_Study.wrl", function(object){
-            var obj = loadModel(object, new THREE.Vector3(0.,-0.15149054405043,0.), new Array(new ConnectionPoint(new THREE.Vector3(0.,-0.14420647088485,0.))));
-            objectCollection.push(obj);
-            scene.add(obj);
-        });
-        loader.load("Master_One_Cylinder.wrl", function(object){
-            var obj = loadModel(object, new THREE.Vector3(-4.5e-2,0.,0.), new Array(new ConnectionPoint(new THREE.Vector3(-4.5e-2,0.,0.))));
-            objectCollection.push(obj);
-            scene.add(obj);
-        });
-        loader.load("Rod_Study.wrl", function(object){
-            var obj = loadModel(object, new THREE.Vector3(0.,-8.9431700693962e-2,2.4489282256523e-2), new Array(new ConnectionPoint(new THREE.Vector3(0.,-3.465692988818e-2,4.8978561933508e-2)), new ConnectionPoint(new THREE.Vector3(0.,-0.14420647088485,0.))));
-            objectCollection.push(obj);
-            scene.add(obj);
-        });
-        loader.load("Cranck_Study.wrl", function(object){
-            var obj = loadModel(object, new THREE.Vector3(-2.7054598934035e-2,-9.0702960410631e-3,1.2818607418443e-2), new Array(new ConnectionPoint(new THREE.Vector3(0.,-3.465692988818e-2,4.8978561933508e-2)), new ConnectionPoint(new THREE.Vector3(-4.5e-2,0.,0.))));
-            objectCollection.push(obj);
-            scene.add(obj);
-        });
-        
-        loader.load("models/robot/b0.wrl", function(object){
-            var obj = loadModel(object, new THREE.Vector3(0,0,0), new Array(new ConnectionPoint(new THREE.Vector3(0,0.351,0)),new ConnectionPoint(new THREE.Vector3(0,0,0))));
-            objectCollection.push(obj);
-            scene.add(obj);
-        });
-        loader.load("models/robot/b1.wrl", function(object){
-            var obj = loadModel(object, new THREE.Vector3(0,0,0), new Array(new ConnectionPoint(new THREE.Vector3(0,0.324,0.3)),new ConnectionPoint(new THREE.Vector3(0,0,0))));
-            objectCollection.push(obj);
-            scene.add(obj);
-        });
-        loader.load("models/robot/b2.wrl", function(object){
-            var obj = loadModel(object, new THREE.Vector3(0.172,0.205,0), new Array(new ConnectionPoint(new THREE.Vector3(0,0.65,0)),new ConnectionPoint(new THREE.Vector3(0,0,0))));
-            objectCollection.push(obj);
-            scene.add(obj);
-        });
-        loader.load("models/robot/b3.wrl", function(object){
-            var obj = loadModel(object, new THREE.Vector3(0.064,-0.034,0), new Array(new ConnectionPoint(new THREE.Vector3(0,0.414,-0.155)),new ConnectionPoint(new THREE.Vector3(0,0,0))));
-            objectCollection.push(obj);
-            scene.add(obj);
-        });
-        
-        loader.load("models/robot/b4.wrl", function(object){
-            var obj = loadModel(object, new THREE.Vector3(0,0,0), new Array(new ConnectionPoint(new THREE.Vector3(0,0.186,0)),new ConnectionPoint(new THREE.Vector3(0,0,0))));
-            objectCollection.push(obj);
-            scene.add(obj);
-        });
-        loader.load("models/robot/b5.wrl", function(object){
-            var obj = loadModel(object, new THREE.Vector3(0,0,0), new Array(new ConnectionPoint(new THREE.Vector3(0,0.125,0)),new ConnectionPoint(new THREE.Vector3(0,0,0))));
-            objectCollection.push(obj);
-            scene.add(obj);
-        });
-        loader.load("models/robot/b6.wrl", function(object){
-            var obj = loadModel(object, new THREE.Vector3(0.05,0.05,0.05), new Array(new ConnectionPoint(new THREE.Vector3(0,0,0))));
-            objectCollection.push(obj);
-            scene.add(obj);
-        });
-    }
     
     function onMouseMove(event) {
 	mousePos.x = ( event.clientX / window.innerWidth ) * 2 - 1;
@@ -1165,7 +1179,7 @@ function Playmola(){
 //                return true;
 //            }
             //Check if the intersected  object was a DymolaComponent and check if the intersection was on a connector
-            if(intersectionFound !== null && intersectionFound.type == 'DymolaComponent'){
+            if(intersectionFound !== null && intersectionFound.type == 'DymolaComponent' || intersectionFound instanceof DymolaComponent){
                 //Loop through the connectors to see if one is intersected
                 var connectorPicked = false;
                 for(var i = 0; i < intersectionFound.connectors.length; i++){
@@ -1600,9 +1614,9 @@ function Playmola(){
             
         }
         
-        for(var j = 0; j < joints.length; j++){
-            joints[j].update();
-        }
+//        for(var j = 0; j < joints.length; j++){
+//            joints[j].update();
+//        }
     }
     function deselectObject(){
         $("#detailsPanel").panel("close");
@@ -1854,6 +1868,10 @@ function Playmola(){
         palette.update();
         connections.forEach(function(c){
             c.update();
+        });
+        
+        joints.forEach(function(j){
+           j.enforceConstraint(); 
         });
     }
     function render(){
