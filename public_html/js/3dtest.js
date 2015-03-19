@@ -92,7 +92,7 @@ function Playmola(){
             source += conn.connectorB.getParent().name + "." + conn.connectorB.userData.name + ");\n";
         });
         source += "end TestModel;";
-        alert(source);
+        //alert(source);
         return source;
     }
     
@@ -866,17 +866,17 @@ function Playmola(){
         DymolaComponent.call(this);
         this.frameAConnector = null;
         this.frameBConnector = null;
-        this.phi = 1.0;
+        this.phi = 0;
         this.type = "RevoluteJoint";
         var scope = this;
         this.animatePhi = null;
+        this.animationUpdatedThisFrame = false;
         
         this.clone = function(){
             var newRevolute = new RevoluteJoint();
             RevoluteJoint.prototype.clone.call(this, newRevolute);
             newRevolute.typeName = this.typeName;
             newRevolute.phi = this.phi;
-            
             newRevolute.connectors = [];
             
             newRevolute.traverse(function(currentObj){
@@ -904,8 +904,9 @@ function Playmola(){
             }
             
             //Animate rotation
-            if(this.animatePhi !== null && this.animatePhi.length > 0){
+            if(this.animatePhi !== null && this.animatePhi.length > 0 && !this.animationUpdatedThisFrame){
                 this.phi = this.animatePhi.shift();
+                this.animationUpdatedThisFrame = true;
             }
 
             //Rotate the object connected to frame B
@@ -1078,16 +1079,20 @@ function Playmola(){
             }
         });
         
-        $(document).bind('keypress', function(e) {
-            if(e.keyCode==13){
+        $(document).bind('keydown', function(e) {
+            if(e.keyCode == 13){ //enter
 		var source = generateModelicaCode();
                 
                 try{
 
                     if(dymolaInterface.setClassText("", source)){
-                        dymolaInterface.simulateModel("TestModel",0,3,0,0,"Dassl", 0.0001,0.0, "testmodelresults");
+                        dymolaInterface.simulateModel("TestModel",0,5,0,0,"Dassl", 0.0001,0.0, "testmodelresults");
                         joints.forEach(function(j){
-                            var phis = dymolaInterface.interpolateTrajectory("testmodelresults.mat",new Array(j.name + ".phi"),"0:" + 1/60 + ":2");
+                            var times = [];
+                            for(var i = 0; i <= 5; i+=1/60)
+                                times.push(i);
+                            var phis = dymolaInterface.interpolateTrajectory("testmodelresults.mat",new Array(j.name + ".phi"),times);
+                            j.animatePhi = phis[0];
                         });
                         
                     }
@@ -1098,6 +1103,29 @@ function Playmola(){
                     console.log(err.message);
                 }
                 
+            }
+            else if (e.keyCode == 46){ //delete
+                if(selectedObject !== null){
+
+                    for(var i = 0; i < connections.length; i++){
+                        if(connections[i].connectorA.getParent() === selectedObject || connections[i].connectorB.getParent() === selectedObject){
+                            connections[i].connectorA.connectedTo = null;
+                            connections[i].connectorB.connectedTo = null;
+                            scene.remove(connections[i]);
+                            connections.splice(i,1);
+                            i--;
+                        }
+                    }
+                    objectCollection.splice(objectCollection.indexOf(selectedObject),1);
+                    scene.remove(selectedObject);
+                    
+                    if(joints.indexOf(selectedObject) != -1){
+                        joints.splice(joints.indexOf(selectedObject),1);
+                    }
+                    
+                    selectedObject = null;
+                    
+                }
             }
         });
         
@@ -1349,7 +1377,7 @@ function Playmola(){
         var closest = null;
 
         for(var i = 0; i < objectCollection.length; i++){
-            if(objectCollection[i].type == 'DymolaComponent'){
+            //if(objectCollection[i].type == 'DymolaComponent'){
                 for(var j = 0; j < objectCollection[i].connectors.length; j++){
                     //Don't allow connecting a connector to itself
                     if(objectCollection[i].connectors[j] !== draggingFrom ){
@@ -1367,7 +1395,7 @@ function Playmola(){
                         }
                     }
                 }
-            }
+            //}
         }
         return closest;
     }
@@ -1965,6 +1993,7 @@ function Playmola(){
         for(var i = 0; i < joints.length; i++){
             joints.forEach(function(j){
                j.enforceConstraint(); 
+               if (i == joints.length -1) j.animationUpdatedThisFrame = false;
             });
         }
         
