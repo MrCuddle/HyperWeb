@@ -263,13 +263,20 @@ function Playmola(){
         };
         
         this.resize = function(){
-            var width = domElement.getBoundingClientRect().width;
-            var height = domElement.getBoundingClientRect().height;
+            width = domElement.getBoundingClientRect().width;
+            height = domElement.getBoundingClientRect().height;
             scope.camera.left = width / -2;
             scope.camera.right = width / 2;
             scope.camera.top = height / 2;
             scope.camera.bottom = height / -2;
             scope.camera.updateProjectionMatrix();
+            
+            Object.keys(categories).forEach(function(key, index){
+                for(var i = 0; i < categories[key].length; i++){
+                    categories[key][i].position.set(((i)%tilesX) * (tileSpacing + tileWidth) - width/2 + tileWidth/2 + bounds.min.x, -Math.floor((i)/tilesX) * (tileSpacing + tileHeight) + height/2 - tileHeight/2 - bounds.min.y,-100);
+                }
+            });
+            
         };
         
         this.add = function(obj, category, tilt, rotationMode, sceneScale){
@@ -309,7 +316,7 @@ function Playmola(){
            
             obj.traverse(function(o){
                 o.castShadow = true;
-            })
+            });
            
             //bounds.min.set(tileSpacing,tileSpacing);
             if(category === selectedCategory) bounds.max.set((len < 3 ? len :tilesX)*(tileSpacing + tileWidth) + bounds.min.x, Math.ceil((len)/tilesX) * (tileSpacing + tileHeight) + bounds.min.y);
@@ -522,7 +529,7 @@ function Playmola(){
                 scope.addCategory("Joints");
             }
             
-            var exportModelSource = dymolaInterface.exportWebGL("Modelica.Mechanics.MultiBody.Joints.Revolute");
+            var exportModelSource = dymolaInterface.exportWebGL("Playmola.SimpleRevoluteJoint");
             var obj = new Function(exportModelSource)();
             //Remove TextGeometry
             for(var j = 0; j < obj.children.length; j++){
@@ -532,12 +539,12 @@ function Playmola(){
                 }
             }
             var obj2 = new RevoluteJoint();
-            obj2.typeName = "Modelica.Mechanics.MultiBody.Joints.Revolute";
-            var componentsInClass = dymolaInterface.Dymola_AST_ComponentsInClass("Modelica.Mechanics.MultiBody.Joints.Revolute");
+            obj2.typeName = "Playmola.SimpleRevoluteJoint";
+            var componentsInClass = dymolaInterface.Dymola_AST_ComponentsInClass("Playmola.SimpleRevoluteJoint");
 
             for(var j = 0; j < componentsInClass.length; j++){
                 var params = [];
-                params.push("Modelica.Mechanics.MultiBody.Joints.Revolute");
+                params.push("Playmola.SimpleRevoluteJoint");
                 params.push(componentsInClass[j]);
                 if(dymolaInterface.callDymolaFunction("Dymola_AST_ComponentVariability", params) === "parameter"){
                     var componentParam = [];
@@ -940,6 +947,7 @@ function Playmola(){
         DymolaComponent.call(this);
         var mesh = new THREE.Mesh(new THREE.BoxGeometry(1,1,1), new THREE.MeshLambertMaterial({color:0x00ff00}));
         this.add(mesh);
+        mesh.castShadow = true;
 
         this.length = length;
         this.width = width;
@@ -1122,8 +1130,7 @@ function Playmola(){
                     if(joints.indexOf(selectedObject) != -1){
                         joints.splice(joints.indexOf(selectedObject),1);
                     }
-                    
-                    selectedObject = null;
+                    deselectObject();
                     
                 }
             }
@@ -1168,12 +1175,12 @@ function Playmola(){
         
         window.addEventListener('mousemove', onMouseMove, false);
         
-        $(document).on('mousemove', function(){
-            checkForConnections();
-        });
+//        $(document).on('mousemove', function(event){
+//            onMouseMove(event);
+//        });
         
-        $(document).on('mouseup', function(){
-            onMouseUp();
+        $(document).on('mouseup', function(event){
+            onMouseUp(event);
         });
         
         $(renderer.domElement).on('mousedown', function(event){
@@ -1392,6 +1399,7 @@ function Playmola(){
                         if(distSquared < 400 && distSquared < distance){
                             distance = distSquared;
                             closest = objectCollection[i].connectors[j];
+                            closest.userData.tempDistSquared = distSquared;
                         }
                     }
                 }
@@ -1478,18 +1486,6 @@ function Playmola(){
                     }
             });
             }
-//            $('#detailsPanel').on('mousedown', function(event){
-//                //event.stopImmediatePropagation();
-//                event.stopPropagation();
-//            });
-//            $('#detailsPanel').on('mouseup', function(event){
-//                //event.stopImmediatePropagation();
-//                event.stopPropagation();
-//            });
-//            $('#detailsPanel').on('click', function(event){
-//                //event.stopImmediatePropagation();
-//                event.stopPropagation();
-//            });
             $("#detailsPanel").enhanceWithin();
         }
     }
@@ -1528,190 +1524,7 @@ function Playmola(){
         //alert($("#"+id+"_ label").attr('class'));
     }
    
-    //Generates a new Object3D based on the two parameters, removes the parameters from the objectCollection
-    //and adds the newly generated object instead
-    function generateNewObject(obj1, obj2){
-        if(obj1.group === undefined && obj2.group === undefined){
-            var newGroup = new THREE.Object3D();
-            newGroup.group = true;
-            var vec1 = obj1.position.clone();
-            var vec2 = obj2.position.clone();
-            newGroup.add(obj1);
-            newGroup.add(obj2);
-            vec2.add(vec1);
-            vec2.multiplyScalar(0.5);
-            newGroup.position.copy(vec2);
-            obj1.position.sub(newGroup.position);
-            obj2.position.sub(newGroup.position);
-            newGroup.updateMatrix();
-            newGroup.updateMatrixWorld(true);
-            var newConnectionPoints = [];
-            for(var i = 0; i < obj1.connectionPoints.length; i++){
-                var newPosition = newGroup.worldToLocal(obj1.localToWorld(obj1.connectionPoints[i].position.clone()));
-                //newPosition.sub(newObj.position);
-                var newConnectionPoint = new ConnectionPoint(newPosition);
-                newConnectionPoint.connectable = obj1.connectionPoints[i].connectable;
-                newConnectionPoint.coordinateSystem.multiply(obj1.matrixWorld);
-                newConnectionPoint.coordinateSystem.multiply(newGroup.matrix);
-                newConnectionPoint.parent = obj1.connectionPoints[i];
-                newConnectionPoints.push(newConnectionPoint);
-            }
-
-            for(var i = 0; i < obj2.connectionPoints.length; i++){
-                var newPosition = newGroup.worldToLocal(obj2.localToWorld(obj2.connectionPoints[i].position.clone()));
-                //newPosition.sub(newObj.position);
-                var newConnectionPoint = new ConnectionPoint(newPosition);
-                newConnectionPoint.connectable = obj2.connectionPoints[i].connectable;
-                newConnectionPoint.coordinateSystem.multiply(obj2.matrixWorld);
-                newConnectionPoint.coordinateSystem.multiply(newGroup.matrix);
-                newConnectionPoint.parent = obj2.connectionPoints[i];
-                newConnectionPoints.push(newConnectionPoint);
-            }
-
-            //newConnectionPoints = newConnectionPoints.concat(obj1.connectionPoints, obj2.connectionPoints);
-            newGroup.connectionPoints = newConnectionPoints;
-            selectObject(newGroup);
-            var index = objectCollection.indexOf(obj1);
-            objectCollection.splice(index,1);
-            index = objectCollection.indexOf(obj2);
-            objectCollection.splice(index,1);
-            objectCollection.push(newGroup);
-            scene.add(newGroup);
-        }
-        else if (obj2.group === true && obj1.group === true){
-            var newGroup = new THREE.Object3D();
-            newGroup.group = true;
-            var cMass = new THREE.Vector3();
-            while(obj1.children.length > 0){
-                cMass.add(obj1.position).add(obj1.children[0].position);
-                var child = obj1.children[0];
-                THREE.SceneUtils.detach(obj1.children[0], obj1, scene);
-                newGroup.add(child);
-                //child.position.add(obj1.position);
-            }
-            while(obj2.children.length > 0){
-                cMass.add(obj2.position).add(obj2.children[0].position);
-                var child = obj2.children[0];
-                THREE.SceneUtils.detach(obj2.children[0], obj2, scene);
-                newGroup.add(child);
-                //child.position.add(obj2.position);
-            }
-            cMass.multiplyScalar(1/(newGroup.children.length));
-            newGroup.position.copy(cMass);
-            for(var i = 0; i < newGroup.children.length; i++){
-                newGroup.children[i].position.sub(newGroup.position);
-            }
-            newGroup.updateMatrix();
-            newGroup.updateMatrixWorld(true);
-            var newConnectionPoints = [];
-            for(var j = 0; j < newGroup.children.length; j++){
-                for(var i = 0; i < newGroup.children[j].connectionPoints.length; i++){
-                    var newPosition = newGroup.worldToLocal(newGroup.children[j].localToWorld(newGroup.children[j].connectionPoints[i].position.clone()));
-                    //newPosition.sub(newObj.position);
-                    var newConnectionPoint = new ConnectionPoint(newPosition);
-                    newConnectionPoint.connectable = newGroup.children[j].connectionPoints[i].connectable;
-                    newConnectionPoint.coordinateSystem.multiply(newGroup.children[j].matrixWorld);
-                    newConnectionPoint.coordinateSystem.multiply(newGroup.matrix);
-                    newConnectionPoint.parent = newGroup.children[j].connectionPoints[i];
-                    newConnectionPoints.push(newConnectionPoint);
-                }
-            }
-            //newConnectionPoints = newConnectionPoints.concat(obj1.connectionPoints, obj2.connectionPoints);
-            newGroup.connectionPoints = newConnectionPoints;
-            selectObject(newGroup);
-            var index = objectCollection.indexOf(obj1);
-            objectCollection.splice(index,1);
-            index = objectCollection.indexOf(obj2);
-            objectCollection.splice(index,1);
-            objectCollection.push(newGroup);
-            scene.add(newGroup);
-        }
-        else if(obj1.group === undefined){
-            var newGroup = new THREE.Object3D();
-            newGroup.group = true;
-            scene.add(newGroup);
-            var cMass = obj1.position.clone();
-            newGroup.add(obj1);
-            while(obj2.children.length > 0){
-                cMass.add(obj2.position).add(obj2.children[0].position);
-                var child = obj2.children[0];
-                //THREE.SceneUtils.detach(obj2.children[i], obj2, scene);
-                newGroup.add(child);
-                child.position.add(obj2.position);
-            }
-            cMass.multiplyScalar(1/(newGroup.children.length));
-            newGroup.position.copy(cMass);
-            for(var i = 0; i < newGroup.children.length; i++){
-                newGroup.children[i].position.sub(newGroup.position);
-            }
-            newGroup.updateMatrix();
-            newGroup.updateMatrixWorld(true);
-            var newConnectionPoints = [];
-            for(var j = 0; j < newGroup.children.length; j++){
-                for(var i = 0; i < newGroup.children[j].connectionPoints.length; i++){
-                    var newPosition = newGroup.worldToLocal(newGroup.children[j].localToWorld(newGroup.children[j].connectionPoints[i].position.clone()));
-                    //newPosition.sub(newObj.position);
-                    var newConnectionPoint = new ConnectionPoint(newPosition);
-                    newConnectionPoint.connectable = newGroup.children[j].connectionPoints[i].connectable;
-                    newConnectionPoint.coordinateSystem.multiply(newGroup.children[j].matrixWorld);
-                    newConnectionPoint.coordinateSystem.multiply(newGroup.matrix);
-                    newConnectionPoint.parent = newGroup.children[j].connectionPoints[i];
-                    newConnectionPoints.push(newConnectionPoint);
-                }
-            }
-            //newConnectionPoints = newConnectionPoints.concat(obj1.connectionPoints, obj2.connectionPoints);
-            newGroup.connectionPoints = newConnectionPoints;
-            selectObject(newGroup);
-            var index = objectCollection.indexOf(obj1);
-            objectCollection.splice(index,1);
-            index = objectCollection.indexOf(obj2);
-            objectCollection.splice(index,1);
-            objectCollection.push(newGroup);
-            scene.add(newGroup);
-        }
-        else if(obj2.group === undefined){
-            var newGroup = new THREE.Object3D();
-            scene.add(newGroup);
-            newGroup.group = true;
-            var cMass = obj2.position.clone();
-            newGroup.add(obj2);
-            while(obj1.children.length > 0){
-                cMass.add(obj1.position).add(obj1.children[0].position);
-                var child = obj1.children[0];
-                THREE.SceneUtils.detach(obj1.children[0], obj1, scene);
-                newGroup.add(child);
-                //child.position.add(obj1.position);
-            }
-            cMass.multiplyScalar(1/(newGroup.children.length));
-            newGroup.position.copy(cMass);
-            for(var i = 0; i < newGroup.children.length; i++){
-                newGroup.children[i].position.sub(newGroup.position);
-            }
-            newGroup.updateMatrix();
-            newGroup.updateMatrixWorld(true);
-            var newConnectionPoints = [];
-            for(var j = 0; j < newGroup.children.length; j++){
-                for(var i = 0; i < newGroup.children[j].connectionPoints.length; i++){
-                    var newPosition = newGroup.worldToLocal(newGroup.children[j].localToWorld(newGroup.children[j].connectionPoints[i].position.clone()));
-                    //newPosition.sub(newObj.position);
-                    var newConnectionPoint = new ConnectionPoint(newPosition);
-                    newConnectionPoint.connectable = newGroup.children[j].connectionPoints[i].connectable;
-                    newConnectionPoint.coordinateSystem.multiply(newGroup.children[j].matrixWorld);
-                    newConnectionPoint.coordinateSystem.multiply(newGroup.matrix);
-                    newConnectionPoint.parent = newGroup.children[j].connectionPoints[i];
-                    newConnectionPoints.push(newConnectionPoint);
-                }
-            }
-            //newConnectionPoints = newConnectionPoints.concat(obj1.connectionPoints, obj2.connectionPoints);
-            newGroup.connectionPoints = newConnectionPoints;
-            selectObject(newGroup);
-            var index = objectCollection.indexOf(obj2);
-            objectCollection.splice(index,1);
-            index = objectCollection.indexOf(obj1);
-            objectCollection.splice(index,1);
-            objectCollection.push(newGroup);
-        }
-    }
+    
     function moveObjects(){
         for(var i = 0; i < movingObjects.length; i++){
             var interpolationSpeed = 0.07;
@@ -1737,10 +1550,8 @@ function Playmola(){
             
         }
         
-//        for(var j = 0; j < joints.length; j++){
-//            joints[j].update();
-//        }
     }
+    
     function deselectObject(){
         $("#detailsPanel").panel("close");
         if(selectedObject)
@@ -1752,149 +1563,58 @@ function Playmola(){
             transformControls.detach(selectedObject);
             selectedObject = null;
         }
-    }    
-    function checkForConnections(){
-    if(selectedObject){
-        var minDistSquared = Math.pow(50,2);
-        var widthHalf = window.innerWidth / 2;
-        var heightHalf = window.innerHeight / 2;
-        foregroundScene.remove(connectionMarker);
-        closestObject = null;
-        connectionPoint1 = null;
-        connectionPoint2 = null;
-        for(var i = 0; i < selectedObject.connectionPoints.length; i++){
-            
-            var connectionClone = selectedObject.connectionPoints[i].position.clone();
-            selectedObject.localToWorld(connectionClone);
-            var selectedObjScreenPos = connectionClone;
-            selectedObjScreenPos = selectedObjScreenPos.project(camera);
-            selectedObjScreenPos.x = ( selectedObjScreenPos.x * widthHalf ) + widthHalf;
-            selectedObjScreenPos.y = - ( selectedObjScreenPos.y * heightHalf ) + heightHalf;
-            for(var j = 0; j < objectCollection.length; j++){
-                if(objectCollection[j] !== selectedObject){
-                    for(var k = 0; k < objectCollection[j].connectionPoints.length; k++){
-                        connectionClone = objectCollection[j].connectionPoints[k].position.clone();
-                        var comparisonObjScreenPos = objectCollection[j].localToWorld(connectionClone);
-                        comparisonObjScreenPos.project(camera);
-                        comparisonObjScreenPos.x = ( comparisonObjScreenPos.x * widthHalf ) + widthHalf;
-                        comparisonObjScreenPos.y = - ( comparisonObjScreenPos.y * heightHalf ) + heightHalf;
-                        var diff = new THREE.Vector3();
-                        diff.x = selectedObjScreenPos.x - comparisonObjScreenPos.x;
-                        diff.y = selectedObjScreenPos.y - comparisonObjScreenPos.y;
-                        var distanceSquared = Math.pow(diff.x,2) + Math.pow(diff.y,2);
-                        if(distanceSquared < minDistSquared && 
-                                selectedObject.connectionPoints[i].connectable &&
-                                objectCollection[j].connectionPoints[k].connectable){
-                            closestObject = objectCollection[j];
-                            connectionPoint1 = selectedObject.connectionPoints[i];
-                            connectionPoint2 = objectCollection[j].connectionPoints[k];
-                            minDistSquared = distanceSquared;
-                        }
-                    }
+    } 
+    
+    function onMouseUp(event){
+        if(event.button == 1 && selectedObject){
+
+            var thisConnector = null;
+            var closestConnector = null;
+            var distance = 10000000;
+
+            selectedObject.connectors.forEach(function(c){
+                var cPos = c.position.clone();
+                c.parent.localToWorld(cPos);
+                cPos.project(camera);
+                cPos.x = ( selectedObjScreenPos.x * widthHalf ) + widthHalf;
+                cPos.y = - ( selectedObjScreenPos.y * heightHalf ) + heightHalf;
+                cPos.z = 0;
+                var closest = checkForConnection(new THREE.Vector3(event.clientX, event.clientY, 0));
+                if(closest !== null && closest.tempDistSquared < distance){
+                    closestConnector = closest;
+                    distance = closest.tempDistSquared;
+                    thisConnector = c;
                 }
-            }
-        }
-        if(closestObject){
-            var connectionClone = connectionPoint2.position.clone();
-            closestObject.localToWorld(connectionClone);
-            if(connectionPoint2.connectable)
-                connectionMarker = generateSphere(connectionClone.x,connectionClone.y,connectionClone.z, true);
-            else
-                connectionMarker = generateSphere(connectionClone.x,connectionClone.y,connectionClone.z, false);
-                
-            foregroundScene.add(connectionMarker);
-        }
-    }
-}
-    function onMouseUp(){
-        if(selectedObject && closestObject){
-
-            mousePos.x = ( event.clientX / window.innerWidth ) * 2 - 1;
-            mousePos.y = - ( event.clientY / window.innerHeight ) * 2 + 1;	
-
-            var mouseX = (mousePos.x + 1)/2 * window.innerWidth;
-            var mouseY = -(mousePos.y - 1)/2 * window.innerHeight;
-
-            //$('#test').css('left', '' + mouseX + 'px').css('top', '' + mouseY + 'px').show();
-            $( "#jointPopup" ).popup( "open", { x: mouseX, y: mouseY, transition: "slideup" } );
-
-            disableControls = true;
-            transformControls.detach(selectedObject);
-            foregroundScene.remove(connectionMarker);
-            //self.connectObjects();
-        }
-    }
-    this.connectObjects = function(type){
-        connectionMarker = null;
-        if(connectionPoint1.connectable && connectionPoint2.connectable){
-            //Set up the logical connection:
+            });
             
-            var joint = new Joint(type);
-            scene.add(joint);
             
-            joint.visible = false;
-           
-            connectionPoint1.connectedTo = joint;
-            connectionPoint2.connectedTo = joint;
-            joint.connectionA = (connectionPoint1.parent !== undefined) ? connectionPoint1.parent : connectionPoint1;
-            joint.connectionB = (connectionPoint2.parent !== undefined) ? connectionPoint2.parent : connectionPoint2;
-            connectionPoint1.connectable = false;
-            if(connectionPoint1.parent !== undefined){
-                connectionPoint1.parent.connectable = false;
-                connectionPoint1.parent.connectedTo = joint;
-            }
-            connectionPoint2.connectable = false;
-            if(connectionPoint2.parent !== undefined){
-                connectionPoint2.parent.connectable = false;
-                connectionPoint2.parent.connectedTo = joint;
+            
+            
+            
+            
+            
+            if(closestConnector !== null && thisConnector !== null){
+                //Make a new joint, then set up the connections
+//                var connection = new Connection(, closest);
+//                connections.push(connection);
+//                scene.add(connection);
             }
             
-            joint.makeLines();
-            var temp = connectionPoint1.position.clone();
-            selectedObject.localToWorld(temp);
-           //Move the joint:
-            joint.position.copy(temp);
-            
-            joints.push(joint);
-            
-            
-            //selectedObject.userData.targetRotation = closestObject.quaternion.clone();
-            var transform = connectionPoint1.coordinateSystem.clone();
-            transform.multiplyMatrices(selectedObject.matrixWorld, transform);
-            transform.getInverse(transform);
-            var matrix = connectionPoint2.coordinateSystem.clone();
-            matrix.multiplyMatrices(closestObject.matrixWorld, matrix);
-            var t = new THREE.Matrix4().multiplyMatrices(matrix,transform);
-            var objClone = selectedObject.clone();
-            objClone.applyMatrix(t);
-            objClone.updateMatrix();
-            objClone.updateMatrixWorld(true);
-            selectedObject.userData.targetQuaternion = objClone.quaternion;
-            
-            var oldRotation = selectedObject.rotation.clone();
-            selectedObject.quaternion.copy(selectedObject.userData.targetQuaternion);
-            selectedObject.updateMatrix();
-            selectedObject.updateMatrixWorld(true);
-            var cp1Clone = connectionPoint1.position.clone();
-            var cp2Clone = connectionPoint2.position.clone();
-            
-            cp1Clone = selectedObject.localToWorld(cp1Clone);
-            cp2Clone = closestObject.localToWorld(cp2Clone);
-            var displacement = new THREE.Vector3(cp2Clone.x, cp2Clone.y, cp2Clone.z).sub(cp1Clone);
-            displacement = displacement.add(selectedObject.position);
-            selectedObject.userData.targetPosition = displacement;
-            selectedObject.userData.targetObject = closestObject;
-            selectedObject.rotation.copy(oldRotation);
-            selectedObject.updateMatrix();
-            selectedObject.updateMatrixWorld(true);
-            movingObjects[movingObjects.length] = selectedObject;
-            closestObject = null;
+
         }
     }
+    
+//    function onMouseMover(){
+//        if(selectedObject && transformControls.dragging){
+//            //Highlight possible connections
+//        }
+//    }
+
     this.cancelConnectObjects = function(){
         disableControls = false;
         selectObject(selectedObject);
     }
+    
     this.enterSchematicMode = function(){
         //Loop through all objects and push apart
         for(var i = 0; i < objectCollection.length; i++){

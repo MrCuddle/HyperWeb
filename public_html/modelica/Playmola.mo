@@ -25,7 +25,12 @@ package Playmola
     ModelManagement.Structure.AST.ComponentAttributes components[:];
   end Class;
   annotation (
-    uses(Modelica(version="3.2.1"), ModelManagement(version="1.1.4")),
+    uses(Modelica(version="3.2.1"), ModelManagement(version="1.1.3")),
     version="1",
     conversion(noneFromVersion=""));
+  model SimpleRevoluteJoint
+    extends Modelica.Mechanics.MultiBody.Joints.Revolute(phi(start = StartAngle));
+
+    parameter Modelica.SIunits.Angle StartAngle = 0;
+  end SimpleRevoluteJoint;
 end Playmola;
