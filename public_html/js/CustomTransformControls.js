@@ -51,8 +51,7 @@ CustomTransformControls = function(camera, domElement, bounds){
             raycaster.setFromCamera(new THREE.Vector2(( event.clientX / domElement.getBoundingClientRect().width ) * 2 - 1, - ( event.clientY / domElement.getBoundingClientRect().height ) * 2 + 1), camera);
             projPlane = new THREE.Plane().setFromNormalAndCoplanarPoint(lookAt,target.position);
             projPlane.intersectLine(new THREE.Line3(camera.position, camera.position.clone().add(raycaster.ray.direction.clone().multiplyScalar(100.0))),newPos);
-            
-            
+               
         }
     });
     
