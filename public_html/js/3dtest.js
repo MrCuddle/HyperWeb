@@ -442,6 +442,21 @@ function Playmola(){
                     componentParam["fullTypeName"] = dymolaInterface.callDymolaFunction("Dymola_AST_ComponentFullTypeName", params);
                     componentParam["description"] = dymolaInterface.callDymolaFunction("Dymola_AST_ComponentDescription",params);
                     componentParam["changed"] = false;
+                    if(componentParam.name === "length")
+                        componentParam.callback = function(val){
+                            this.length = val;
+                            this.resize();
+                        };
+                    if(componentParam.name === "height")
+                        componentParam.callback = function(val){
+                            this.height = val;
+                            this.resize();
+                        };
+                    if(componentParam.name === "width")
+                        componentParam.callback = function(val){
+                            this.width = val;
+                            this.resize();
+                        };
                     dymBox.parameters.push(componentParam);
                 }
             }
@@ -496,6 +511,18 @@ function Playmola(){
                     componentParam["fullTypeName"] = dymolaInterface.callDymolaFunction("Dymola_AST_ComponentFullTypeName", params);
                     componentParam["description"] = dymolaInterface.callDymolaFunction("Dymola_AST_ComponentDescription",params);
                     componentParam["changed"] = false;
+                    if(componentParam.name === "length")
+                        componentParam.callback = function(val){
+                            this.length = val;
+                            this.resize();
+                        }
+                    if(componentParam.name === "diameter")
+                        componentParam.callback = function(val){
+                            this.diameter = val;
+                            this.resize();
+                        };
+                        
+                        componentParam["callback"] = dymCyl.resize;
                     dymCyl.parameters.push(componentParam);
                 }
             }
@@ -622,10 +649,7 @@ function Playmola(){
             obj2.add(obj);
             obj.traverse(function(currentObj){
                 if(currentObj.userData.isConnector === true){
-
-                    
                     connectors.push(currentObj);
-                    
                 }
             });
             
@@ -735,7 +759,7 @@ function Playmola(){
         //scope.loadParts();
         scope.loadDymolaBox();
         scope.loadRevoluteJoint();
-        //scope.loadDymolaCylinder();
+        scope.loadDymolaCylinder();
         //scope.addPackage("Modelica.Mechanics.MultiBody.Parts", "DymolaParts");
         //scope.addPackage("Modelica.Mechanics.MultiBody.Joints", "Joints");
 
@@ -753,9 +777,6 @@ function Playmola(){
         scope.addClass("Modelica.Mechanics.MultiBody.World", "World");
 //        scope.addClass("Modelica.Mechanics.MultiBody.Joints.Revolute", "Joints");
 //        scope.addClass("Modelica.Mechanics.Rotational.Components.Damper", "Damper");
-
-
-
 
     };
     Palette.prototype.constructor = THREE.Palette;
@@ -1444,45 +1465,45 @@ function Playmola(){
             for(var i = 0; i < selectedObject.parameters.length; i++){
                 generateNewDetailsForm(selectedObject.parameters[i]);
             }
-            if(selectedObject instanceof DymolaBox){
-                $("#idlength").on('input', function(){
-                    var lengthValInForm = $(this).val(); 
-                    if(!isNaN(lengthValInForm)){
-                        selectedObject.length = lengthValInForm;
-                        selectedObject.resize();
-                    }
-            });
-                $("#idwidth").on('input', function(){
-                    var widthValInForm = $(this).val(); 
-                    if(!isNaN(widthValInForm)){
-                        selectedObject.width = widthValInForm;
-                        selectedObject.resize();
-                    }
-            });
-                 $("#idheight").on('input', function(){
-                    var heightValInForm = $(this).val(); 
-                    if(!isNaN(heightValInForm)){
-                        selectedObject.height = heightValInForm;
-                        selectedObject.resize();
-                    }
-            });
-            }
-            else if(selectedObject instanceof DymolaCylinder){
-                $("#idlength").on('input', function(){
-                    var lengthValInForm = $(this).val(); 
-                    if(!isNaN(lengthValInForm)){
-                        selectedObject.length = lengthValInForm;
-                        selectedObject.resize();
-                    }
-            });
-                $("#iddiameter").on('input', function(){
-                    var diameterValInForm = $(this).val(); 
-                    if(!isNaN(diameterValInForm)){
-                        selectedObject.diameter = diameterValInForm;
-                        selectedObject.resize();
-                    }
-            });
-            }
+//            if(selectedObject instanceof DymolaBox){
+//                $("#idlength").on('input', function(){
+//                    var lengthValInForm = $(this).val(); 
+//                    if(!isNaN(lengthValInForm)){
+//                        selectedObject.length = lengthValInForm;
+//                        selectedObject.resize();
+//                    }
+//            });
+//                $("#idwidth").on('input', function(){
+//                    var widthValInForm = $(this).val(); 
+//                    if(!isNaN(widthValInForm)){
+//                        selectedObject.width = widthValInForm;
+//                        selectedObject.resize();
+//                    }
+//            });
+//                 $("#idheight").on('input', function(){
+//                    var heightValInForm = $(this).val(); 
+//                    if(!isNaN(heightValInForm)){
+//                        selectedObject.height = heightValInForm;
+//                        selectedObject.resize();
+//                    }
+//            });
+//            }
+//            else if(selectedObject instanceof DymolaCylinder){
+//                $("#idlength").on('input', function(){
+//                    var lengthValInForm = $(this).val(); 
+//                    if(!isNaN(lengthValInForm)){
+//                        selectedObject.length = lengthValInForm;
+//                        selectedObject.resize();
+//                    }
+//            });
+//                $("#iddiameter").on('input', function(){
+//                    var diameterValInForm = $(this).val(); 
+//                    if(!isNaN(diameterValInForm)){
+//                        selectedObject.diameter = diameterValInForm;
+//                        selectedObject.resize();
+//                    }
+//            });
+//            }
 //            $('#detailsPanel').on('mousedown', function(event){
 //                //event.stopImmediatePropagation();
 //                event.stopPropagation();
@@ -1519,12 +1540,16 @@ function Playmola(){
             $("#"+id).change(function(){
                parameter.currentValue = this.checked; 
                parameter.changed = true;
+               if(parameter.callback !== undefined)
+                   parameter.callback.call(selectedObject, parameter.currentValue);
             });
         }
         else{
             $("#"+id).on('input', function(){
                parameter.currentValue = $(this).val();
                parameter.changed = true;
+               if(parameter.callback !== undefined)
+                   parameter.callback.call(selectedObject, parameter.currentValue);
             });
         }
         $("#detailsPanel").enhanceWithin();

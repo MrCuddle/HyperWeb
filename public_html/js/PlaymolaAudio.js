@@ -10,6 +10,7 @@ function BufferLoader(context, urlList, callback) {
   this.onload = callback;
   this.bufferList = new Array();
   this.loadCount = 0;
+  this.currentTrack;
 }
 
 BufferLoader.prototype.loadBuffer = function(url, index) {
@@ -77,11 +78,17 @@ PlaymolaAudio = function(){
       clickSound.start(0);
   };
   
+  this.stopMusic = function(){
+      self.currentTrack.onended = null;
+      self.currentTrack.stop();
+  };
+  
   this.playTheme = function(){
     var theme = audioCtx.createBufferSource();
     theme.buffer = currentBufferList[1];
     theme.connect(audioCtx.destination);
     theme.start(0);
+    self.currentTrack = theme;
     theme.onended = self.playTheme;
   };
 };
