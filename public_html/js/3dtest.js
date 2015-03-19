@@ -87,16 +87,9 @@ function Playmola(){
         
         connections.forEach(function(conn){
             source += "connect(";
-
-            conn.connectorA.traverseAncestors(function(anc){
-               if(anc instanceof DymolaComponent)
-                   source += anc.name + "." + conn.connectorA.userData.name;
-            });
+            source += conn.connectorA.getParent().name + "." + conn.connectorA.userData.name;
             source += ",";
-            conn.connectorB.traverseAncestors(function(anc){
-               if(anc instanceof DymolaComponent)
-                  source += anc.name + "." + conn.connectorB.userData.name + ");\n";
-            });
+            source += conn.connectorB.getParent().name + "." + conn.connectorB.userData.name + ");\n";
         });
         source += "end TestModel;";
         alert(source);
@@ -876,6 +869,7 @@ function Playmola(){
         this.phi = 1.0;
         this.type = "RevoluteJoint";
         var scope = this;
+        this.animatePhi = null;
         
         this.clone = function(){
             var newRevolute = new RevoluteJoint();
@@ -908,17 +902,18 @@ function Playmola(){
             if(connA === null || connA === undefined || connB === null || connB === undefined){
                 return;
             }
-
             
+            //Animate rotation
+            if(this.animatePhi !== null && this.animatePhi.length > 0){
+                this.phi = this.animatePhi.shift();
+            }
+
+            //Rotate the object connected to frame B
             var q = connA.parent.quaternion.clone();
             q.multiply(connA.quaternion);
             q.multiply(connB.quaternion);
             q.multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,0,1),this.phi));
             connB.getParent().quaternion.copy(q);
-            
-            
-//            connB.getParent().rotation.copy(new THREE.Euler());
-//            connB.getParent().rotateOnAxis(new THREE.Vector3(0,0,1),this.phi);
             connB.getParent().updateMatrixWorld(true);
             
             //Move the object connected to frame B
@@ -931,7 +926,7 @@ function Playmola(){
             
             
             
-            //Rotate the object connected to frame B
+            
             
         }
         
@@ -1091,6 +1086,9 @@ function Playmola(){
 
                     if(dymolaInterface.setClassText("", source)){
                         dymolaInterface.simulateModel("TestModel",0,3,0,0,"Dassl", 0.0001,0.0, "testmodelresults");
+                        joints.forEach(function(j){
+                            var phis = dymolaInterface.interpolateTrajectory("testmodelresults.mat",new Array(j.name + ".phi"),"0:" + 1/60 + ":2");
+                        });
                         
                     }
 
