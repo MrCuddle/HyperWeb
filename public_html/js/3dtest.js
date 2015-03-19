@@ -42,6 +42,8 @@ function Playmola(){
     
     var loader = new THREE.VRMLLoader();
     
+    var audio;
+    
 //Ljudexempel   
 //    var song = document.getElementById("havanaAffair");
 //    song.src = "Audio/07 Havana Affair.mp3";
@@ -1062,6 +1064,8 @@ function Playmola(){
         camera = new THREE.PerspectiveCamera(45,window.innerWidth/window.innerHeight,0.1,1000);
         camera.position.set(3,-2,0);
         
+        audio = new PlaymolaAudio();
+        
         palette = new Palette(renderer.domElement);       
 
 
@@ -1412,6 +1416,7 @@ function Playmola(){
                 var connection = new Connection(draggingFrom, closest);
                 connections.push(connection);
                 scene.add(connection);
+                audio.playClick();
             }
             
             draggingConnection = false;
