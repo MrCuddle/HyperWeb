@@ -54,7 +54,7 @@ function Playmola(){
 //        alert("HEJ");
 //    };
 
-    function generateModelicaCode(){  
+    function generateModelicaCode() { 
         var source = "model TestModel\n";
         objectCollection.forEach(function(obj){
             if(obj.typeName === "Modelica.Mechanics.MultiBody.World")
@@ -94,7 +94,7 @@ function Playmola(){
         source += "end TestModel;";
         //alert(source);
         return source;
-    }
+    };
     
     function Palette(domElement){
         //THREE.Object3D.call(this);
