@@ -42,6 +42,8 @@ function Playmola(){
     
     var loader = new THREE.VRMLLoader();
     
+    var audio;
+    
 //Ljudexempel   
 //    var song = document.getElementById("havanaAffair");
 //    song.src = "Audio/07 Havana Affair.mp3";
@@ -447,6 +449,27 @@ function Playmola(){
                     componentParam["fullTypeName"] = dymolaInterface.callDymolaFunction("Dymola_AST_ComponentFullTypeName", params);
                     componentParam["description"] = dymolaInterface.callDymolaFunction("Dymola_AST_ComponentDescription",params);
                     componentParam["changed"] = false;
+                    if(componentParam.name === "length")
+                        componentParam.callback = function(val){
+                            if(!isNaN(val)){
+                            this.length = val;
+                            this.resize();
+                        }
+                        };
+                    if(componentParam.name === "height")
+                        componentParam.callback = function(val){
+                            if(!isNaN(val)){
+                            this.height = val;
+                            this.resize();
+                        }
+                        };
+                    if(componentParam.name === "width")
+                        componentParam.callback = function(val){
+                            if(!isNaN(val)){
+                            this.width = val;
+                            this.resize();
+                        }
+                        };
                     dymBox.parameters.push(componentParam);
                 }
             }
@@ -501,6 +524,18 @@ function Playmola(){
                     componentParam["fullTypeName"] = dymolaInterface.callDymolaFunction("Dymola_AST_ComponentFullTypeName", params);
                     componentParam["description"] = dymolaInterface.callDymolaFunction("Dymola_AST_ComponentDescription",params);
                     componentParam["changed"] = false;
+                     if(componentParam.name === "length")
+                        componentParam.callback = function(val){
+                            this.length = val;
+                            this.resize();
+                        }
+                    if(componentParam.name === "diameter")
+                        componentParam.callback = function(val){
+                            this.diameter = val;
+                            this.resize();
+                        };
+                        
+                        componentParam["callback"] = dymCyl.resize;
                     dymCyl.parameters.push(componentParam);
                 }
             }
@@ -553,6 +588,11 @@ function Playmola(){
                     componentParam["fullTypeName"] = dymolaInterface.callDymolaFunction("Dymola_AST_ComponentFullTypeName", params);
                     componentParam["description"] = dymolaInterface.callDymolaFunction("Dymola_AST_ComponentDescription",params);
                     componentParam["changed"] = false;
+                    if(componentParam.name === "StartAngle")
+                        componentParam.callback = function(angle){
+                            if(!isNaN(angle))
+                                this.phi = angle;
+                        };
                     obj2.parameters.push(componentParam);
                 }
             }
@@ -1070,7 +1110,9 @@ function Playmola(){
         camera = new THREE.PerspectiveCamera(45,window.innerWidth/window.innerHeight,0.1,1000);
         camera.position.set(3,-2,0);
         
-        palette = new Palette(renderer.domElement);       
+        palette = new Palette(renderer.domElement);   
+        
+        audio = new PlaymolaAudio();
 
 
         $(renderer.domElement).on('mousemove', function(event){
@@ -1420,6 +1462,7 @@ function Playmola(){
                 var connection = new Connection(draggingFrom, closest);
                 connections.push(connection);
                 scene.add(connection);
+                audio.playClick();
             }
             
             draggingConnection = false;
@@ -1447,45 +1490,6 @@ function Playmola(){
             for(var i = 0; i < selectedObject.parameters.length; i++){
                 generateNewDetailsForm(selectedObject.parameters[i]);
             }
-            if(selectedObject instanceof DymolaBox){
-                $("#idlength").on('input', function(){
-                    var lengthValInForm = $(this).val(); 
-                    if(!isNaN(lengthValInForm)){
-                        selectedObject.length = lengthValInForm;
-                        selectedObject.resize();
-                    }
-            });
-                $("#idwidth").on('input', function(){
-                    var widthValInForm = $(this).val(); 
-                    if(!isNaN(widthValInForm)){
-                        selectedObject.width = widthValInForm;
-                        selectedObject.resize();
-                    }
-            });
-                 $("#idheight").on('input', function(){
-                    var heightValInForm = $(this).val(); 
-                    if(!isNaN(heightValInForm)){
-                        selectedObject.height = heightValInForm;
-                        selectedObject.resize();
-                    }
-            });
-            }
-            else if(selectedObject instanceof DymolaCylinder){
-                $("#idlength").on('input', function(){
-                    var lengthValInForm = $(this).val(); 
-                    if(!isNaN(lengthValInForm)){
-                        selectedObject.length = lengthValInForm;
-                        selectedObject.resize();
-                    }
-            });
-                $("#iddiameter").on('input', function(){
-                    var diameterValInForm = $(this).val(); 
-                    if(!isNaN(diameterValInForm)){
-                        selectedObject.diameter = diameterValInForm;
-                        selectedObject.resize();
-                    }
-            });
-            }
             $("#detailsPanel").enhanceWithin();
         }
     }
@@ -1510,12 +1514,16 @@ function Playmola(){
             $("#"+id).change(function(){
                parameter.currentValue = this.checked; 
                parameter.changed = true;
+               if(parameter.callback !== undefined)
+                   parameter.callback.call(selectedObject, parameter.currentValue);
             });
         }
         else{
             $("#"+id).on('input', function(){
                parameter.currentValue = $(this).val();
                parameter.changed = true;
+               if(parameter.callback !== undefined)
+                   parameter.callback.call(selectedObject, parameter.currentValue);
             });
         }
         $("#detailsPanel").enhanceWithin();
