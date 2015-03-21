@@ -31,11 +31,11 @@ function Playmola(){
     var connectionLine = null; //A line representing the connection being dragged
     var connections = []; //An array of connections - consists of a line and data about the connectors involved
        
-   
+    var world = null; //WORLD dymola component
     
     var mousePos;
     var disableControls = false;
-    var schematicMode = false;
+    var schematicMode = true;
     
     var palette; //palette of 3D models to add to the scene
     var dymolaInterface;
@@ -161,8 +161,11 @@ function Playmola(){
                 dragging.name = "Obj" + objCounter;
                 objCounter++;
                 
-                if(dragging.typeName === "Modelica.Mechanics.MultiBody.World") dragging.name = "world";
-                if(dragging.type === "RevoluteJoint") joints.push(dragging);
+                if(dragging.typeName === "Modelica.Mechanics.MultiBody.World") {
+                    world = dragging;
+                    dragging.name = "world";
+                }
+                if(dragging.type === "RevoluteJoint" || dragging.type === "PrismaticJoint") joints.push(dragging);
 
                 dragging.scale.set(dragging.userData.sceneScale,dragging.userData.sceneScale,dragging.userData.sceneScale);
                 raycaster.setFromCamera(new THREE.Vector2(( event.clientX / domElement.getBoundingClientRect().width ) * 2 - 1, - ( event.clientY / domElement.getBoundingClientRect().height ) * 2 + 1), camera);
@@ -452,23 +455,40 @@ function Playmola(){
                     if(componentParam.name === "length")
                         componentParam.callback = function(val){
                             if(!isNaN(val)){
-                            this.length = val;
-                            this.resize();
-                        }
+                                this.length = val;
+                                this.resize();
+                                this.updateFrames();
+                            }
                         };
                     if(componentParam.name === "height")
                         componentParam.callback = function(val){
                             if(!isNaN(val)){
-                            this.height = val;
-                            this.resize();
-                        }
+                                this.height = val;
+                                this.resize();
+                                this.updateFrames();
+                            }
                         };
                     if(componentParam.name === "width")
                         componentParam.callback = function(val){
                             if(!isNaN(val)){
-                            this.width = val;
-                            this.resize();
-                        }
+                                this.width = val;
+                                this.resize();
+                                this.updateFrames();
+                            }
+                        };
+                    if(componentParam.name === "r")
+                        componentParam.callback = function(vector){
+                            var xyz = vector.toString().replace("{","").replace("}","").split(",");
+                            if(xyz.length == 3)
+                                this.r = new THREE.Vector3(parseFloat(xyz[0]),parseFloat(xyz[1]),parseFloat(xyz[2]));
+                            this.updateFrames();
+                        };
+                    if(componentParam.name === "r_shape")
+                        componentParam.callback = function(vector){
+                            var xyz = vector.toString().replace("{","").replace("}","").split(",");
+                            if(xyz.length == 3)
+                                this.r_shape = new THREE.Vector3(parseFloat(xyz[0]),parseFloat(xyz[1]),parseFloat(xyz[2]));
+                            this.updateFrames();
                         };
                     dymBox.parameters.push(componentParam);
                 }
@@ -479,10 +499,12 @@ function Playmola(){
             var connPoint2 = new Connector();
             connPoint2.add(new THREE.Mesh(new THREE.SphereGeometry(0.1,20,20),new THREE.MeshPhongMaterial({color:0xff0000})));
             connPoint1.position.set(-dymBox.length/2,0,0);
+            connPoint1.actualPosition = connPoint1.position.clone();
             connPoint1.userData.name = "frame_a";
             dymBox.add(connPoint1);
             dymBox.connectors.push(connPoint1);
             connPoint2.position.set(dymBox.length/2,0,0);
+            connPoint2.actualPosition = connPoint2.position.clone();
             connPoint2.userData.name = "frame_b";
             dymBox.add(connPoint2);
             dymBox.connectors.push(connPoint2);
@@ -627,6 +649,163 @@ function Playmola(){
             
             scope.add(obj2, "Joints", false, 1, 0.005);
         }
+        
+        this.loadPrismaticJoint = function(){
+            if(categories["Joints"] === undefined){
+                scope.addCategory("Joints");
+            }
+            
+            var exportModelSource = dymolaInterface.exportWebGL("Playmola.SimplePrismaticJoint");
+            var obj = new Function(exportModelSource)();
+            //Remove TextGeometry
+            for(var j = 0; j < obj.children.length; j++){
+                if(obj.children[j].type == 'Mesh' && obj.children[j].geometry.type == 'TextGeometry'){
+                    obj.remove(obj.children[j]);
+                    j--;
+                }
+            }
+            var obj2 = new PrismaticJoint();
+            obj2.typeName = "Playmola.SimplePrismaticJoint";
+            var componentsInClass = dymolaInterface.Dymola_AST_ComponentsInClass("Playmola.SimplePrismaticJoint");
+
+            for(var j = 0; j < componentsInClass.length; j++){
+                var params = [];
+                params.push("Playmola.SimplePrismaticJoint");
+                params.push(componentsInClass[j]);
+                if(dymolaInterface.callDymolaFunction("Dymola_AST_ComponentVariability", params) === "parameter"){
+                    var componentParam = [];
+                    componentParam["name"] = componentsInClass[j];
+                    componentParam["sizes"] = dymolaInterface.callDymolaFunction("Dymola_AST_ComponentSizes",params);
+                    componentParam["fullTypeName"] = dymolaInterface.callDymolaFunction("Dymola_AST_ComponentFullTypeName", params);
+                    componentParam["description"] = dymolaInterface.callDymolaFunction("Dymola_AST_ComponentDescription",params);
+                    componentParam["changed"] = false;
+                    if(componentParam.name === "StartTranslation")
+                        componentParam.callback = function(translation){
+                            if(!isNaN(angle))
+                                this.translation = translation;
+                        };
+                    if(componentParam.name === "AxisOfTranslation")
+                        componentParam.callback = function(vector){
+                            var xyz = vector.toString().replace("{","").replace("}","").split(",");
+                            if(xyz.length == 3)
+                                this.axis = new THREE.Vector3(parseFloat(xyz[0]),parseFloat(xyz[1]),parseFloat(xyz[2]));
+                        };
+                    obj2.parameters.push(componentParam);
+                }
+            }
+            
+            var connectors = [];
+
+            obj2.add(obj);
+            obj.traverse(function(currentObj){
+                if(currentObj.userData.isConnector === true){
+
+                    //Move the connectors to the center of their bounding boxes
+                    connectors.push(currentObj);
+                    
+                }
+            });
+            
+            connectors.forEach(function(currentObj){
+                    var bbh = new THREE.BoundingBoxHelper(currentObj, 0xffffff);
+                    bbh.update();
+
+                    currentObj.children.forEach(function(o){
+                        o.position.sub(bbh.box.center());
+                    });
+
+                    var conn = new Connector();
+                    conn.userData.name = currentObj.userData.name;
+                    conn.position.copy(bbh.box.center().clone());
+                    conn.add(currentObj);
+                    obj.add(conn);
+                    obj2.connectors.push(conn); 
+            });
+            
+            scope.add(obj2, "Joints", false, 1, 0.005);
+        }
+        
+        
+        this.loadFixedRotation = function(){
+            if(categories["FixedRotation"] === undefined){
+                scope.addCategory("FixedRotation");
+            }
+            
+            var exportModelSource = dymolaInterface.exportWebGL("Modelica.Mechanics.MultiBody.Parts.FixedRotation");
+            var obj = new Function(exportModelSource)();
+            //Remove TextGeometry
+            for(var j = 0; j < obj.children.length; j++){
+                if(obj.children[j].type == 'Mesh' && obj.children[j].geometry.type == 'TextGeometry'){
+                    obj.remove(obj.children[j]);
+                    j--;
+                }
+            }
+            var obj2 = new FixedRotation();
+            obj2.typeName = "Modelica.Mechanics.MultiBody.Parts.FixedRotation";
+            var componentsInClass = dymolaInterface.Dymola_AST_ComponentsInClass("Modelica.Mechanics.MultiBody.Parts.FixedRotation");
+
+            for(var j = 0; j < componentsInClass.length; j++){
+                var params = [];
+                params.push("Modelica.Mechanics.MultiBody.Parts.FixedRotation");
+                params.push(componentsInClass[j]);
+                if(dymolaInterface.callDymolaFunction("Dymola_AST_ComponentVariability", params) === "parameter"){
+                    var componentParam = [];
+                    componentParam["name"] = componentsInClass[j];
+                    componentParam["sizes"] = dymolaInterface.callDymolaFunction("Dymola_AST_ComponentSizes",params);
+                    componentParam["fullTypeName"] = dymolaInterface.callDymolaFunction("Dymola_AST_ComponentFullTypeName", params);
+                    componentParam["description"] = dymolaInterface.callDymolaFunction("Dymola_AST_ComponentDescription",params);
+                    componentParam["changed"] = false;
+                    if(componentParam.name === "r")
+                        componentParam.callback = function(vector){
+                            var xyz = vector.toString().replace("{","").replace("}","").split(",");
+                            if(xyz.length == 3)
+                                this.translation = new THREE.Vector3(parseFloat(xyz[0]),parseFloat(xyz[1]),parseFloat(xyz[2]));
+                            this.updateFrames();
+                        };
+                    else if(componentParam.name === "n")
+                        componentParam.callback = function(vector){
+                            var xyz = vector.toString().replace("{","").replace("}","").split(",");
+                            if(xyz.length == 3)
+                                this.rotationAxis = new THREE.Vector3(parseFloat(xyz[0]),parseFloat(xyz[1]),parseFloat(xyz[2]));
+                            this.updateFrames();
+                        };
+                    else if(componentParam.name === "angle")
+                        componentParam.callback = function(angle){
+                            if(!isNaN(angle))
+                                this.rotationAngle = angle;
+                            this.updateFrames();
+                        };
+                    obj2.parameters.push(componentParam);
+                }
+            }
+            
+            var connectors = [];
+
+            obj2.add(obj);
+            obj.traverse(function(currentObj){
+                if(currentObj.userData.isConnector === true){
+                    connectors.push(currentObj);
+                }
+            });
+            
+            connectors.forEach(function(currentObj){
+                    var bbh = new THREE.BoundingBoxHelper(currentObj, 0xffffff);
+                    bbh.update();
+
+                    currentObj.children.forEach(function(o){
+                        o.position.sub(bbh.box.center());
+                    });
+
+                    var conn = new Connector();
+                    conn.userData.name = currentObj.userData.name;
+                    conn.position.copy(bbh.box.center().clone());
+                    conn.add(currentObj);
+                    obj.add(conn);
+                    obj2.connectors.push(conn); 
+            });
+            
+            scope.add(obj2, "FixedRotation", false, 1, 0.005);
+        };
         
         
         this.addClass = function(classname, category){
@@ -780,6 +959,8 @@ function Playmola(){
         //scope.loadParts();
         scope.loadDymolaBox();
         scope.loadRevoluteJoint();
+        scope.loadPrismaticJoint();
+        scope.loadFixedRotation();
         //scope.loadDymolaCylinder();
         //scope.addPackage("Modelica.Mechanics.MultiBody.Parts", "DymolaParts");
         //scope.addPackage("Modelica.Mechanics.MultiBody.Joints", "Joints");
@@ -823,6 +1004,11 @@ function Playmola(){
         this.connectedTo = null;
         this.type = "Connector";
         
+        //Sometimes a connector's visual representation might not be at the 
+        //same position/orientation as its physical representation
+        this.actualPosition = new THREE.Vector3(); 
+        this.actualOrientation = new THREE.Quaternion();
+        
         this.getParent = function(){
             var component = null;
             this.traverseAncestors(function(anc){
@@ -835,6 +1021,8 @@ function Playmola(){
         this.clone = function(){
             var newConn = new Connector();
             THREE.Object3D.prototype.clone.call(this, newConn);
+            newConn.actualPosition = this.actualPosition.clone();
+            newConn.actualOrientation = this.actualOrientation.clone();
             return newConn;
         };
     }
@@ -915,9 +1103,7 @@ function Playmola(){
         this.frameBConnector = null;
         this.phi = 0;
         this.type = "RevoluteJoint";
-        var scope = this;
         this.animatePhi = null;
-        this.animationUpdatedThisFrame = false;
         
         this.clone = function(){
             var newRevolute = new RevoluteJoint();
@@ -939,59 +1125,115 @@ function Playmola(){
             newRevolute.parameters = $.extend(true, [], this.parameters);
             return newRevolute;
             
-        }
+        };
         
         this.enforceConstraint = function(){
-            //Enfore the revolute joint's constraint
-            var connA = this.frameAConnector.connectedTo;
-            var connB = this.frameBConnector.connectedTo;
-            //Check that the joint is connected to two things
-            if(connA === null || connA === undefined || connB === null || connB === undefined){
-                return;
-            }
-            
             //Animate rotation
-            if(this.animatePhi !== null && this.animatePhi.length > 0 && !this.animationUpdatedThisFrame){
+            if(this.animatePhi !== null && this.animatePhi.length > 0){
                 this.phi = this.animatePhi.shift();
-                this.animationUpdatedThisFrame = true;
             }
-
-            //Rotate the object connected to frame B
-            var q = connA.parent.quaternion.clone();
-            q.multiply(connA.quaternion);
-            q.multiply(connB.quaternion);
-            q.multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,0,1),this.phi));
-            connB.getParent().quaternion.copy(q);
-            connB.getParent().updateMatrixWorld(true);
-            
-            //Move the object connected to frame B
-            var connAWorld = connA.position.clone();
-            connA.parent.localToWorld(connAWorld);
-            var connBWorld = connB.position.clone();
-            connB.parent.localToWorld(connBWorld);
-            connB.getParent().position.sub(connBWorld.sub(connAWorld));
-            connB.getParent().updateMatrixWorld(true);
-            
-            
-            
-            
-            
-        }
+            this.frameBConnector.actualOrientation.setFromAxisAngle(new THREE.Vector3(0,0,1),this.phi);
+        };
         
     }
     RevoluteJoint.prototype = Object.create(DymolaComponent.prototype);
     
     
+    function PrismaticJoint(){
+        DymolaComponent.call(this);
+        this.frameAConnector = null;
+        this.frameBConnector = null;
+        this.translation = 0;
+        this.axis = new THREE.Vector3(1,0,0);
+        this.type = "PrismaticJoint";
+        this.animateTranslation = null;
+        
+        this.clone = function(){
+            var newPrismatic = new PrismaticJoint();
+            PrismaticJoint.prototype.clone.call(this, newPrismatic);
+            newPrismatic.typeName = this.typeName;
+            newPrismatic.translation = this.translation;
+            newPrismatic.axis = this.axis.clone();
+            newPrismatic.connectors = [];
+            
+            newPrismatic.traverse(function(currentObj){
+                if(currentObj.type === "Connector"){
+                    newPrismatic.connectors.push(currentObj);
+                    if(currentObj.userData.name === "frame_a")
+                        newPrismatic.frameAConnector = currentObj;
+                    if(currentObj.userData.name === "frame_b")
+                        newPrismatic.frameBConnector = currentObj;
+                }
+            });
+            
+            newPrismatic.parameters = $.extend(true, [], this.parameters);
+            return newPrismatic;
+            
+        };
+        
+        this.enforceConstraint = function(){
+            //Animate translation
+            if(this.animateTranslation !== null && this.animateTranslation.length > 0){
+                this.translation = this.animateTranslation.shift();
+            }
+            this.frameBConnector.actualPosition.copy(this.axis.clone().multiplyScalar(this.translation));
+        };
+        
+    }
+    PrismaticJoint.prototype = Object.create(DymolaComponent.prototype);
+    
+    function FixedRotation(){
+        DymolaComponent.call(this);
+        this.frameAConnector = null;
+        this.frameBConnector = null;
+        this.translation = new THREE.Vector3();
+        this.rotationAxis = new THREE.Vector3(0,0,1);
+        this.rotationAngle = 0;
+        
+        this.clone = function(){
+            var newFixedRotation = new FixedRotation();
+            FixedRotation.prototype.clone.call(this, newFixedRotation);
+            newFixedRotation.typeName = this.typeName;
+            newFixedRotation.translation = this.translation.clone();
+            newFixedRotation.rotationAxis = this.rotationAxis.clone();
+            newFixedRotation.rotationAngle = this.rotationAngle;
+            newFixedRotation.connectors = [];
+            
+            newFixedRotation.traverse(function(currentObj){
+                if(currentObj.type === "Connector"){
+                    newFixedRotation.connectors.push(currentObj);
+                    if(currentObj.userData.name === "frame_a")
+                        newFixedRotation.frameAConnector = currentObj;
+                    if(currentObj.userData.name === "frame_b")
+                        newFixedRotation.frameBConnector = currentObj;
+                }
+            });
+            
+            newFixedRotation.parameters = $.extend(true, [], this.parameters);
+            return newFixedRotation;
+            
+        };
+        
+        this.updateFrames = function(){
+            this.frameBConnector.actualPosition = this.translation.clone();
+            this.frameBConnector.actualOrientation.setFromAxisAngle(this.rotationAxis, THREE.Math.degToRad(this.rotationAngle));
+        };
+    }
+    FixedRotation.prototype = Object.create(DymolaComponent.prototype);
     
     function DymolaBox(length,width,height){
         DymolaComponent.call(this);
         var mesh = new THREE.Mesh(new THREE.BoxGeometry(1,1,1), new THREE.MeshLambertMaterial({color:0x00ff00}));
         this.add(mesh);
         mesh.castShadow = true;
-
+        this.frameAConnector = null;
+        this.frameBConnector = null;
         this.length = length;
         this.width = width;
         this.height = height;
+        this.r = new THREE.Vector3();
+        this.r_shape = new THREE.Vector3();
+                
         var moi = this;
         
         this.clone = function(){
@@ -1003,8 +1245,13 @@ function Playmola(){
             newDymBox.connectors = [];
             
             newDymBox.traverse(function(currentObj){
-                if(currentObj.type === "Connector")
+                if(currentObj.type === "Connector"){
                     newDymBox.connectors.push(currentObj);
+                    if(currentObj.userData.name === "frame_a")
+                        newDymBox.frameAConnector = currentObj;
+                    if(currentObj.userData.name === "frame_b")
+                        newDymBox.frameBConnector = currentObj;
+                }
             });
             
             newDymBox.parameters = $.extend(true, [], this.parameters);
@@ -1014,7 +1261,15 @@ function Playmola(){
         
         this.resize = function(){    
             mesh.scale.set(this.length,this.width,this.height);
+            
         };
+        
+        this.updateFrames = function(){
+            this.frameAConnector.position.set(-this.length/2,0,0).sub(this.r_shape);
+            this.frameAConnector.actualPosition = this.frameAConnector.position.clone();
+            this.frameBConnector.position.copy(this.frameAConnector.position).add(this.r);
+            this.frameBConnector.actualPosition = this.frameBConnector.position.clone();
+        }
         
         this.resize();
     };
@@ -1141,8 +1396,13 @@ function Playmola(){
                             var times = [];
                             for(var i = 0; i <= 5; i+=1/60)
                                 times.push(i);
-                            var phis = dymolaInterface.interpolateTrajectory("testmodelresults.mat",new Array(j.name + ".phi"),times);
-                            j.animatePhi = phis[0];
+                            if(j.type === "RevoluteJoint"){
+                                var phis = dymolaInterface.interpolateTrajectory("testmodelresults.mat",new Array(j.name + ".phi"),times);
+                                j.animatePhi = phis[0];
+                            } else if (j.type === "PrismaticJoint"){
+                                var translations = dymolaInterface.interpolateTrajectory("testmodelresults.mat",new Array(j.name + ".s"),times);
+                                j.animateTranslation = translations[0];
+                            }
                         });
                         
                     }
@@ -1625,20 +1885,20 @@ function Playmola(){
     
     this.enterSchematicMode = function(){
         //Loop through all objects and push apart
-        for(var i = 0; i < objectCollection.length; i++){
-            if(objectCollection[i].group === undefined){
-                //Do nothing, since this isn't a group
-            } else {
-                //This is a group, move objects apart along the axes of their connection points
-                //Start with one object and traverse connections:
-                schematicPushApart(objectCollection[i].children[0], null, new THREE.Vector3(0,0,0));
-            }
-        }
+//        for(var i = 0; i < objectCollection.length; i++){
+//            if(objectCollection[i].group === undefined){
+//                //Do nothing, since this isn't a group
+//            } else {
+//                //This is a group, move objects apart along the axes of their connection points
+//                //Start with one object and traverse connections:
+//                schematicPushApart(objectCollection[i].children[0], null, new THREE.Vector3(0,0,0));
+//            }
+//        }
         
 //        for(var i = 0; i < joints.length; i++){
 //            joints[i].visible = true;
 //        }
-        
+        schematicMode = true;
         
     }
     
@@ -1693,21 +1953,23 @@ function Playmola(){
     
     this.exitSchematicMode = function(){
         //Loop through all objects and return to their original positions
-        for(var i = 0; i < objectCollection.length; i++){
-            if(objectCollection[i].group === undefined){
-                //Do nothing, since this isn't a group
-            } else {
-                //Return the group's children to their original positions
-                for(var j = 0; j < objectCollection[i].children.length; j++){
-                    objectCollection[i].children[j].userData.targetPosition = objectCollection[i].children[j].userData.oldPosition.clone();
-                    movingObjects.push(objectCollection[i].children[j]);
-                }
-                for(var j = 0; j < joints.length; j++){
-                    joints[j].userData.targetPosition = joints[j].userData.oldPosition.clone();
-                    movingObjects.push(joints[j]);
-                }
-            }
-        }
+//        for(var i = 0; i < objectCollection.length; i++){
+//            if(objectCollection[i].group === undefined){
+//                //Do nothing, since this isn't a group
+//            } else {
+//                //Return the group's children to their original positions
+//                for(var j = 0; j < objectCollection[i].children.length; j++){
+//                    objectCollection[i].children[j].userData.targetPosition = objectCollection[i].children[j].userData.oldPosition.clone();
+//                    movingObjects.push(objectCollection[i].children[j]);
+//                }
+//                for(var j = 0; j < joints.length; j++){
+//                    joints[j].userData.targetPosition = joints[j].userData.oldPosition.clone();
+//                    movingObjects.push(joints[j]);
+//                }
+//            }
+//        }
+
+        schematicMode = false;
     };
     function logic() {
         //moveObjects();
@@ -1718,11 +1980,22 @@ function Playmola(){
         transformControls.update();
         palette.update();
         
-        for(var i = 0; i < joints.length; i++){
+        
+        if(!schematicMode){
             joints.forEach(function(j){
                j.enforceConstraint(); 
-               if (i == joints.length -1) j.animationUpdatedThisFrame = false;
+               //j.animationUpdatedThisFrame = false;
             });
+            
+            //Enforce CONNECTION constraints here:
+            if(world != null){
+                world.connectors.forEach(function(c){
+                    resolveConnection(c);
+                });
+            }
+
+
+            
         }
         
         connections.forEach(function(c){
@@ -1731,6 +2004,32 @@ function Playmola(){
         
         requestAnimationFrame(render);
     }
+    
+    function resolveConnection(c){
+        if(c.userData.name == "frame_b" && c.connectedTo !== null && c.connectedTo !== undefined && c.connectedTo.userData.name == "frame_a"){
+
+            //Rotate the object connected to frame B
+            var q = c.getParent().quaternion.clone();
+            q.multiply(c.actualOrientation);
+            q.multiply(c.connectedTo.actualOrientation);
+            c.connectedTo.getParent().quaternion.copy(q);
+            c.connectedTo.getParent().updateMatrixWorld(true);
+            
+            //Move the object connected to frame B
+            var connAWorld = c.actualPosition.clone().multiplyScalar(1/c.getParent().scale.x); //FIX SCALE HERE!
+            c.parent.localToWorld(connAWorld);
+            var connBWorld = c.connectedTo.actualPosition.clone().multiplyScalar(1/c.connectedTo.getParent().scale.x);
+            c.connectedTo.parent.localToWorld(connBWorld);
+            c.connectedTo.getParent().position.sub(connBWorld.sub(connAWorld));
+            c.connectedTo.getParent().updateMatrixWorld(true);
+            
+            c.connectedTo.getParent().connectors.forEach(function(c_){
+                if(c_ !== c.connectedTo)
+                    resolveConnection(c_);
+            });
+        }
+    }
+    
     function render(){
         renderer.clear();
         renderer.render(scene,camera);

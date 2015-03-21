@@ -34,7 +34,7 @@
         });
         
        
-       var schematicMode = false;
+       var schematicMode = true;
        $('#button_schematic_mode').on('click', function(){
             if(schematicMode === false){
                 playmola.enterSchematicMode();
@@ -43,7 +43,7 @@
             }
             else {
                 playmola.exitSchematicMode();
-                $('#button_schematic_mode').html('Schematic Mode');
+                $('#button_schematic_mode').html('Exploded view');
                 schematicMode = false;
             }
        });

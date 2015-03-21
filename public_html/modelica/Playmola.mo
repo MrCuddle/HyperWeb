@@ -24,13 +24,21 @@ package Playmola
     String fullPathName;
     ModelManagement.Structure.AST.ComponentAttributes components[:];
   end Class;
-  annotation (
-    uses(Modelica(version="3.2.1"), ModelManagement(version="1.1.3")),
-    version="1",
-    conversion(noneFromVersion=""));
+
   model SimpleRevoluteJoint
     extends Modelica.Mechanics.MultiBody.Joints.Revolute(phi(start = StartAngle));
 
     parameter Modelica.SIunits.Angle StartAngle = 0;
   end SimpleRevoluteJoint;
+  annotation (
+    uses(Modelica(version="3.2.1"), ModelManagement(version="1.1.3")),
+    version="1",
+    conversion(noneFromVersion=""));
+  model SimplePrismaticJoint
+    extends Modelica.Mechanics.MultiBody.Joints.Prismatic(s(start = StartTranslation), n=AxisOfTranslation);
+
+    parameter Modelica.SIunits.Position StartTranslation = 0;
+    parameter Modelica.Mechanics.MultiBody.Types.Axis AxisOfTranslation = {1,0,0};
+
+  end SimplePrismaticJoint;
 end Playmola;
