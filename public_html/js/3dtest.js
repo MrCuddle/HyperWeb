@@ -165,7 +165,7 @@ function Playmola(){
                     world = dragging;
                     dragging.name = "world";
                 }
-                if(dragging.type === "RevoluteJoint" || dragging.type === "PrismaticJoint") joints.push(dragging);
+                if(dragging.type === "RevoluteJoint" || dragging.type === "PrismaticJoint" || dragging.type === "RollingWheelJoint") joints.push(dragging);
 
                 dragging.scale.set(dragging.userData.sceneScale,dragging.userData.sceneScale,dragging.userData.sceneScale);
                 raycaster.setFromCamera(new THREE.Vector2(( event.clientX / domElement.getBoundingClientRect().width ) * 2 - 1, - ( event.clientY / domElement.getBoundingClientRect().height ) * 2 + 1), camera);
@@ -725,6 +725,75 @@ function Playmola(){
             scope.add(obj2, "Joints", false, 1, 0.005);
         }
         
+        this.loadRollingWheelJoint = function(){
+            if(categories["Joints"] === undefined){
+                scope.addCategory("Joints");
+            }
+            
+            var exportModelSource = dymolaInterface.exportWebGL("VisualMultiBody.Joints.RollingWheel");
+            var obj = new Function(exportModelSource)();
+            //Remove TextGeometry
+            for(var j = 0; j < obj.children.length; j++){
+                if(obj.children[j].type == 'Mesh' && obj.children[j].geometry.type == 'TextGeometry'){
+                    obj.remove(obj.children[j]);
+                    j--;
+                }
+            }
+            var obj2 = new RollingWheelJoint();
+            obj2.typeName = "VisualMultiBody.Joints.RollingWheel";
+            var componentsInClass = dymolaInterface.Dymola_AST_ComponentsInClass("VisualMultiBody.Joints.RollingWheel");
+
+            for(var j = 0; j < componentsInClass.length; j++){
+                var params = [];
+                params.push("VisualMultiBody.Joints.RollingWheel");
+                params.push(componentsInClass[j]);
+                if(dymolaInterface.callDymolaFunction("Dymola_AST_ComponentVariability", params) === "parameter"){
+                    var componentParam = [];
+                    componentParam["name"] = componentsInClass[j];
+                    componentParam["sizes"] = dymolaInterface.callDymolaFunction("Dymola_AST_ComponentSizes",params);
+                    componentParam["fullTypeName"] = dymolaInterface.callDymolaFunction("Dymola_AST_ComponentFullTypeName", params);
+                    componentParam["description"] = dymolaInterface.callDymolaFunction("Dymola_AST_ComponentDescription",params);
+                    componentParam["changed"] = false;
+                    if(componentParam.name === "radius")
+                        componentParam.callback = function(radius){
+                            if(!isNaN(radius))
+                                this.radius = radius;
+                        };
+                    
+                    obj2.parameters.push(componentParam);
+                }
+            }
+            
+            var connectors = [];
+
+            obj2.add(obj);
+            obj.traverse(function(currentObj){
+                if(currentObj.userData.isConnector === true){
+
+                    //Move the connectors to the center of their bounding boxes
+                    connectors.push(currentObj);
+                    
+                }
+            });
+            
+            connectors.forEach(function(currentObj){
+                    var bbh = new THREE.BoundingBoxHelper(currentObj, 0xffffff);
+                    bbh.update();
+
+                    currentObj.children.forEach(function(o){
+                        o.position.sub(bbh.box.center());
+                    });
+
+                    var conn = new Connector();
+                    conn.userData.name = currentObj.userData.name;
+                    conn.position.copy(bbh.box.center().clone());
+                    conn.add(currentObj);
+                    obj.add(conn);
+                    obj2.connectors.push(conn); 
+            });
+            
+            scope.add(obj2, "Joints", false, 1, 0.005);
+        }
         
         this.loadFixedRotation = function(){
             if(categories["FixedRotation"] === undefined){
@@ -960,6 +1029,7 @@ function Playmola(){
         scope.loadDymolaBox();
         scope.loadRevoluteJoint();
         scope.loadPrismaticJoint();
+        scope.loadRollingWheelJoint();
         scope.loadFixedRotation();
         //scope.loadDymolaCylinder();
         //scope.addPackage("Modelica.Mechanics.MultiBody.Parts", "DymolaParts");
@@ -971,7 +1041,7 @@ function Playmola(){
         //scope.addClass("Modelica.Mechanics.Rotational.Components.Damper", "Damper");
 
         //scope.loadDymolaCylinder();
-        scope.addPackage("Modelica.Mechanics.MultiBody.Parts", "DymolaParts");
+        //scope.addPackage("Modelica.Mechanics.MultiBody.Parts", "DymolaParts");
         //scope.addPackage("Modelica.Mechanics.Rotational.Components", "RotComponents");
         //scope.addPackage("Modelica.Mechanics.MultiBody.Joints", "Joints");
         
@@ -1181,6 +1251,56 @@ function Playmola(){
         
     }
     PrismaticJoint.prototype = Object.create(DymolaComponent.prototype);
+    
+    function RollingWheelJoint(){
+        DymolaComponent.call(this);
+        this.frameAConnector = null;
+        this.frameBConnector = null;
+        this.translation = 0;
+        this.phi = 0;
+        this.radius = 0;
+        this.type = "RollingWheelJoint";
+        this.animateTranslation = null;
+        this.animatePhi = null;
+        
+        this.clone = function(){
+            var newRollingWheel = new RollingWheelJoint();
+            RollingWheelJoint.prototype.clone.call(this, newRollingWheel);
+            newRollingWheel.typeName = this.typeName;
+            newRollingWheel.translation = this.translation;
+            newRollingWheel.phi = this.phi;
+            newRollingWheel.connectors = [];
+            
+            newRollingWheel.traverse(function(currentObj){
+                if(currentObj.type === "Connector"){
+                    newRollingWheel.connectors.push(currentObj);
+                    if(currentObj.userData.name === "frame_a")
+                        newRollingWheel.frameAConnector = currentObj;
+                    if(currentObj.userData.name === "frame_b")
+                        newRollingWheel.frameBConnector = currentObj;
+                }
+            });
+            
+            newRollingWheel.parameters = $.extend(true, [], this.parameters);
+            return newRollingWheel;
+            
+        };
+        
+        this.enforceConstraint = function(){
+            //Animate translation
+            if(this.animateTranslation !== null && this.animateTranslation.length > 0){
+                this.translation = this.animateTranslation.shift();
+            }
+            //Animate rotation
+            if(this.animatePhi !== null && this.animatePhi.length > 0){
+                this.phi = this.animatePhi.shift();
+            }
+            this.frameBConnector.actualOrientation.setFromAxisAngle(new THREE.Vector3(0,0,1),this.phi);
+            this.frameBConnector.actualPosition.set(this.translation,this.radius,0);
+        };
+        
+    }
+    RollingWheelJoint.prototype = Object.create(DymolaComponent.prototype);
     
     function FixedRotation(){
         DymolaComponent.call(this);
@@ -1399,9 +1519,16 @@ function Playmola(){
                             if(j.type === "RevoluteJoint"){
                                 var phis = dymolaInterface.interpolateTrajectory("testmodelresults.mat",new Array(j.name + ".phi"),times);
                                 j.animatePhi = phis[0];
-                            } else if (j.type === "PrismaticJoint"){
+                            } 
+                            else if (j.type === "PrismaticJoint"){
                                 var translations = dymolaInterface.interpolateTrajectory("testmodelresults.mat",new Array(j.name + ".s"),times);
                                 j.animateTranslation = translations[0];
+                            }
+                            else if (j.type === "RollingWheelJoint"){
+                                var translations = dymolaInterface.interpolateTrajectory("testmodelresults.mat",new Array(j.name + ".prismatic.s"),times);
+                                j.animateTranslation = translations[0];
+                                var phis = dymolaInterface.interpolateTrajectory("testmodelresults.mat",new Array(j.name + ".revolute.phi"),times);
+                                j.animatePhi = phis[0];
                             }
                         });
                         
