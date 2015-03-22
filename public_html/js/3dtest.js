@@ -171,7 +171,10 @@ function Playmola(){
                 raycaster.setFromCamera(new THREE.Vector2(( event.clientX / domElement.getBoundingClientRect().width ) * 2 - 1, - ( event.clientY / domElement.getBoundingClientRect().height ) * 2 + 1), camera);
                 var projPlane = new THREE.Plane().setFromNormalAndCoplanarPoint(new THREE.Vector3(0,0, -1).applyQuaternion(camera.quaternion),new THREE.Vector3());
                 projPlane.intersectLine(new THREE.Line3(camera.position, camera.position.clone().add(raycaster.ray.direction.clone().multiplyScalar(100.0))),dragging.position);
+                
+                
                 dragging.children[0].position.add(dragging.userData.centerOffset);               
+                
                 dragging = null;
             }
         });
@@ -490,6 +493,14 @@ function Playmola(){
                                 this.r_shape = new THREE.Vector3(parseFloat(xyz[0]),parseFloat(xyz[1]),parseFloat(xyz[2]));
                             this.updateFrames();
                         };
+                    if(componentParam.name === "lengthDirection")
+                        componentParam.callback = function(vector){
+                            var xyz = vector.toString().replace("{","").replace("}","").split(",");
+                            if(xyz.length == 3)
+                                this.lengthDirection = new THREE.Vector3(parseFloat(xyz[0]),parseFloat(xyz[1]),parseFloat(xyz[2]));
+                            this.resize();
+                            this.updateFrames();
+                        };
                     dymBox.parameters.push(componentParam);
                 }
             }
@@ -498,12 +509,12 @@ function Playmola(){
             connPoint1.add(new THREE.Mesh(new THREE.SphereGeometry(0.1,20,20),new THREE.MeshPhongMaterial({color:0xff0000})));
             var connPoint2 = new Connector();
             connPoint2.add(new THREE.Mesh(new THREE.SphereGeometry(0.1,20,20),new THREE.MeshPhongMaterial({color:0xff0000})));
-            connPoint1.position.set(-dymBox.length/2,0,0);
+            connPoint1.position.set(0,0,0);
             connPoint1.actualPosition = connPoint1.position.clone();
             connPoint1.userData.name = "frame_a";
             dymBox.add(connPoint1);
             dymBox.connectors.push(connPoint1);
-            connPoint2.position.set(dymBox.length/2,0,0);
+            connPoint2.position.set(dymBox.length,0,0);
             connPoint2.actualPosition = connPoint2.position.clone();
             connPoint2.userData.name = "frame_b";
             dymBox.add(connPoint2);
@@ -614,6 +625,12 @@ function Playmola(){
                         componentParam.callback = function(angle){
                             if(!isNaN(angle))
                                 this.phi = angle;
+                        };
+                    if(componentParam.name === "AxisOfRotation")
+                        componentParam.callback = function(vector){
+                            var xyz = vector.toString().replace("{","").replace("}","").split(",");
+                            if(xyz.length == 3)
+                                this.axis = new THREE.Vector3(parseFloat(xyz[0]),parseFloat(xyz[1]),parseFloat(xyz[2]));
                         };
                     obj2.parameters.push(componentParam);
                 }
@@ -1172,6 +1189,7 @@ function Playmola(){
         this.frameAConnector = null;
         this.frameBConnector = null;
         this.phi = 0;
+        this.axis = new THREE.Vector3(1,0,0);
         this.type = "RevoluteJoint";
         this.animatePhi = null;
         
@@ -1180,6 +1198,7 @@ function Playmola(){
             RevoluteJoint.prototype.clone.call(this, newRevolute);
             newRevolute.typeName = this.typeName;
             newRevolute.phi = this.phi;
+            newRevolute.axis = this.axis.clone();
             newRevolute.connectors = [];
             
             newRevolute.traverse(function(currentObj){
@@ -1202,7 +1221,7 @@ function Playmola(){
             if(this.animatePhi !== null && this.animatePhi.length > 0){
                 this.phi = this.animatePhi.shift();
             }
-            this.frameBConnector.actualOrientation.setFromAxisAngle(new THREE.Vector3(0,0,1),this.phi);
+            this.frameBConnector.actualOrientation.setFromAxisAngle(this.axis,this.phi);
         };
         
     }
@@ -1343,15 +1362,19 @@ function Playmola(){
     
     function DymolaBox(length,width,height){
         DymolaComponent.call(this);
-        var mesh = new THREE.Mesh(new THREE.BoxGeometry(1,1,1), new THREE.MeshLambertMaterial({color:0x00ff00}));
-        this.add(mesh);
-        mesh.castShadow = true;
+        var centeredMesh = new THREE.Mesh(new THREE.BoxGeometry(1,1,1), new THREE.MeshLambertMaterial({color:0x00ff00}));
+        this.mesh = new THREE.Object3D();
+        this.mesh.add(centeredMesh);
+        centeredMesh.position.set(0.5,0,0);
+        this.add(this.mesh);
+        centeredMesh.castShadow = true;
         this.frameAConnector = null;
         this.frameBConnector = null;
         this.length = length;
         this.width = width;
         this.height = height;
-        this.r = new THREE.Vector3();
+        this.lengthDirection = new THREE.Vector3(1,0,0);
+        this.r = new THREE.Vector3(this.length,0,0);
         this.r_shape = new THREE.Vector3();
                 
         var moi = this;
@@ -1359,9 +1382,10 @@ function Playmola(){
         this.clone = function(){
             var newDymBox = new DymolaBox(this.length,this.width,this.height);
             DymolaBox.prototype.clone.call(moi, newDymBox);
-            newDymBox.remove(newDymBox.children[1]);
+            newDymBox.remove(newDymBox.children[0]);
             newDymBox.typeName = this.typeName;
-            
+            newDymBox.lengthDirection = this.lengthDirection.clone();
+            newDymBox.mesh = newDymBox.children[0];
             newDymBox.connectors = [];
             
             newDymBox.traverse(function(currentObj){
@@ -1380,12 +1404,13 @@ function Playmola(){
         };
         
         this.resize = function(){    
-            mesh.scale.set(this.length,this.width,this.height);
+            this.mesh.scale.set(this.length,this.width,this.height);
+            this.mesh.quaternion.setFromUnitVectors(new THREE.Vector3(1,0,0),this.lengthDirection);
             
         };
         
         this.updateFrames = function(){
-            this.frameAConnector.position.set(-this.length/2,0,0).sub(this.r_shape);
+            this.frameAConnector.position.set(0,0,0).sub(this.r_shape);
             this.frameAConnector.actualPosition = this.frameAConnector.position.clone();
             this.frameBConnector.position.copy(this.frameAConnector.position).add(this.r);
             this.frameBConnector.actualPosition = this.frameBConnector.position.clone();

@@ -26,14 +26,12 @@ package Playmola
   end Class;
 
   model SimpleRevoluteJoint
-    extends Modelica.Mechanics.MultiBody.Joints.Revolute(phi(start = StartAngle));
+    extends Modelica.Mechanics.MultiBody.Joints.Revolute(phi(start = StartAngle), n = AxisOfRotation);
 
     parameter Modelica.SIunits.Angle StartAngle = 0;
+    parameter Modelica.Mechanics.MultiBody.Types.Axis AxisOfRotation = {0,0,1};
   end SimpleRevoluteJoint;
-  annotation (
-    uses(Modelica(version="3.2.1"), ModelManagement(version="1.1.3")),
-    version="1",
-    conversion(noneFromVersion=""));
+
   model SimplePrismaticJoint
     extends Modelica.Mechanics.MultiBody.Joints.Prismatic(s(start = StartTranslation), n=AxisOfTranslation);
 
@@ -41,4 +39,8 @@ package Playmola
     parameter Modelica.Mechanics.MultiBody.Types.Axis AxisOfTranslation = {1,0,0};
 
   end SimplePrismaticJoint;
+  annotation (
+    uses(Modelica(version="3.2.1"), ModelManagement(version="1.1.3")),
+    version="1",
+    conversion(noneFromVersion=""));
 end Playmola;
