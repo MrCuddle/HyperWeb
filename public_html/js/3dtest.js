@@ -1046,8 +1046,9 @@ function Playmola(){
         scope.loadDymolaBox();
         scope.loadRevoluteJoint();
         scope.loadPrismaticJoint();
-        scope.loadRollingWheelJoint();
+//        scope.loadRollingWheelJoint();
         scope.loadFixedRotation();
+        scope.addClass("Modelica.Mechanics.MultiBody.World", "World");
         //scope.loadDymolaCylinder();
         //scope.addPackage("Modelica.Mechanics.MultiBody.Parts", "DymolaParts");
         //scope.addPackage("Modelica.Mechanics.MultiBody.Joints", "Joints");
@@ -1063,7 +1064,7 @@ function Playmola(){
         //scope.addPackage("Modelica.Mechanics.MultiBody.Joints", "Joints");
         
         
-        scope.addClass("Modelica.Mechanics.MultiBody.World", "World");
+        
 //        scope.addClass("Modelica.Mechanics.MultiBody.Joints.Revolute", "Joints");
 //        scope.addClass("Modelica.Mechanics.Rotational.Components.Damper", "Damper");
 
@@ -1508,7 +1509,7 @@ function Playmola(){
         document.querySelector("#container").appendChild(renderer.domElement);
 
         camera = new THREE.PerspectiveCamera(45,window.innerWidth/window.innerHeight,0.1,1000);
-        camera.position.set(3,-2,0);
+        camera.position.set(0,0.25,4);
         
         palette = new Palette(renderer.domElement);   
         
@@ -1649,7 +1650,7 @@ function Playmola(){
         window.addEventListener('resize', onWindowResize, false);
         
 
-        cameraControls = new CustomCameraControls(camera, renderer.domElement, new THREE.Box3(new THREE.Vector3(-5,-2.5,-5), new THREE.Vector3(5,2.5,5)), new THREE.Vector3(0,-1,0));
+        cameraControls = new CustomCameraControls(camera, renderer.domElement, new THREE.Box3(new THREE.Vector3(-5,-2.5,-5), new THREE.Vector3(5,2.5,5)), new THREE.Vector3(0,0,0));
         loadDymolaComponent(revoluteJoint);
 //        loadDymolaComponent(prismaticJoint);
 //        loadDymolaComponent(cylindricalJoint);
@@ -1662,11 +1663,20 @@ function Playmola(){
         room.receiveShadow = true;
         room.castShadow = false;
         scene.add(room);
-        var desk = new THREE.Mesh(new THREE.BoxGeometry(1.5,0.5,0.75), new THREE.MeshLambertMaterial({color: 0xccaa22 }));
-        desk.position.set(0,-2.25,0);
-        desk.castShadow = true;
-        desk.receiveShadow = true;
-        scene.add(desk);
+//        var desk = new THREE.Mesh(new THREE.BoxGeometry(1.5,0.5,0.75), new THREE.MeshLambertMaterial({color: 0xccaa22 }));
+//        desk.position.set(0,-2.25,0);
+//        desk.castShadow = true;
+//        desk.receiveShadow = true;
+//        scene.add(desk);
+        
+        var jsonloader = new THREE.JSONLoader();
+        jsonloader.load("models/desk.json", function(geometry,mat){
+            var desk = new THREE.Mesh(geometry, mat[0]);
+            desk.position.set(0,-1.05,0);
+            desk.castShadow = true;
+            desk.receiveShadow = true;
+            scene.add(desk);
+        }, "models/");
         
 
         var pointlight = new THREE.PointLight(0xffffff, 1, 100);
