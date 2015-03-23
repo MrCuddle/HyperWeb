@@ -328,7 +328,52 @@ function Playmola(){
            
             //bounds.min.set(tileSpacing,tileSpacing);
             if(category === selectedCategory) bounds.max.set((len < 3 ? len :tilesX)*(tileSpacing + tileWidth) + bounds.min.x, Math.ceil((len)/tilesX) * (tileSpacing + tileHeight) + bounds.min.y);
+            
+            return obj;
         };
+        
+        var cloneAndScaleComponent = function(c){
+            
+            var component = c.clone();
+                    
+            //Materials are not cloned, so do it manually here...
+            component.traverse(function(o){
+                if(o.material !== undefined) o.material = o.material.clone();
+            });
+
+            component.rotation.set(0,0,0);
+                
+            objectCollection.push(component);
+            scene.add(component);
+            component.name = "Obj" + objCounter;
+            objCounter++;
+
+            if(component.typeName === "Modelica.Mechanics.MultiBody.World") {
+                world = component;
+                component.name = "world";
+            }
+            if(component.type === "RevoluteJoint" || component.type === "PrismaticJoint" || component.type === "RollingWheelJoint") joints.push(component);
+
+            component.scale.set(component.userData.sceneScale,component.userData.sceneScale,component.userData.sceneScale);
+
+
+            component.children[0].position.add(dragging.userData.centerOffset);
+            
+            return component;
+
+        }
+        
+        this.makeComponent = function(category, className){
+            if(categories[category] === undefined)
+                return null;
+            
+            categories[category].forEach(function(c){
+                if(c.name == className){
+                    return cloneAndScaleComponent(c);
+                }
+            });
+        };
+
         
         this.selectCategory = function(category){
             if(hoverTileX !== -1){
@@ -631,6 +676,7 @@ function Playmola(){
                             var xyz = vector.toString().replace("{","").replace("}","").split(",");
                             if(xyz.length == 3)
                                 this.axis = new THREE.Vector3(parseFloat(xyz[0]),parseFloat(xyz[1]),parseFloat(xyz[2]));
+                            this.align();
                         };
                     obj2.parameters.push(componentParam);
                 }
@@ -706,6 +752,7 @@ function Playmola(){
                             var xyz = vector.toString().replace("{","").replace("}","").split(",");
                             if(xyz.length == 3)
                                 this.axis = new THREE.Vector3(parseFloat(xyz[0]),parseFloat(xyz[1]),parseFloat(xyz[2]));
+                            this.align();
                         };
                     obj2.parameters.push(componentParam);
                 }
@@ -1190,7 +1237,7 @@ function Playmola(){
         this.frameAConnector = null;
         this.frameBConnector = null;
         this.phi = 0;
-        this.axis = new THREE.Vector3(1,0,0);
+        this.axis = new THREE.Vector3(0,0,1);
         this.type = "RevoluteJoint";
         this.animatePhi = null;
         
@@ -1213,8 +1260,13 @@ function Playmola(){
             });
             
             newRevolute.parameters = $.extend(true, [], this.parameters);
+            newRevolute.align();
             return newRevolute;
             
+        };
+        
+        this.align = function(){
+            this.children[0].quaternion.setFromUnitVectors(new THREE.Vector3(1,0,0), this.axis);
         };
         
         this.enforceConstraint = function(){
@@ -1257,8 +1309,13 @@ function Playmola(){
             });
             
             newPrismatic.parameters = $.extend(true, [], this.parameters);
+            newPrismatic.align();
             return newPrismatic;
             
+        };
+        
+        this.align = function(){
+            this.children[0].quaternion.setFromUnitVectors(new THREE.Vector3(1,0,0), this.axis);
         };
         
         this.enforceConstraint = function(){
@@ -1305,6 +1362,8 @@ function Playmola(){
             return newRollingWheel;
             
         };
+        
+        
         
         this.enforceConstraint = function(){
             //Animate translation
@@ -2017,12 +2076,7 @@ function Playmola(){
                 }
             });
             
-            
-            
-            
-            
-            
-            
+
             if(closestConnector !== null && thisConnector !== null){
                 //Make a new joint, then set up the connections
 //                var connection = new Connection(, closest);
