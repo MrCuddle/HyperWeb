@@ -1032,6 +1032,7 @@ function Playmola(){
                     componentParam["fullTypeName"] = classToLoad.components[j].fullTypeName;
                     componentParam["description"] = classToLoad.components[j].description;
                     componentParam["changed"] = false;
+                    componentParam.currentValue = classToLoad.components[j].defaultvalue;
                     obj2.parameters.push(componentParam);
                 }
             }
@@ -1072,8 +1073,23 @@ function Playmola(){
             params.push(package);
             var classes = dymolaInterface.callDymolaFunction("Playmola.GetComponents", params);
             for(var i = 0; i < classes.length; i++){
-                if(classes[i].components.length > 0)
+                if(classes[i].components.length > 0){
+                    for(var j = 0; j < classes[i].components.length; j++){
+                        if(classes[i].defaultValues[j].indexOf("start=") < 0){
+                            var indexOfEquals = classes[i].defaultValues[j].indexOf('=');
+                            var indexOfSemicolon = classes[i].defaultValues[j].indexOf(';', indexOfEquals);
+                            var defaultValue = classes[i].defaultValues[j].substring(indexOfEquals+1, indexOfSemicolon);
+                            classes[i].components[j].defaultvalue = defaultValue;
+                        }
+                        else{
+                            var indexOfEquals = classes[i].defaultValues[j].indexOf('=');
+                            var indexOfSemicolon = classes[i].defaultValues[j].indexOf(')', indexOfEquals);
+                            var defaultValue = classes[i].defaultValues[j].substring(indexOfEquals+1, indexOfSemicolon);
+                            classes[i].components[j].defaultvalue = defaultValue;
+                        }
+                    }
                     scope.addPreloadedClass(classes[i], category);
+                }
             }
             
             
@@ -1090,13 +1106,14 @@ function Playmola(){
 
 
         //scope.loadParts();
-        scope.loadDymolaBox();
-        scope.loadRevoluteJoint();
-        scope.loadPrismaticJoint();
-//        scope.loadRollingWheelJoint();
-        scope.loadFixedRotation();
-        scope.addClass("Modelica.Mechanics.MultiBody.World", "World");
-        scope.addPackage("Playmola.UserComponents", "Custom Components");
+//        scope.loadDymolaBox();
+//        scope.loadRevoluteJoint();
+//        scope.loadPrismaticJoint();
+////        scope.loadRollingWheelJoint();
+//        scope.loadFixedRotation();
+//        scope.addClass("Modelica.Mechanics.MultiBody.World", "World");
+        //scope.addPackage("Playmola.UserComponents", "Custom Components");
+        scope.addPackage("Modelica.Mechanics.MultiBody.Joints");
         //scope.loadDymolaCylinder();
         //scope.addPackage("Modelica.Mechanics.MultiBody.Parts", "DymolaParts");
         //scope.addPackage("Modelica.Mechanics.MultiBody.Joints", "Joints");
@@ -1742,6 +1759,7 @@ function Playmola(){
         var pointlight = new THREE.PointLight(0xffffff, 1, 100);
         pointlight.position.set(2,2,2);
         scene.add(pointlight);
+
     }
     
     
@@ -2218,7 +2236,6 @@ function Playmola(){
         connections.forEach(function(c){
             c.update();
         });
-        
         requestAnimationFrame(render);
     }
     
