@@ -30,6 +30,8 @@ function Playmola(){
     var draggingFrom = null; //The Connector the connection line starts at
     var connectionLine = null; //A line representing the connection being dragged
     var connections = []; //An array of connections - consists of a line and data about the connectors involved
+    
+    var mouseMovedSinceMouseDown = false;
        
     var world = null; //WORLD dymola component
     
@@ -125,58 +127,43 @@ function Playmola(){
             if(bounds.containsPoint(pointer)){
                 event.stopImmediatePropagation();
                 if(hoverTileX != -1){
-                    dragging = categories[selectedCategory][hoverTileX + hoverTileY * tilesX].clone();
+                    var newComponent = cloneAndScaleComponent(categories[selectedCategory][hoverTileX + hoverTileY * tilesX]);
                     
-                    //Materials are not cloned, so do it manually here...
-                    dragging.traverse(function(o){
-                        if(o.material !== undefined) o.material = o.material.clone();
-                    });
+                    raycaster.setFromCamera(new THREE.Vector2(( event.clientX / domElement.getBoundingClientRect().width ) * 2 - 1, - ( event.clientY / domElement.getBoundingClientRect().height ) * 2 + 1), camera);
+                    var projPlane = new THREE.Plane().setFromNormalAndCoplanarPoint(new THREE.Vector3(0,0, -1).applyQuaternion(camera.quaternion),new THREE.Vector3());
+                    projPlane.intersectLine(new THREE.Line3(camera.position, camera.position.clone().add(raycaster.ray.direction.clone().multiplyScalar(100.0))),newComponent.position);
                     
-                    //clone doesn't copy connection points, so do that manually here (FIX THIS LATER!!!!!)    
-                    dragging.connectionPoints = [];
-    
-                    if(categories[selectedCategory][hoverTileX + hoverTileY * tilesX].connectionPoints !== undefined){
-                        for(var i = 0; i < categories[selectedCategory][hoverTileX + hoverTileY * tilesX].connectionPoints.length; i++){
-                            var cp = new ConnectionPoint(categories[selectedCategory][hoverTileX + hoverTileY * tilesX].connectionPoints[i].position);
-                            cp.coordinateSystem = categories[selectedCategory][hoverTileX + hoverTileY * tilesX].connectionPoints[i].coordinateSystem.clone();
-                            cp.parentObject = dragging;
-                            dragging.connectionPoints.push(cp);
-                        }
-                    }
-                    
-                    
-                    dragging.rotation.set(0,0,0);
-                    scope.palettescene.add(dragging);
+                    selectObject(newComponent);
                 }
             }
         });
         var objCounter = 0;
         $(domElement).on('mouseup',function(event){
-            if(dragging !== null){
-                //Spawn object here
-                scope.palettescene.remove(dragging);
-                
-                objectCollection.push(dragging);
-                scene.add(dragging);
-                dragging.name = "Obj" + objCounter;
-                objCounter++;
-                
-                if(dragging.typeName === "Modelica.Mechanics.MultiBody.World") {
-                    world = dragging;
-                    dragging.name = "world";
-                }
-                if(dragging.type === "RevoluteJoint" || dragging.type === "PrismaticJoint" || dragging.type === "RollingWheelJoint") joints.push(dragging);
-
-                dragging.scale.set(dragging.userData.sceneScale,dragging.userData.sceneScale,dragging.userData.sceneScale);
-                raycaster.setFromCamera(new THREE.Vector2(( event.clientX / domElement.getBoundingClientRect().width ) * 2 - 1, - ( event.clientY / domElement.getBoundingClientRect().height ) * 2 + 1), camera);
-                var projPlane = new THREE.Plane().setFromNormalAndCoplanarPoint(new THREE.Vector3(0,0, -1).applyQuaternion(camera.quaternion),new THREE.Vector3());
-                projPlane.intersectLine(new THREE.Line3(camera.position, camera.position.clone().add(raycaster.ray.direction.clone().multiplyScalar(100.0))),dragging.position);
-                
-                
-                dragging.children[0].position.add(dragging.userData.centerOffset);               
-                
-                dragging = null;
-            }
+//            if(dragging !== null){
+//                //Spawn object here
+//                scope.palettescene.remove(dragging);
+//                
+//                objectCollection.push(dragging);
+//                scene.add(dragging);
+//                dragging.name = "Obj" + objCounter;
+//                objCounter++;
+//                
+//                if(dragging.typeName === "Modelica.Mechanics.MultiBody.World") {
+//                    world = dragging;
+//                    dragging.name = "world";
+//                }
+//                if(dragging.type === "RevoluteJoint" || dragging.type === "PrismaticJoint" || dragging.type === "RollingWheelJoint") joints.push(dragging);
+//
+//                dragging.scale.set(dragging.userData.sceneScale,dragging.userData.sceneScale,dragging.userData.sceneScale);
+//                raycaster.setFromCamera(new THREE.Vector2(( event.clientX / domElement.getBoundingClientRect().width ) * 2 - 1, - ( event.clientY / domElement.getBoundingClientRect().height ) * 2 + 1), camera);
+//                var projPlane = new THREE.Plane().setFromNormalAndCoplanarPoint(new THREE.Vector3(0,0, -1).applyQuaternion(camera.quaternion),new THREE.Vector3());
+//                projPlane.intersectLine(new THREE.Line3(camera.position, camera.position.clone().add(raycaster.ray.direction.clone().multiplyScalar(100.0))),dragging.position);
+//                
+//                
+//                dragging.children[0].position.add(dragging.userData.centerOffset);               
+//                
+//                dragging = null;
+//            }
         });
         
         $(domElement).on('mousemove',function(event){
@@ -334,32 +321,32 @@ function Playmola(){
         
         var cloneAndScaleComponent = function(c){
             
-            var component = c.clone();
-                    
+            var newcomponent = c.clone();
+            //scope.palettescene.remove(component);
             //Materials are not cloned, so do it manually here...
-            component.traverse(function(o){
+            newcomponent.traverse(function(o){
                 if(o.material !== undefined) o.material = o.material.clone();
             });
 
-            component.rotation.set(0,0,0);
+            newcomponent.rotation.set(0,0,0);
                 
-            objectCollection.push(component);
-            scene.add(component);
-            component.name = "Obj" + objCounter;
+            objectCollection.push(newcomponent);
+            scene.add(newcomponent);
+            newcomponent.name = "Obj" + objCounter;
             objCounter++;
 
-            if(component.typeName === "Modelica.Mechanics.MultiBody.World") {
-                world = component;
-                component.name = "world";
+            if(newcomponent.typeName === "Modelica.Mechanics.MultiBody.World") {
+                world = newcomponent;
+                newcomponent.name = "world";
             }
-            if(component.type === "RevoluteJoint" || component.type === "PrismaticJoint" || component.type === "RollingWheelJoint") joints.push(component);
+            if(newcomponent.type === "RevoluteJoint" || newcomponent.type === "PrismaticJoint" || newcomponent.type === "RollingWheelJoint") joints.push(newcomponent);
 
-            component.scale.set(component.userData.sceneScale,component.userData.sceneScale,component.userData.sceneScale);
+            newcomponent.scale.set(newcomponent.userData.sceneScale,newcomponent.userData.sceneScale,newcomponent.userData.sceneScale);
 
 
-            component.children[0].position.add(dragging.userData.centerOffset);
+            newcomponent.children[0].position.add(newcomponent.userData.centerOffset);
             
-            return component;
+            return newcomponent;
 
         }
         
@@ -367,11 +354,11 @@ function Playmola(){
             if(categories[category] === undefined)
                 return null;
             
-            categories[category].forEach(function(c){
-                if(c.name == className){
-                    return cloneAndScaleComponent(c);
+            for(var i = 0; i < categories[category].length; i++){
+                if(categories[category][i].typeName == className){
+                    return cloneAndScaleComponent(categories[category][i]);
                 }
-            });
+            }
         };
 
         
@@ -1105,15 +1092,14 @@ function Playmola(){
         
 
 
-        //scope.loadParts();
-//        scope.loadDymolaBox();
-//        scope.loadRevoluteJoint();
-//        scope.loadPrismaticJoint();
-////        scope.loadRollingWheelJoint();
-//        scope.loadFixedRotation();
-//        scope.addClass("Modelica.Mechanics.MultiBody.World", "World");
-        //scope.addPackage("Playmola.UserComponents", "Custom Components");
-        scope.addPackage("Modelica.Mechanics.MultiBody.Joints");
+        scope.loadParts();
+        scope.loadDymolaBox();
+        scope.loadRevoluteJoint();
+        scope.loadPrismaticJoint();
+        scope.loadRollingWheelJoint();
+        scope.loadFixedRotation();
+        scope.addClass("Modelica.Mechanics.MultiBody.World", "World");
+        scope.addPackage("Playmola.UserComponents", "Custom Components");
         //scope.loadDymolaCylinder();
         //scope.addPackage("Modelica.Mechanics.MultiBody.Parts", "DymolaParts");
         //scope.addPackage("Modelica.Mechanics.MultiBody.Joints", "Joints");
@@ -1666,6 +1652,9 @@ function Playmola(){
                     
                 }
             }
+            else if (e.keyCode == 36){ //home
+                camera.position.set(0,0.25,4);
+            }
         });
         
         
@@ -1679,7 +1668,7 @@ function Playmola(){
         
         var directionalLight = new THREE.DirectionalLight();
         directionalLight.position.set(5,10,10);
-        directionalLight.intensity = 0.75;
+        directionalLight.intensity = 0.5;
         directionalLight.castShadow = true;
         directionalLight.shadowCameraNear = 5;
         directionalLight.shadowCameraFar = 30;
@@ -1695,7 +1684,7 @@ function Playmola(){
         
         directionalLight = new THREE.DirectionalLight();
         directionalLight.position.set(5,10,-10);
-        directionalLight.intensity = 0.75;
+        directionalLight.intensity = 0.5;
         directionalLight.castShadow = false;
         scene.add(directionalLight);
 
@@ -1713,15 +1702,22 @@ function Playmola(){
         
         $(document).on('mouseup', function(event){
             onMouseUp(event);
+            mouseMovedSinceMouseDown = false;
         });
         
         $(renderer.domElement).on('mousedown', function(event){
-            if(intersectionTest() === true){
+            mouseMovedSinceMouseDown = false;
+            if(event.button == 0 && intersectionTest() === true){
                 event.preventDefault();
                 event.stopImmediatePropagation();
                 event.stopPropagation();
                 return false;
             }
+ 
+        });
+        
+        $(renderer.domElement).on('mousemove', function(event){
+            mouseMovedSinceMouseDown = true;
         });
 
         window.addEventListener('resize', onWindowResize, false);
@@ -1756,8 +1752,8 @@ function Playmola(){
         }, "models/");
         
 
-        var pointlight = new THREE.PointLight(0xffffff, 1, 100);
-        pointlight.position.set(2,2,2);
+        var pointlight = new THREE.PointLight(0xffffff, 1, 10);
+        pointlight.position.set(0,2,0);
         scene.add(pointlight);
 
     }
@@ -1919,7 +1915,7 @@ function Playmola(){
         }
     }
     
-    function checkForConnection(position){
+    function checkForConnection(position, toExclude){
         var widthHalf = window.innerWidth / 2;
         var heightHalf = window.innerHeight / 2;
         var distance = 1000000;
@@ -1928,8 +1924,10 @@ function Playmola(){
         for(var i = 0; i < objectCollection.length; i++){
             //if(objectCollection[i].type == 'DymolaComponent'){
                 for(var j = 0; j < objectCollection[i].connectors.length; j++){
+                    //If an object to be excluded has been specified, skip its connectors
+                    if(toExclude !== undefined && toExclude == objectCollection[i]) break;
                     //Don't allow connecting a connector to itself
-                    if(objectCollection[i].connectors[j] !== draggingFrom ){
+                    if(objectCollection[i].connectors[j] !== draggingFrom){
                         //Get the screen position of the connector
                         var connectorScreenPos = objectCollection[i].connectors[j].position.clone();
                         objectCollection[i].connectors[j].parent.localToWorld(connectorScreenPos);
@@ -1972,6 +1970,9 @@ function Playmola(){
     
     var numOfDetailElements = 3;
     function selectObject(object){
+        if(selectedObject !== null){
+            deselectObject();
+        }
         selectedObject = object;
         transformControls.attach(selectedObject);
         transformControls.dragging = true;
@@ -2073,8 +2074,13 @@ function Playmola(){
         }
     } 
     
+    var connectorFrom, connectorTo;
+    
     function onMouseUp(event){
-        if(event.button == 1 && selectedObject){
+        if(event.button == 0 && selectedObject && mouseMovedSinceMouseDown){
+            
+            var widthHalf = window.innerWidth / 2;
+            var heightHalf = window.innerHeight / 2;
 
             var thisConnector = null;
             var closestConnector = null;
@@ -2084,13 +2090,13 @@ function Playmola(){
                 var cPos = c.position.clone();
                 c.parent.localToWorld(cPos);
                 cPos.project(camera);
-                cPos.x = ( selectedObjScreenPos.x * widthHalf ) + widthHalf;
-                cPos.y = - ( selectedObjScreenPos.y * heightHalf ) + heightHalf;
+                cPos.x = ( cPos.x * widthHalf ) + widthHalf;
+                cPos.y = - ( cPos.y * heightHalf ) + heightHalf;
                 cPos.z = 0;
-                var closest = checkForConnection(new THREE.Vector3(event.clientX, event.clientY, 0));
-                if(closest !== null && closest.tempDistSquared < distance){
+                var closest = checkForConnection(cPos, selectedObject);
+                if(closest !== null && c.connectedTo !== closest && closest.userData.tempDistSquared < distance){
                     closestConnector = closest;
-                    distance = closest.tempDistSquared;
+                    distance = closest.userData.tempDistSquared;
                     thisConnector = c;
                 }
             });
@@ -2101,11 +2107,40 @@ function Playmola(){
 //                var connection = new Connection(, closest);
 //                connections.push(connection);
 //                scene.add(connection);
+                if(thisConnector.userData.name == "frame_b"){
+                    connectorFrom = thisConnector;
+                    connectorTo = closestConnector;
+                } else {
+                    connectorTo = thisConnector;
+                    connectorFrom = closestConnector;
+                }
+                $( "#jointPopup" ).popup('open');
             }
             
 
         }
     }
+    
+    this.connectObjects = function(jointType){
+        if(jointType == "none"){
+            var connection = new Connection(connectorFrom, connectorTo);
+            connections.push(connection);
+            scene.add(connection);
+            audio.playClick();
+        } else {
+            var joint = palette.makeComponent("Joints", jointType);
+            if(joint != null){
+                joint.position.set(0,0,0);//CHANGE THIS!!
+                var connection1 = new Connection(connectorFrom, joint.frameAConnector);
+                connections.push(connection1);
+                scene.add(connection1);
+                var connection2 = new Connection(joint.frameBConnector, connectorTo);
+                connections.push(connection2);
+                scene.add(connection2);
+                audio.playClick();
+            }
+        }
+    };
     
 //    function onMouseMover(){
 //        if(selectedObject && transformControls.dragging){
@@ -2115,7 +2150,8 @@ function Playmola(){
 
     this.cancelConnectObjects = function(){
         disableControls = false;
-        selectObject(selectedObject);
+        //selectObject(selectedObject);
+        transformControls.dragging = false;
     }
     
     this.enterSchematicMode = function(){
@@ -2251,9 +2287,9 @@ function Playmola(){
             
             //Move the object connected to frame B
             var connAWorld = c.actualPosition.clone().multiplyScalar(1/c.getParent().scale.x); //FIX SCALE HERE!
-            c.parent.localToWorld(connAWorld);
+            c.getParent().localToWorld(connAWorld);
             var connBWorld = c.connectedTo.actualPosition.clone().multiplyScalar(1/c.connectedTo.getParent().scale.x);
-            c.connectedTo.parent.localToWorld(connBWorld);
+            c.connectedTo.getParent().localToWorld(connBWorld);
             c.connectedTo.getParent().position.sub(connBWorld.sub(connAWorld));
             c.connectedTo.getParent().updateMatrixWorld(true);
             

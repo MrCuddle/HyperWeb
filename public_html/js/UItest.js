@@ -10,20 +10,20 @@
        
        
         $('.jointButton').on('click', function(){
-            if(this.id === 'button_close'){
-                playmola.cancelConnectObjects();
+            if(this.id === 'buttonNone'){
+                playmola.connectObjects("none");
                 $( "#jointPopup" ).popup('close');
             }
             else if(this.id === 'buttonRevolute'){
-                playmola.connectObjects(revoluteJoint);
-                $( "#jointPopup" ).popup('close');
-            }
-            else if(this.id === 'buttonCylindrical'){
-                playmola.connectObjects(cylindricalJoint);
+                playmola.connectObjects("Playmola.SimpleRevoluteJoint");
                 $( "#jointPopup" ).popup('close');
             }
             else if(this.id === 'buttonPrismatic'){
-                playmola.connectObjects(prismaticJoint);
+                playmola.connectObjects("Playmola.SimplePrismaticJoint");
+                $( "#jointPopup" ).popup('close');
+            }
+            else if(this.id === 'buttonRollingWheel'){
+                playmola.connectObjects("VisualMultiBody.Joints.RollingWheel");
                 $( "#jointPopup" ).popup('close');
             }
         });

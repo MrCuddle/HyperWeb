@@ -38,7 +38,7 @@ CustomTransformControls = function(camera, domElement, bounds){
                 projPlane.intersectLine(new THREE.Line3(camera.position, camera.position.clone().add(raycaster.ray.direction.clone().multiplyScalar(100.0))),newPos);
             
                 self.dragging = true;
-                event.stopImmediatePropagation();
+                //event.stopImmediatePropagation();
             }
 
         }
