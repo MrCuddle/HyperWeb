@@ -1732,17 +1732,29 @@ function Playmola(){
         
         
         //Add some scenery!
-        var room = new THREE.Mesh(new THREE.BoxGeometry(10,5,10), new THREE.MeshLambertMaterial({color: 0xffffff, side: THREE.DoubleSide }));
-        room.receiveShadow = true;
-        room.castShadow = false;
-        scene.add(room);
+//        var room = new THREE.Mesh(new THREE.BoxGeometry(10,5,10), new THREE.MeshLambertMaterial({color: 0xffffff, side: THREE.DoubleSide }));
+//        room.receiveShadow = true;
+//        room.castShadow = false;
+//        scene.add(room);
 //        var desk = new THREE.Mesh(new THREE.BoxGeometry(1.5,0.5,0.75), new THREE.MeshLambertMaterial({color: 0xccaa22 }));
 //        desk.position.set(0,-2.25,0);
 //        desk.castShadow = true;
 //        desk.receiveShadow = true;
 //        scene.add(desk);
+
+
+ 
         
         var jsonloader = new THREE.JSONLoader();
+        
+        jsonloader.load( "models/room.json", function(geometry, mat) {
+            var materials = new THREE.MeshFaceMaterial(mat);
+            var room = new THREE.Mesh(geometry, materials );
+            room.receiveShadow = true;
+            room.castShadow = false;
+            scene.add(room);
+        });
+        
         jsonloader.load("models/desk.json", function(geometry,mat){
             var desk = new THREE.Mesh(geometry, mat[0]);
             desk.position.set(0,-1.05,0);
