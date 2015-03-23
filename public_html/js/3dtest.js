@@ -1096,6 +1096,7 @@ function Playmola(){
 //        scope.loadRollingWheelJoint();
         scope.loadFixedRotation();
         scope.addClass("Modelica.Mechanics.MultiBody.World", "World");
+        scope.addPackage("Playmola.UserComponents", "Custom Components");
         //scope.loadDymolaCylinder();
         //scope.addPackage("Modelica.Mechanics.MultiBody.Parts", "DymolaParts");
         //scope.addPackage("Modelica.Mechanics.MultiBody.Joints", "Joints");
