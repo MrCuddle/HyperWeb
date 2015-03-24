@@ -73,23 +73,25 @@ function Playmola(){
             source += obj.typeName + " " + obj.name;
             var first = true;
             if(obj.parameters.length > 0){
-                
                 obj.parameters.forEach(function(param){
-                    if(param.changed){
-                        if(!first){
-                            source += ",";
+                    if(param.toSimulate){
+                        if(param.changed){
+                            if(!first){
+                                source += ",";
+                            }
+                            else {
+                                source +="(";
+                                first = false;
+                            }
+                            source += param.name + "=" + param.currentValue;
                         }
-                        else {
-                            source +="(";
-                            first = false;
-                        }
-                        source += param.name + "=" + param.currentValue;
-                    } 
+                    }
                 });
                 if(first == false)
                     source +=");\n";
                 else
                     source +=";\n";
+                
             }
               //source += "\n";
         });
@@ -477,6 +479,46 @@ function Playmola(){
             });
         }
         
+        function colorParametersDecorator(obj){
+            var red = {
+                name : "Red",
+                fullTypeName : "Integer",
+                currentValue : 0,
+                toSimulate : false,
+                callback : function(val){
+                    if(!isNaN(val) && val <= 255 && val >= 0){
+                        this.currentRed = val;
+                        this.recolor();
+                    }
+                }
+            }
+            var green = {
+                name : "Green",
+                fullTypeName : "Integer",
+                currentValue : 255,
+                toSimulate : false,
+                callback : function(val){
+                    if(!isNaN(val) && val <= 255 && val >= 0){
+                        this.currentGreen = val;
+                        this.recolor();
+                    }
+                }
+            }
+            var blue = {
+                name : "Blue",
+                fullTypeName : "Integer",
+                currentValue : 0,
+                toSimulate : false,
+                callback : function(val){
+                    if(!isNaN(val) && val <= 255 && val >= 0){
+                        this.currentBlue = val;
+                        this.recolor();
+                    }
+                }
+            }
+            obj.push(red,green,blue);
+        };
+        
         this.loadDymolaBox = function(){
             if(categories["Bodies"] === undefined){
                 scope.addCategory("Bodies");
@@ -495,6 +537,7 @@ function Playmola(){
                     componentParam["fullTypeName"] = dymolaInterface.callDymolaFunction("Dymola_AST_ComponentFullTypeName", params);
                     componentParam["description"] = dymolaInterface.callDymolaFunction("Dymola_AST_ComponentDescription",params);
                     componentParam["changed"] = false;
+                    componentParam.toSimulate = true;
                     if(componentParam.name === "length")
                         componentParam.callback = function(val){
                             if(!isNaN(val)){
@@ -544,6 +587,7 @@ function Playmola(){
                     dymBox.parameters.push(componentParam);
                 }
             }
+            colorParametersDecorator(dymBox.parameters);
             
             var connPoint1 = new Connector();
             connPoint1.add(new THREE.Mesh(new THREE.SphereGeometry(0.05,20,20),new THREE.MeshPhongMaterial({color:0xff0000})));
@@ -651,6 +695,8 @@ function Playmola(){
                     dymCyl.parameters.push(componentParam);
                 }
             }
+            
+            colorParametersDecorator(dymCyl.parameters);
             dymCyl.length = 0.5;
             dymCyl.width = 0.5;
             dymCyl.resize();
@@ -1173,7 +1219,7 @@ function Playmola(){
 //        scope.loadPrismaticJoint();
 //        scope.loadRollingWheelJoint();
 //        scope.loadFixedRotation();
-//        scope.addClass("Modelica.Mechanics.MultiBody.World", "World");
+        scope.addClass("Modelica.Mechanics.MultiBody.World", "World");
 //        scope.addPackage("Playmola.UserComponents", "Custom Components");
         //scope.loadDymolaCylinder();
         //scope.addPackage("Modelica.Mechanics.MultiBody.Parts", "DymolaParts");
@@ -1514,7 +1560,10 @@ function Playmola(){
         this.lengthDirection = new THREE.Vector3(1,0,0);
         this.r = new THREE.Vector3(this.length,0,0);
         this.r_shape = new THREE.Vector3();
-                
+        this.currentRed = 0;
+        this.currentGreen = 255;
+        this.currentBlue = 0;
+
         var moi = this;
         
         this.clone = function(){
@@ -1544,6 +1593,15 @@ function Playmola(){
             newDymBox.parameters = $.extend(true, [], this.parameters);
             newDymBox.resize();
             return newDymBox;
+        };
+        
+        this.recolor = function(){
+            var newColor = new THREE.Color(moi.currentRed/255, moi.currentGreen/255, moi.currentBlue/255);
+            moi.traverse(function(child){
+            if(child instanceof THREE.Mesh && child.parent !== moi.frameAConnector && child.parent !== moi.frameBConnector){
+                child.userData.initColor = newColor;
+             }
+        });
         };
         
         this.resize = function(){    
@@ -1582,6 +1640,9 @@ function Playmola(){
         this.lengthDirection = new THREE.Vector3(1,0,0);
         this.r = new THREE.Vector3(this.length,0,0);
         this.r_shape = new THREE.Vector3();
+        this.currentRed = 0;
+        this.currentGreen = 255;
+        this.currentBlue = 0;
         
         var moi = this;
         this.clone = function(){
@@ -1613,6 +1674,15 @@ function Playmola(){
           newDymCyl.parameters = $.extend(true,[], this.parameters);
           newDymCyl.resize();
           return newDymCyl;
+        };
+        
+        this.recolor = function(){
+            var newColor = new THREE.Color(moi.currentRed/255, moi.currentGreen/255, moi.currentBlue/255);
+            moi.traverse(function(child){
+            if(child instanceof THREE.Mesh && child.parent !== moi.frameAConnector && child.parent !== moi.frameBConnector){
+                child.userData.initColor = newColor;
+             }
+        });
         };
         
         this.resize = function(){    
@@ -2281,6 +2351,11 @@ function Playmola(){
             $("#detailsPanel").panel("open");
             for(var i = 0; i < selectedObject.parameters.length; i++){
                 generateNewDetailsForm(selectedObject.parameters[i]);
+            }
+            if(selectedObject.colorSettings !== undefined){
+                for(var i = 0; i < selectObject.colorSettings.length; i++){
+                    generateNewDetailsForm(selectedObject.colorSettings[i]);
+                }
             }
             $("#detailsPanel").enhanceWithin();
         }
