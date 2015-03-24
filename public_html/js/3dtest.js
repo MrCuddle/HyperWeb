@@ -29,6 +29,9 @@ function Playmola(){
     
     var leftMouseDown = false;
     
+    //Little hack to help with dragging into scene from the palette...
+    var dontCheckConnectors = false;
+    
     
     //DymolaComponent Connection-related:
     var draggingConnection = false;
@@ -39,8 +42,7 @@ function Playmola(){
     var mouseMovedSinceMouseDown = false;
        
     var world = null; //WORLD dymola component
-    
-    var mousePos;
+
     var disableControls = false;
     var schematicMode = true;
     
@@ -52,18 +54,7 @@ function Playmola(){
     var audio;
     
     var particleGroup = null;
-    
-//Ljudexempel   
-//    var song = document.getElementById("havanaAffair");
-//    song.src = "Audio/07 Havana Affair.mp3";
-//    song.play();
-//    song.oncanplay = function(){
-//        alert("hejhej");
-//    };
-//    song.oncanplaythrough = function(){
-//        song.play();
-//        alert("HEJ");
-//    };
+
 
     function generateModelicaCode() { 
         var source = "model TestModel\n";
@@ -128,13 +119,37 @@ function Playmola(){
         var tileSpacing = 10;
         var tileInnerSize = 60;
         var bounds = new THREE.Box2(new THREE.Vector2(10,110), new THREE.Vector2(10,110));
+        
+        var objCounter = 0;
 
         this.palettescene = new THREE.Scene();
         
-        $(domElement).on('mousedown',function(event){
-            var pointer = new THREE.Vector2(event.offsetX, event.offsetY);
+        $(domElement).on('vmousedown',function(event){
+            var pointer = new THREE.Vector2(event.clientX, event.clientY);
+            if(event.originalEvent.originalEvent instanceof MouseEvent){
+                if(event.originalEvent.button != 0){  
+                    return;
+                }
+            }
+            else { //TouchEvent
+                if(bounds.containsPoint(pointer)){
+                    var hoverTileX_ = Math.floor((pointer.x - bounds.min.x) / (tileSpacing + tileWidth));
+                    var hoverTileY_ = Math.floor((pointer.y - bounds.min.y) / (tileSpacing + tileHeight));
+                    
+                    if(hoverTileX_ + hoverTileY_ * tilesX < categories[selectedCategory].length){
+                        hoverTileX = hoverTileX_;
+                        hoverTileY = hoverTileY_;
+                    } else{
+                        hoverTileX = -1;
+                        hoverTileY = -1;
+                    }
+                } else {
+                    hoverTileX = -1;
+                    hoverTileY = -1;
+                }
+            }
+
             if(bounds.containsPoint(pointer)){
-                event.stopImmediatePropagation();
                 if(hoverTileX != -1){
                     var newComponent = cloneAndScaleComponent(categories[selectedCategory][hoverTileX + hoverTileY * tilesX]);
                     
@@ -144,46 +159,19 @@ function Playmola(){
                     
                     selectObject(newComponent);
                     mouseMovedSinceMouseDown = false;
+                    
+                    dontCheckConnectors = true; //Don't accidentally drag a connector instead of a component
                 }
             }
         });
-        var objCounter = 0;
-        $(domElement).on('mouseup',function(event){
-//            if(dragging !== null){
-//                //Spawn object here
-//                scope.palettescene.remove(dragging);
-//                
-//                objectCollection.push(dragging);
-//                scene.add(dragging);
-//                dragging.name = "Obj" + objCounter;
-//                objCounter++;
-//                
-//                if(dragging.typeName === "Modelica.Mechanics.MultiBody.World") {
-//                    world = dragging;
-//                    dragging.name = "world";
-//                }
-//                if(dragging.type === "RevoluteJoint" || dragging.type === "PrismaticJoint" || dragging.type === "RollingWheelJoint") joints.push(dragging);
-//
-//                dragging.scale.set(dragging.userData.sceneScale,dragging.userData.sceneScale,dragging.userData.sceneScale);
-//                raycaster.setFromCamera(new THREE.Vector2(( event.clientX / domElement.getBoundingClientRect().width ) * 2 - 1, - ( event.clientY / domElement.getBoundingClientRect().height ) * 2 + 1), camera);
-//                var projPlane = new THREE.Plane().setFromNormalAndCoplanarPoint(new THREE.Vector3(0,0, -1).applyQuaternion(camera.quaternion),new THREE.Vector3());
-//                projPlane.intersectLine(new THREE.Line3(camera.position, camera.position.clone().add(raycaster.ray.direction.clone().multiplyScalar(100.0))),dragging.position);
-//                
-//                
-//                dragging.children[0].position.add(dragging.userData.centerOffset);               
-//                
-//                dragging = null;
-//            }
-        });
         
-        $(domElement).on('mousemove',function(event){
+
+        
+        $(domElement).on('vmousemove',function(event){
             
             
-            var pointer = new THREE.Vector2(event.offsetX, event.offsetY);
-            if(dragging !== null){
-                dragging.position.set(-width/2 + pointer.x, height/2 - pointer.y, -50);
-            }
-            
+            var pointer = new THREE.Vector2(event.clientX, event.clientY);
+
             if(bounds.containsPoint(pointer)){
                 mouseover = true;
                 
@@ -282,6 +270,12 @@ function Playmola(){
                 }
             });
             
+            //Reposition planes:
+            
+            for(var i = 0; i < 25; i++){
+                backplanes[i].position.set(((i)%tilesX) * (tileSpacing + tileWidth) - width/2 + tileWidth/2 + bounds.min.x, -Math.floor((i)/tilesX) * (tileSpacing + tileHeight) + height/2 - tileHeight/2 - bounds.min.y,-500);
+            }
+            
         };
         
         this.add = function(obj, category, tilt, rotationMode, sceneScale){
@@ -326,6 +320,11 @@ function Playmola(){
             //bounds.min.set(tileSpacing,tileSpacing);
             if(category === selectedCategory) bounds.max.set((len < 3 ? len :tilesX)*(tileSpacing + tileWidth) + bounds.min.x, Math.ceil((len)/tilesX) * (tileSpacing + tileHeight) + bounds.min.y);
             
+            
+            obj.connectors.forEach(function(c){
+                c.visible = false;
+            });
+            
             return obj;
         };
         
@@ -355,6 +354,11 @@ function Playmola(){
 
 
             newcomponent.children[0].position.add(newcomponent.userData.centerOffset);
+            
+            
+            newcomponent.connectors.forEach(function(c){
+                c.visible = true;
+            });
             
             return newcomponent;
 
@@ -1216,9 +1220,9 @@ function Playmola(){
         scope.loadDymolaBox();
         scope.loadDymolaCylinder();
         scope.loadRevoluteJoint();
-//        scope.loadPrismaticJoint();
-//        scope.loadRollingWheelJoint();
-//        scope.loadFixedRotation();
+        scope.loadPrismaticJoint();
+        scope.loadRollingWheelJoint();
+        scope.loadFixedRotation();
         scope.addClass("Modelica.Mechanics.MultiBody.World", "World");
 //        scope.addPackage("Playmola.UserComponents", "Custom Components");
         //scope.loadDymolaCylinder();
@@ -1741,45 +1745,210 @@ function Playmola(){
             alert("Dymola interface initialization failed");
         }
         renderer = new THREE.WebGLRenderer({antialias:true});
-        renderer.shadowMapEnabled = true;
-        renderer.shadowMapType=THREE.PCFSoftShadowMap;
+        renderer.shadowMapEnabled=true;
+        renderer.shadowMapType= THREE.PCFSoftShadowMap;
+        renderer.autoClear = false;
         renderer.setClearColor( 0x7EC0EE, 1 );
         renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.autoClear = false;
         document.querySelector("#container").appendChild(renderer.domElement);
 
         camera = new THREE.PerspectiveCamera(45,window.innerWidth/window.innerHeight,0.1,1000);
         camera.position.set(0,0.25,4);
         
-        
-        $(renderer.domElement).on('mousedown',function(event){
-            if(event.button == 0)
-                leftMouseDown = true;
-        });
-        $(renderer.domElement).on('mouseup',function(event){
-            if(event.button == 0)
-                leftMouseDown = false;
-        });
-        
-        palette = new Palette(renderer.domElement);   
-        
+ 
         audio = new PlaymolaAudio();
 
+        
+        
+        scene = new THREE.Scene();
+        scene.add(camera);
+        foregroundScene = new THREE.Scene();
+        
+        var directionalLight = new THREE.DirectionalLight();
+        directionalLight.position.set(5,10,10);
+        directionalLight.intensity = 0.5;
+        directionalLight.castShadow = true;
+        directionalLight.shadowCameraNear = 5;
+        directionalLight.shadowCameraFar = 30;
+        directionalLight.shadowCameraLeft = -10; 
+        directionalLight.shadowCameraRight = 10;
+        directionalLight.shadowCameraTop = 10;
+        directionalLight.shadowCameraBottom = -10;
+        directionalLight.shadowBias = 0.0003;
+        directionalLight.shadowDarkness = 0.5;
+        directionalLight.shadowMapWidth = 1024;
+        directionalLight.shadowMapHeight = 1024;
+        scene.add(directionalLight);
+        
+        directionalLight = new THREE.DirectionalLight();
+        directionalLight.position.set(5,10,-10);
+        directionalLight.intensity = 0.5;
+        directionalLight.castShadow = false;
+        scene.add(directionalLight);
+        
+        directionalLight = new THREE.DirectionalLight();
+        directionalLight.position.set(1,1,1);
+        directionalLight.intensity = 0.5;
+        directionalLight.castShadow = false;
+        foregroundScene.add(directionalLight);
 
-        $(renderer.domElement).on('mousemove', function(event){
-            if(draggingConnection){
-                event.stopImmediatePropagation();
-                dragConnection(event);
-            }
+        
+        scene.add(new THREE.AmbientLight(new THREE.Color(0.1,0.1,0.1)));
+        raycaster = new THREE.Raycaster();
+   
+        
+        var jsonloader = new THREE.JSONLoader();
+        
+        jsonloader.load( "models/room.json", function(geometry, mat) {
+            var materials = new THREE.MeshFaceMaterial(mat);
+            var room = new THREE.Mesh(geometry, materials );
+            room.receiveShadow = true;
+            room.castShadow = false;
+            scene.add(room);
         });
         
-        $(renderer.domElement).on('mouseup', function(event){
+        jsonloader.load("models/desk.json", function(geometry,mat){
+            var desk = new THREE.Mesh(geometry, mat[0]);
+            desk.position.set(0,-1.05,0);
+            desk.castShadow = true;
+            desk.receiveShadow = true;
+            scene.add(desk);
+        }, "models/");
+        
+
+        var pointlight = new THREE.PointLight(0xffffff, 1, 10);
+        pointlight.position.set(0,2,0);
+        scene.add(pointlight);
+        
+ 
+        
+        //ALL EVENT HANDLERS BOUND HERE:
+        
+        //Keep track of whether or not the left mouse button is down 
+        //(since we can't tell from mousemove events)
+        $(renderer.domElement).on('vmousedown',function(event){
+            if(event.originalEvent.originalEvent instanceof MouseEvent){
+                if(event.originalEvent.button != 0){  
+                    return;
+                }
+            } 
+            leftMouseDown = true;
+        });
+        $(renderer.domElement).on('vmouseup',function(event){
+            if(event.originalEvent.originalEvent instanceof MouseEvent){
+                if(event.originalEvent.button != 0){  
+                    return;
+                }
+            } 
+            leftMouseDown = false;
+        });
+        
+        //Palette has event handling priority, since it is always on top
+        palette = new Palette(renderer.domElement);  
+        
+        //Handle mouse events:
+        $(renderer.domElement).on('vmousedown', function(event){
+            mouseMovedSinceMouseDown = false;
+            if(event.originalEvent.originalEvent instanceof MouseEvent){
+                if(event.originalEvent.button == 0){  
+
+                } else {
+                    return;
+                }
+            } 
+            render();
+            intersectionTest(new THREE.Vector2(( event.clientX / window.innerWidth ) * 2 - 1,- ( event.clientY / window.innerHeight ) * 2 + 1));
+        });
+        
+        $(renderer.domElement).on('vmousemove', function(event){
+            if(event.originalEvent.originalEvent instanceof MouseEvent){
+                if(event.originalEvent.button == 0){  
+
+                } else {
+                    return;
+                }
+            } 
             if(draggingConnection){
+                dragConnection(event);
                 event.stopImmediatePropagation();
+            }
+            else {
+                if(!mouseMovedSinceMouseDown && selectedObject && leftMouseDown){
+                    HighlightCompatibleConnectors(selectedObject);
+                }
+                if(leftMouseDown && selectedObject){
+                    var widthHalf = window.innerWidth / 2;
+                    var heightHalf = window.innerHeight / 2;
+
+                    var thisConnector = null;
+                    var closestConnector = null;
+                    var distance = 10000000;
+
+                    selectedObject.connectors.forEach(function(c){
+                        var cPos = c.position.clone();
+                        c.parent.localToWorld(cPos);
+                        cPos.project(camera);
+                        cPos.x = ( cPos.x * widthHalf ) + widthHalf;
+                        cPos.y = - ( cPos.y * heightHalf ) + heightHalf;
+                        cPos.z = 0;
+                        var closest = checkForConnection(cPos, selectedObject);
+                        if(closest !== null && c.connectedTo !== closest && closest.userData.tempDistSquared < distance){
+                            closestConnector = closest;
+                            distance = closest.userData.tempDistSquared;
+                            thisConnector = c;
+                        }
+                    });
+                    HighlightOverlappedConnector(closestConnector);
+                }
+                mouseMovedSinceMouseDown = true;
+            }
+            
+        });
+        
+        
+        $(renderer.domElement).on('vmouseup', function(event){
+            if(event.originalEvent.originalEvent instanceof MouseEvent){
+                if(event.originalEvent.button == 0){  
+                    if (transformControls.dragging){
+                        DropComponent(new THREE.Vector2(event.clientX, event.clientY));
+                        mouseMovedSinceMouseDown = false;
+                    }
+                    if(draggingConnection){
+                        event.stopImmediatePropagation();
+                        completeConnection(event);
+                    } 
+                }
+                return;
+            } 
+            if (transformControls.dragging){
+                DropComponent(new THREE.Vector2(event.clientX, event.clientY));
+                mouseMovedSinceMouseDown = false;
+            }
+            if(draggingConnection){
+                //event.stopImmediatePropagation();
                 completeConnection(event);
             }
         });
+
+  
         
+        //Create transform controls
+        transformControls = new CustomTransformControls(camera, renderer.domElement,new THREE.Box3(new THREE.Vector3(-5,-2.5,-5), new THREE.Vector3(5,2.5,5)));
+        //Create camera controls
+        cameraControls = new CustomCameraControls(camera, renderer.domElement, new THREE.Box3(new THREE.Vector3(-5,-2.5,-5), new THREE.Vector3(5,2.5,5)), new THREE.Vector3(0,0,0));
+        
+        //Update camera/renderer/palette on window resize
+        $(window).on('resize',function(){
+            onWindowResize();
+        });
+        
+        //Bind keyboard commands
+        bindKeys();
+ 
+        
+    }
+    
+    function bindKeys(){
         $(document).bind('keydown', function(e) {
             if(e.keyCode == 13){ //enter
 		var source = generateModelicaCode();
@@ -1842,151 +2011,10 @@ function Playmola(){
             else if (e.keyCode == 36){ //home
                 camera.position.set(0,0.25,4);
             }
-        });
-        
-        
-        transformControls = new CustomTransformControls(camera, renderer.domElement,new THREE.Box3(new THREE.Vector3(-5,-2.5,-5), new THREE.Vector3(5,2.5,5)));
-       
-        
-        scene = new THREE.Scene();
-        //scene.add(camera);
-        //scene.add(transformControls);
-        foregroundScene = new THREE.Scene();
-        
-        var directionalLight = new THREE.DirectionalLight();
-        directionalLight.position.set(5,10,10);
-        directionalLight.intensity = 0.5;
-        directionalLight.castShadow = true;
-        directionalLight.shadowCameraNear = 5;
-        directionalLight.shadowCameraFar = 30;
-        directionalLight.shadowCameraLeft = -10; 
-        directionalLight.shadowCameraRight = 10;
-        directionalLight.shadowCameraTop = 10;
-        directionalLight.shadowCameraBottom = -10;
-        directionalLight.shadowBias = 0.0003;
-        directionalLight.shadowDarkness = 0.5;
-        directionalLight.shadowMapWidth = 1024;
-        directionalLight.shadowMapHeight = 1024;
-        scene.add(directionalLight);
-        
-        directionalLight = new THREE.DirectionalLight();
-        directionalLight.position.set(5,10,-10);
-        directionalLight.intensity = 0.5;
-        directionalLight.castShadow = false;
-        scene.add(directionalLight);
-        
-        directionalLight = new THREE.DirectionalLight();
-        directionalLight.position.set(1,1,1);
-        directionalLight.intensity = 0.5;
-        directionalLight.castShadow = false;
-        foregroundScene.add(directionalLight);
-
-        
-        scene.add(new THREE.AmbientLight(new THREE.Color(0.1,0.1,0.1)));
-        
-        raycaster = new THREE.Raycaster();
-        mousePos = new THREE.Vector2(-1,-1);
-        
-        window.addEventListener('mousemove', onMouseMove, false);
-        
-//        $(document).on('mousemove', function(event){
-//            onMouseMove(event);
-//        });
-        
-        $(document).on('mouseup', function(event){
-            onMouseUp(event);
-            mouseMovedSinceMouseDown = false;
-        });
-        
-        $(renderer.domElement).on('mousedown', function(event){
-            mouseMovedSinceMouseDown = false;
-            if(event.button == 0 && intersectionTest() === true){
-                event.preventDefault();
-                event.stopImmediatePropagation();
-                event.stopPropagation();
-                return false;
+            else if (e.keyCode == 77){ //m
+                audio.stopMusic();
             }
- 
         });
-        
-        $(renderer.domElement).on('mousemove', function(event){
-            if(!mouseMovedSinceMouseDown && selectedObject && leftMouseDown){
-                HighlightCompatibleConnectors(selectedObject);
-            }
-            if(leftMouseDown && selectedObject){
-                var widthHalf = window.innerWidth / 2;
-                var heightHalf = window.innerHeight / 2;
-
-                var thisConnector = null;
-                var closestConnector = null;
-                var distance = 10000000;
-
-                selectedObject.connectors.forEach(function(c){
-                    var cPos = c.position.clone();
-                    c.parent.localToWorld(cPos);
-                    cPos.project(camera);
-                    cPos.x = ( cPos.x * widthHalf ) + widthHalf;
-                    cPos.y = - ( cPos.y * heightHalf ) + heightHalf;
-                    cPos.z = 0;
-                    var closest = checkForConnection(cPos, selectedObject);
-                    if(closest !== null && c.connectedTo !== closest && closest.userData.tempDistSquared < distance){
-                        closestConnector = closest;
-                        distance = closest.userData.tempDistSquared;
-                        thisConnector = c;
-                    }
-                });
-                HighlightOverlappedConnector(closestConnector);
-            }
-            mouseMovedSinceMouseDown = true;
-        });
-
-        window.addEventListener('resize', onWindowResize, false);
-        
-
-        cameraControls = new CustomCameraControls(camera, renderer.domElement, new THREE.Box3(new THREE.Vector3(-5,-2.5,-5), new THREE.Vector3(5,2.5,5)), new THREE.Vector3(0,0,0));
-        loadDymolaComponent(revoluteJoint);
-//        loadDymolaComponent(prismaticJoint);
-//        loadDymolaComponent(cylindricalJoint);
-
-        
-        
-        
-        //Add some scenery!
-//        var room = new THREE.Mesh(new THREE.BoxGeometry(10,5,10), new THREE.MeshLambertMaterial({color: 0xffffff, side: THREE.DoubleSide }));
-//        room.receiveShadow = true;
-//        room.castShadow = false;
-//        scene.add(room);
-//        var desk = new THREE.Mesh(new THREE.BoxGeometry(1.5,0.5,0.75), new THREE.MeshLambertMaterial({color: 0xccaa22 }));
-//        desk.position.set(0,-2.25,0);
-//        desk.castShadow = true;
-//        desk.receiveShadow = true;
-//        scene.add(desk);
-
-
- 
-        
-        var jsonloader = new THREE.JSONLoader();
-        
-        jsonloader.load( "models/room.json", function(geometry, mat) {
-            var materials = new THREE.MeshFaceMaterial(mat);
-            var room = new THREE.Mesh(geometry, materials );
-            room.receiveShadow = true;
-            room.castShadow = false;
-            scene.add(room);
-        });
-        
-        jsonloader.load("models/desk.json", function(geometry,mat){
-            var desk = new THREE.Mesh(geometry, mat[0]);
-            desk.position.set(0,-1.05,0);
-            desk.castShadow = true;
-            desk.receiveShadow = true;
-            scene.add(desk);
-        }, "models/");
-        
-
-        var pointlight = new THREE.PointLight(0xffffff, 1, 10);
-        pointlight.position.set(0,2,0);
-        scene.add(pointlight);
     }
     
     function initParticleSystem(origin){
@@ -2070,7 +2098,7 @@ function Playmola(){
         return obj;
     }
     
-    //Resets the camera and renderer when the window is resized
+    //Resets the cameras and renderers when the window is resized
     function onWindowResize() {
         camera.aspect = window.innerWidth / window.innerHeight;
         camera.updateProjectionMatrix();
@@ -2087,15 +2115,12 @@ function Playmola(){
     }
     
     
-    function onMouseMove(event) {
-	mousePos.x = ( event.clientX / window.innerWidth ) * 2 - 1;
-	mousePos.y = - ( event.clientY / window.innerHeight ) * 2 + 1;	
-    }
 
     //Returns true if an intersection was found, false otherwise
-    function intersectionTest(){
+    function intersectionTest(mousePos){
         //Only allow selection and deselection if the controls are enabled
         if(!disableControls){
+
             raycaster.setFromCamera(mousePos, camera);
             var intersectionFound = null;
             var distance = 1000000;
@@ -2108,12 +2133,9 @@ function Playmola(){
                     }
                 }
             }
-//            if(intersectionFound !== null && intersectionFound.userData.isConnector === true){
-//                selectObject(intersectFound);
-//                return true;
-//            }
+
             //Check if the intersected  object was a DymolaComponent and check if the intersection was on a connector
-            if(intersectionFound !== null && intersectionFound.type == 'DymolaComponent' || intersectionFound instanceof DymolaComponent){
+            if(!dontCheckConnectors && intersectionFound !== null && (intersectionFound.type == 'DymolaComponent' || intersectionFound instanceof DymolaComponent)){
                 //Loop through the connectors to see if one is intersected
                 var connectorPicked = false;
                 for(var i = 0; i < intersectionFound.connectors.length; i++){
@@ -2126,9 +2148,9 @@ function Playmola(){
                 }
                 if(connectorPicked) return true;
             }
+            dontCheckConnectors = false;
             //Don't reselect the currently selected object
             if(intersectionFound === selectedObject && selectedObject !== null){
-                //transformControls.forceDrag();
                 return true;
             }
             //Deselect the selected object if there is one
@@ -2137,7 +2159,6 @@ function Playmola(){
             //Select the new object
             if(intersectionFound !== null){
                 selectObject(intersectionFound);
-                //transformControls.forceDrag();
                 return true;
             }
             return false;
@@ -2328,7 +2349,6 @@ function Playmola(){
         foregroundConnectors.length = 0;
     }
     
-    var numOfDetailElements = 3;
     function selectObject(object){
         if(selectedObject !== null){
             deselectObject();
@@ -2336,9 +2356,9 @@ function Playmola(){
         selectedObject = object;
         initParticleSystem(object.position);
         transformControls.attach(selectedObject);
-        transformControls.dragging = true;
+//        transformControls.dragging = true;
         
-        
+        //Change the selected object's material so it looked "selected"
         selectedObject.traverse(function(child){
             if(child instanceof THREE.Mesh){
                 if(child.userData.initColor === undefined)
@@ -2346,6 +2366,8 @@ function Playmola(){
                 child.material.color = new THREE.Color(0xB0E2FF);
              }
         });
+        
+        //Set up the parameters panel for this object
         if(selectedObject instanceof DymolaComponent){
             $("#detailsPanel").css({"overflow-y":"auto"});
             $("#detailsPanel").panel("open");
@@ -2443,12 +2465,10 @@ function Playmola(){
     
     var connectorFrom, connectorTo;
     
-    function onMouseUp(event){
+    function DropComponent(dropPos){
         ClearForegroundScene();
-        if(event.button == 0 && selectedObject && mouseMovedSinceMouseDown){
-            
-            
-            
+        if(selectedObject && mouseMovedSinceMouseDown){
+
             var widthHalf = window.innerWidth / 2;
             var heightHalf = window.innerHeight / 2;
 
@@ -2473,10 +2493,6 @@ function Playmola(){
             
 
             if(closestConnector !== null && thisConnector !== null){
-                //Make a new joint, then set up the connections
-//                var connection = new Connection(, closest);
-//                connections.push(connection);
-//                scene.add(connection);
                 if(thisConnector.userData.name == "frame_b"){
                     connectorFrom = thisConnector;
                     connectorTo = closestConnector;
@@ -2484,10 +2500,8 @@ function Playmola(){
                     connectorTo = thisConnector;
                     connectorFrom = closestConnector;
                 }
-                $( "#jointPopup" ).popup('open');
+                $( "#jointPopup" ).popup('open', {x:dropPos.x,y:dropPos.y });
             }
-            
-
         }
     }
     
@@ -2500,7 +2514,13 @@ function Playmola(){
         } else {
             var joint = palette.makeComponent("Joints", jointType);
             if(joint != null){
-                joint.position.set(0,0,0);//CHANGE THIS!!
+                //Position the new joint half way between the two connectors
+                var p1 = connectorFrom.position.clone();
+                connectorFrom.parent.localToWorld(p1);
+                var p2 = connectorTo.position.clone();
+                connectorTo.parent.localToWorld(p2);
+                joint.position.copy(p1.add(p2).multiplyScalar(0.5));
+                
                 var connection1 = new Connection(connectorFrom, joint.frameAConnector);
                 connections.push(connection1);
                 scene.add(connection1);

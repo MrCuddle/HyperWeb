@@ -27,32 +27,62 @@ CustomCameraControls = function ( camera, domElement, bounds, target ) {
     //Might not work for all browsers?
     this.domElement.addEventListener( 'contextmenu', function ( event ) { event.preventDefault(); }, false );
     
-    $(domElement).on('mousedown', function(event){
-        //Right mouse button
-        if(event.button == 2){
-            dragging = true;
-            event.stopImmediatePropagation();
-            event.preventDefault();
-            prevPos = new THREE.Vector2(event.screenX, event.screenY);
-            curPos = new THREE.Vector2(event.screenX, event.screenY);
-        }
+    $(domElement).on('vmousedown', function(event){
+        if(event.originalEvent.originalEvent instanceof MouseEvent){
+            if(event.originalEvent.button == 2){  
+                event.stopImmediatePropagation();
+                event.preventDefault();
+            } else {
+                return;
+            }
+        } 
+        StartDrag(event);
     });
     
-    $(domElement).on('mousemove', function(event){
+    $(domElement).on('vmousemove', function(event){
         if(dragging){
             curPos = new THREE.Vector2(event.screenX, event.screenY);
         }
     });
     
-    $(domElement).on('mouseup', function(event){
-        //Right mouse button
-        if(event.button == 2 && dragging){
-            dragging = false;
-            event.stopImmediatePropagation();
-            event.stopPropagation();
-            event.preventDefault();
+    $(domElement).on('vmouseup', function(event){
+        if(event.originalEvent.originalEvent instanceof MouseEvent){
+            if(event.originalEvent.button == 2 && dragging){
+                event.stopImmediatePropagation();
+                event.stopPropagation();
+                event.preventDefault();
+            } else {
+                return;
+            }
         }
+        dragging = false;
     });
+    
+    
+//    $(domElement).on('mousedown', function(event){
+//        //Right mouse button
+//        if(event.button == 2){  
+//            event.stopImmediatePropagation();
+//            event.preventDefault();
+//            StartDrag(event);
+//        }
+//    });
+    
+//    $(domElement).on('mousemove', function(event){
+//        if(dragging){
+//            curPos = new THREE.Vector2(event.screenX, event.screenY);
+//        }
+//    });
+//    
+//    $(domElement).on('mouseup', function(event){
+//        //Right mouse button
+//        if(event.button == 2 && dragging){
+//            dragging = false;
+//            event.stopImmediatePropagation();
+//            event.stopPropagation();
+//            event.preventDefault();
+//        }
+//    });
     
     
     
@@ -70,6 +100,12 @@ CustomCameraControls = function ( camera, domElement, bounds, target ) {
         camera.position.clamp(self.bounds.min, self.bounds.max);
         
     });
+    
+    function StartDrag(event){
+        dragging = true;
+        prevPos = new THREE.Vector2(event.screenX, event.screenY);
+        curPos = new THREE.Vector2(event.screenX, event.screenY);
+    }
 
     this.update = function(){
         

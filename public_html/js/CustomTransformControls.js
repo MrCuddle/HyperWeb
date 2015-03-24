@@ -19,18 +19,19 @@ CustomTransformControls = function(camera, domElement, bounds){
         target = null;
     }
     
-    $(domElement).on('mousedown', function(event){
-        //Left mouse button
-        if(event.button == 0 && target !== null){
-            //Check if the target was clicked...
+    $(domElement).on('vmousedown', function(event){
+        if(event.originalEvent.originalEvent instanceof MouseEvent){
+            if(event.originalEvent.button != 0){  
+                return;
+            }
+        }
+        if(target !== null){
             var pointer = new THREE.Vector2(( event.clientX / domElement.getBoundingClientRect().width ) * 2 - 1, - ( event.clientY / domElement.getBoundingClientRect().height ) * 2 + 1);	
             
             raycaster.setFromCamera(pointer, camera);
 
             var intersect = raycaster.intersectObject(target,true);
-            if(intersect.length > 0){
-                //object was clicked
-                
+            if(intersect.length > 0){ //object was clicked
                 
                 lookAt = new THREE.Vector3(0,0, -1).applyQuaternion(camera.quaternion);
                 raycaster.setFromCamera(new THREE.Vector2(( event.clientX / domElement.getBoundingClientRect().width ) * 2 - 1, - ( event.clientY / domElement.getBoundingClientRect().height ) * 2 + 1), camera);
@@ -38,32 +39,77 @@ CustomTransformControls = function(camera, domElement, bounds){
                 projPlane.intersectLine(new THREE.Line3(camera.position, camera.position.clone().add(raycaster.ray.direction.clone().multiplyScalar(100.0))),newPos);
             
                 self.dragging = true;
-                //event.stopImmediatePropagation();
+                event.stopImmediatePropagation();
             }
-
         }
     });
     
-    $(domElement).on('mousemove', function(event){
+//    $(domElement).on('mousedown', function(event){
+//        //Left mouse button
+//        if(event.button == 0 && target !== null){
+//            //Check if the target was clicked...
+//            var pointer = new THREE.Vector2(( event.clientX / domElement.getBoundingClientRect().width ) * 2 - 1, - ( event.clientY / domElement.getBoundingClientRect().height ) * 2 + 1);	
+//            
+//            raycaster.setFromCamera(pointer, camera);
+//
+//            var intersect = raycaster.intersectObject(target,true);
+//            if(intersect.length > 0){
+//                //object was clicked
+//                
+//                
+//                lookAt = new THREE.Vector3(0,0, -1).applyQuaternion(camera.quaternion);
+//                raycaster.setFromCamera(new THREE.Vector2(( event.clientX / domElement.getBoundingClientRect().width ) * 2 - 1, - ( event.clientY / domElement.getBoundingClientRect().height ) * 2 + 1), camera);
+//                projPlane = new THREE.Plane().setFromNormalAndCoplanarPoint(lookAt,target.position);
+//                projPlane.intersectLine(new THREE.Line3(camera.position, camera.position.clone().add(raycaster.ray.direction.clone().multiplyScalar(100.0))),newPos);
+//            
+//                self.dragging = true;
+//                //event.stopImmediatePropagation();
+//            }
+//
+//        }
+//    });
+    
+    $(domElement).on('vmousemove', function(event){
         if(self.dragging){
             moved = true;
             lookAt = new THREE.Vector3(0,0, -1).applyQuaternion(camera.quaternion);
             raycaster.setFromCamera(new THREE.Vector2(( event.clientX / domElement.getBoundingClientRect().width ) * 2 - 1, - ( event.clientY / domElement.getBoundingClientRect().height ) * 2 + 1), camera);
             projPlane = new THREE.Plane().setFromNormalAndCoplanarPoint(lookAt,target.position);
             projPlane.intersectLine(new THREE.Line3(camera.position, camera.position.clone().add(raycaster.ray.direction.clone().multiplyScalar(100.0))),newPos);
-               
         }
     });
     
-    $(domElement).on('mouseup', function(event){
-        //Left mouse button
-        if(event.button == 0 && self.dragging){
+//    $(domElement).on('mousemove', function(event){
+//        if(self.dragging){
+//            moved = true;
+//            lookAt = new THREE.Vector3(0,0, -1).applyQuaternion(camera.quaternion);
+//            raycaster.setFromCamera(new THREE.Vector2(( event.clientX / domElement.getBoundingClientRect().width ) * 2 - 1, - ( event.clientY / domElement.getBoundingClientRect().height ) * 2 + 1), camera);
+//            projPlane = new THREE.Plane().setFromNormalAndCoplanarPoint(lookAt,target.position);
+//            projPlane.intersectLine(new THREE.Line3(camera.position, camera.position.clone().add(raycaster.ray.direction.clone().multiplyScalar(100.0))),newPos);
+//               
+//        }
+//    });
+
+    $(domElement).on('vmouseup', function(event){
+        if(event.originalEvent.originalEvent instanceof MouseEvent){
+            if(event.originalEvent.button != 0){  
+                return;
+            }
+        }
+        if(self.dragging){
             self.dragging = false;
             moved = false;
-//            event.stopImmediatePropagation();
-//            event.preventDefault();
+            //event.stopImmediatePropagation();
         }
     });
+    
+//    $(domElement).on('mouseup', function(event){
+//        //Left mouse button
+//        if(event.button == 0 && self.dragging){
+//            self.dragging = false;
+//            moved = false;
+//        }
+//    });
     
     function init(){
         //perform initialization here
