@@ -778,6 +778,7 @@ function Playmola(){
                     componentParam["fullTypeName"] = dymolaInterface.callDymolaFunction("Dymola_AST_ComponentFullTypeName", params);
                     componentParam["description"] = dymolaInterface.callDymolaFunction("Dymola_AST_ComponentDescription",params);
                     componentParam["changed"] = false;
+                    componentParam.toSimulate = true;
                     if(componentParam.name === "StartAngle")
                         componentParam.callback = function(angle){
                             if(!isNaN(angle))
@@ -854,6 +855,7 @@ function Playmola(){
                     componentParam["fullTypeName"] = dymolaInterface.callDymolaFunction("Dymola_AST_ComponentFullTypeName", params);
                     componentParam["description"] = dymolaInterface.callDymolaFunction("Dymola_AST_ComponentDescription",params);
                     componentParam["changed"] = false;
+                    componentParam.toSimulate = true;
                     if(componentParam.name === "StartTranslation")
                         componentParam.callback = function(translation){
                             if(!isNaN(angle))
@@ -930,6 +932,7 @@ function Playmola(){
                     componentParam["fullTypeName"] = dymolaInterface.callDymolaFunction("Dymola_AST_ComponentFullTypeName", params);
                     componentParam["description"] = dymolaInterface.callDymolaFunction("Dymola_AST_ComponentDescription",params);
                     componentParam["changed"] = false;
+                    componentParam.toSimulate = true;
                     if(componentParam.name === "radius")
                         componentParam.callback = function(radius){
                             if(!isNaN(radius))
@@ -1000,6 +1003,7 @@ function Playmola(){
                     componentParam["fullTypeName"] = dymolaInterface.callDymolaFunction("Dymola_AST_ComponentFullTypeName", params);
                     componentParam["description"] = dymolaInterface.callDymolaFunction("Dymola_AST_ComponentDescription",params);
                     componentParam["changed"] = false;
+                    componentParam.toSimulate = true;
                     if(componentParam.name === "r")
                         componentParam.callback = function(vector){
                             var xyz = vector.toString().replace("{","").replace("}","").split(",");
