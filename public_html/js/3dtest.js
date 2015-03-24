@@ -657,6 +657,7 @@ function Playmola(){
                     componentParam["fullTypeName"] = dymolaInterface.callDymolaFunction("Dymola_AST_ComponentFullTypeName", params);
                     componentParam["description"] = dymolaInterface.callDymolaFunction("Dymola_AST_ComponentDescription",params);
                     componentParam["changed"] = false;
+                    componentParam.toSimulate = true;
                      if(componentParam.name === "length")
                         componentParam.callback = function(val){
                             if(!isNaN(val)){
@@ -1143,6 +1144,7 @@ function Playmola(){
                     componentParam["fullTypeName"] = classToLoad.components[j].fullTypeName;
                     componentParam["description"] = classToLoad.components[j].description;
                     componentParam["changed"] = false;
+                    componentParam.toSimulate = true;
                     componentParam.currentValue = classToLoad.components[j].defaultvalue;
                     obj2.parameters.push(componentParam);
                 }
@@ -1224,10 +1226,7 @@ function Playmola(){
         scope.loadRollingWheelJoint();
         scope.loadFixedRotation();
         scope.addClass("Modelica.Mechanics.MultiBody.World", "World");
-//        scope.addPackage("Playmola.UserComponents", "Custom Components");
-        //scope.loadDymolaCylinder();
-        //scope.addPackage("Modelica.Mechanics.MultiBody.Parts", "DymolaParts");
-        //scope.addPackage("Modelica.Mechanics.MultiBody.Joints", "Joints");
+        scope.addPackage("Playmola.UserComponents", "Custom Components");
 
         
         //scope.addClass("Modelica.Mechanics.MultiBody.World", "World");
@@ -1987,7 +1986,19 @@ function Playmola(){
                 
             }
             else if (e.keyCode == 46){ //delete
-                if(selectedObject !== null){
+                deleteSelectedObject();
+            }
+            else if (e.keyCode == 36){ //home
+                camera.position.set(0,0.25,4);
+            }
+            else if (e.keyCode == 77){ //m
+                audio.stopMusic();
+            }
+        });
+    }
+    
+    function deleteSelectedObject(){
+                        if(selectedObject !== null){
 
                     for(var i = 0; i < connections.length; i++){
                         if(connections[i].connectorA.getParent() === selectedObject || connections[i].connectorB.getParent() === selectedObject){
@@ -2007,14 +2018,6 @@ function Playmola(){
                     deselectObject();
                     
                 }
-            }
-            else if (e.keyCode == 36){ //home
-                camera.position.set(0,0.25,4);
-            }
-            else if (e.keyCode == 77){ //m
-                audio.stopMusic();
-            }
-        });
     }
     
     function initParticleSystem(origin){
@@ -2354,7 +2357,7 @@ function Playmola(){
             deselectObject();
         }
         selectedObject = object;
-        initParticleSystem(object.position);
+        //initParticleSystem(object.position);
         transformControls.attach(selectedObject);
 //        transformControls.dragging = true;
         
@@ -2371,6 +2374,11 @@ function Playmola(){
         if(selectedObject instanceof DymolaComponent){
             $("#detailsPanel").css({"overflow-y":"auto"});
             $("#detailsPanel").panel("open");
+            $("#parameters").append("<button id='delete_button' style='margin-bottom:30px'>Delete</button>");
+            $("#delete_button").on('click', function(){
+                $("#detailsPanel").panel("close");
+                deleteSelectedObject();
+            })
             for(var i = 0; i < selectedObject.parameters.length; i++){
                 generateNewDetailsForm(selectedObject.parameters[i]);
             }
@@ -2459,7 +2467,7 @@ function Playmola(){
             });
             transformControls.detach(selectedObject);
             selectedObject = null;
-            shutdownParticleSystem();
+            //shutdownParticleSystem();
         }
     } 
     
