@@ -46,6 +46,8 @@ function Playmola(){
     
     var audio;
     
+    var particleGroup = null;
+    
 //Ljudexempel   
 //    var song = document.getElementById("havanaAffair");
 //    song.src = "Audio/07 Havana Affair.mp3";
@@ -1095,11 +1097,11 @@ function Playmola(){
         scope.loadParts();
         scope.loadDymolaBox();
         scope.loadRevoluteJoint();
-        scope.loadPrismaticJoint();
-        scope.loadRollingWheelJoint();
-        scope.loadFixedRotation();
-        scope.addClass("Modelica.Mechanics.MultiBody.World", "World");
-        scope.addPackage("Playmola.UserComponents", "Custom Components");
+//        scope.loadPrismaticJoint();
+//        scope.loadRollingWheelJoint();
+//        scope.loadFixedRotation();
+//        scope.addClass("Modelica.Mechanics.MultiBody.World", "World");
+//        scope.addPackage("Playmola.UserComponents", "Custom Components");
         //scope.loadDymolaCylinder();
         //scope.addPackage("Modelica.Mechanics.MultiBody.Parts", "DymolaParts");
         //scope.addPackage("Modelica.Mechanics.MultiBody.Joints", "Joints");
@@ -1767,8 +1769,48 @@ function Playmola(){
         var pointlight = new THREE.PointLight(0xffffff, 1, 10);
         pointlight.position.set(0,2,0);
         scene.add(pointlight);
-
     }
+    
+    function initParticleSystem(origin){
+        if(particleGroup)
+            scene.remove(particleGroup.mesh);
+        particleGroup = new SPE.Group({
+                texture : THREE.ImageUtils.loadTexture('particle.png'),
+                transparent : false,
+                depthWrite : true,
+                maxAge: 2
+        });
+
+        var emitter = new SPE.Emitter({
+                position: origin,
+                positionSpread: new THREE.Vector3( 0, 0, 0 ),
+
+                acceleration: new THREE.Vector3(0, -1, 0),
+                accelerationSpread: new THREE.Vector3( 1, 0, 1 ),
+
+                velocity: new THREE.Vector3(0, 1, 0),
+                velocitySpread: new THREE.Vector3(1, .5, 1),
+
+                colorStart: new THREE.Color('white'),
+                colorEnd: new THREE.Color('red'),
+
+                sizeStart: 0.1,
+                sizeEnd: 0.02,
+
+                particleCount: 100
+        });
+
+        particleGroup.addEmitter( emitter );
+        scene.add( particleGroup.mesh );
+        audio.playWelding();
+    }
+    
+    function shutdownParticleSystem(){
+        scene.remove(particleGroup.mesh);
+        particleGroup = null;
+        audio.stopWelding();
+    }
+    
     
     
     function loadModel(object, centerOfMass, connectionPoints){
@@ -1986,6 +2028,7 @@ function Playmola(){
             deselectObject();
         }
         selectedObject = object;
+        initParticleSystem(object.position);
         transformControls.attach(selectedObject);
         transformControls.dragging = true;
         
@@ -2083,6 +2126,7 @@ function Playmola(){
             });
             transformControls.detach(selectedObject);
             selectedObject = null;
+            shutdownParticleSystem();
         }
     } 
     
@@ -2284,6 +2328,7 @@ function Playmola(){
         connections.forEach(function(c){
             c.update();
         });
+        
         requestAnimationFrame(render);
     }
     
@@ -2314,6 +2359,8 @@ function Playmola(){
     
     function render(){
         renderer.clear();
+        if(particleGroup)
+            particleGroup.tick();
         renderer.render(scene,camera);
         renderer.clearDepth();
         renderer.render(foregroundScene, camera);

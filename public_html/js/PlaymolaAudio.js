@@ -58,6 +58,7 @@ PlaymolaAudio = function(){
   var audioCtx = new AudioContext();
   var bufferLoader;
   var currentBufferList;
+  var weldSound;
   var self = this;
   
     this.finishedLoading = function(bufferList){
@@ -67,7 +68,8 @@ PlaymolaAudio = function(){
   
   bufferLoader = new BufferLoader(
           audioCtx, ['Sound/clickity.wav',
-                     'Sound/chillaxin.mp3'
+                     'Sound/chillaxin.mp3',
+                     'Sound/weld.mp3'
           ], this.finishedLoading);
   bufferLoader.load();
   
@@ -77,6 +79,17 @@ PlaymolaAudio = function(){
       clickSound.connect(audioCtx.destination);
       clickSound.start(0);
   };
+  
+  this.playWelding = function(){
+      weldSound = audioCtx.createBufferSource();
+      weldSound.buffer = currentBufferList[2];
+      weldSound.connect(audioCtx.destination);
+      weldSound.start(0);
+  }
+  
+  this.stopWelding = function(){
+      weldSound.stop(0);
+  }
   
   this.stopMusic = function(){
       self.currentTrack.onended = null;
