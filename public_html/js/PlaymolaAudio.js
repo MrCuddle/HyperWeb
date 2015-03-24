@@ -63,7 +63,7 @@ PlaymolaAudio = function(){
   
     this.finishedLoading = function(bufferList){
       currentBufferList = bufferList;
-      self.playTheme();
+      //self.playTheme();
   };
   
   bufferLoader = new BufferLoader(
