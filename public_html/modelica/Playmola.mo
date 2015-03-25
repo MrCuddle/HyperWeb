@@ -50,10 +50,7 @@ package Playmola
 
   package UserComponents
   end UserComponents;
-  annotation (
-    uses(Modelica(version="3.2.1"), ModelManagement(version="1.1.3")),
-    version="1",
-    conversion(noneFromVersion=""));
+
   model SimpleBodyBox
     extends Modelica.Mechanics.MultiBody.Parts.BodyBox(r = _r, r_shape = _r_shape, lengthDirection = _lengthDirection, length = _length, width = _width, height = _height, density = _density);
 
@@ -80,4 +77,14 @@ package Playmola
   equation
 
   end SimpleBodyCylinder;
+  annotation (
+    uses(Modelica(version="3.2.1"), ModelManagement(version="1.1.3")),
+    version="1",
+    conversion(noneFromVersion=""));
+  model SimpleWorld
+    extends Modelica.Mechanics.MultiBody.World(g = _Gravity, n = _DirectionOfGravity);
+    parameter Modelica.SIunits.Acceleration _Gravity=9.81;
+    parameter Modelica.Mechanics.MultiBody.Types.Axis _DirectionOfGravity={0,-1,0};
+
+  end SimpleWorld;
 end Playmola;

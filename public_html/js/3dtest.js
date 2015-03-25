@@ -1064,7 +1064,7 @@ function Playmola(){
         };
         
         
-        this.addClass = function(classname, category){
+        this.addClass = function(classname, category, removeFirst){
             if(categories[category] === undefined){
                 scope.addCategory(category);
             }
@@ -1089,10 +1089,13 @@ function Playmola(){
                 if(dymolaInterface.callDymolaFunction("Dymola_AST_ComponentVariability", params) === "parameter"){
                     var componentParam = [];
                     componentParam["name"] = componentsInClass[j];
+                    if(removeFirst)
+                        componentParam.name = componentParam.name.substring(1);
                     componentParam["sizes"] = dymolaInterface.callDymolaFunction("Dymola_AST_ComponentSizes",params);
                     componentParam["fullTypeName"] = dymolaInterface.callDymolaFunction("Dymola_AST_ComponentFullTypeName", params);
                     componentParam["description"] = dymolaInterface.callDymolaFunction("Dymola_AST_ComponentDescription",params);
                     componentParam["changed"] = false;
+                    componentParam.toSimulate = true;
                     obj2.parameters.push(componentParam);
                 }
             }
@@ -1228,7 +1231,7 @@ function Playmola(){
         };
         
 
-        scope.addClass("Modelica.Mechanics.MultiBody.World", "World");
+        scope.addClass("Playmola.SimpleWorld", "World");
         scope.loadParts();
         scope.loadDymolaBox();
         scope.loadDymolaCylinder();
@@ -1975,7 +1978,7 @@ function Playmola(){
             })
         });
         
-        var world = palette.makeComponent("World","Modelica.Mechanics.MultiBody.World");
+        world = palette.makeComponent("World","Playmola.SimpleWorld");
         world.position.set(-2,0,0); 
     }
     
@@ -2411,7 +2414,7 @@ function Playmola(){
             deselectObject();
         }
         selectedObject = object;
-        //initParticleSystem(object.position);
+        initParticleSystem(object.position);
         transformControls.attach(selectedObject);
 //        transformControls.dragging = true;
         
@@ -2523,7 +2526,7 @@ function Playmola(){
             });
             transformControls.detach(selectedObject);
             selectedObject = null;
-            //shutdownParticleSystem();
+            shutdownParticleSystem();
         }
     } 
     
