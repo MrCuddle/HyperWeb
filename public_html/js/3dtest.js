@@ -532,7 +532,7 @@ function Playmola(){
             if(categories["Bodies"] === undefined){
                 scope.addCategory("Bodies");
             }
-            var bodyBoxClassName = "Modelica.Mechanics.MultiBody.Parts.BodyBox";
+            var bodyBoxClassName = "Playmola.SimpleBodyBox";
             var dymBox = new DymolaBox(0.5,0.5,0.5);
             var componentsInClass = dymolaInterface.Dymola_AST_ComponentsInClass(bodyBoxClassName);
             for(var i = 0; i < componentsInClass.length; i++){
@@ -542,6 +542,7 @@ function Playmola(){
                 if(dymolaInterface.callDymolaFunction("Dymola_AST_ComponentVariability", params) === "parameter"){
                     var componentParam = [];
                     componentParam["name"] = componentsInClass[i];
+                    componentParam.name = componentParam.name.substring(1);
                     componentParam["sizes"] = dymolaInterface.callDymolaFunction("Dymola_AST_ComponentSizes",params);
                     componentParam["fullTypeName"] = dymolaInterface.callDymolaFunction("Dymola_AST_ComponentFullTypeName", params);
                     componentParam["description"] = dymolaInterface.callDymolaFunction("Dymola_AST_ComponentDescription",params);
@@ -648,7 +649,7 @@ function Playmola(){
             if(categories["Bodies"] === undefined){
                 scope.addCategory("Bodies");
             }
-            var bodyCylinderClassName = "Modelica.Mechanics.MultiBody.Parts.BodyCylinder";
+            var bodyCylinderClassName = "Playmola.SimpleBodyCylinder";
             var dymCyl = new DymolaCylinder();
             var componentsInClass = dymolaInterface.Dymola_AST_ComponentsInClass(bodyCylinderClassName);
             for(var i = 0; i < componentsInClass.length; i++){
@@ -658,6 +659,7 @@ function Playmola(){
                 if(dymolaInterface.callDymolaFunction("Dymola_AST_ComponentVariability", params) === "parameter"){
                     var componentParam = [];
                     componentParam["name"] = componentsInClass[i];
+                    componentParam.name = componentParam.name.substring(1);
                     componentParam["sizes"] = dymolaInterface.callDymolaFunction("Dymola_AST_ComponentSizes",params);
                     componentParam["fullTypeName"] = dymolaInterface.callDymolaFunction("Dymola_AST_ComponentFullTypeName", params);
                     componentParam["description"] = dymolaInterface.callDymolaFunction("Dymola_AST_ComponentDescription",params);
@@ -1972,6 +1974,9 @@ function Playmola(){
                 j.currentFrame = 0;
             })
         });
+        
+        var world = palette.makeComponent("World","Modelica.Mechanics.MultiBody.World");
+        world.position.set(-2,0,0); 
     }
     
     function bindKeys(){
@@ -2047,7 +2052,7 @@ function Playmola(){
     }
     
     function deleteSelectedObject(){
-                        if(selectedObject !== null){
+                        if(selectedObject !== null && selectedObject.name !== "world"){
 
                     for(var i = 0; i < connections.length; i++){
                         if(connections[i].connectorA.getParent() === selectedObject || connections[i].connectorB.getParent() === selectedObject){
