@@ -34,7 +34,7 @@ package Playmola
   end Class;
 
   model SimpleRevoluteJoint
-    extends Modelica.Mechanics.MultiBody.Joints.Revolute(phi(start = StartAngle), n = AxisOfRotation);
+    extends Modelica.Mechanics.MultiBody.Joints.Revolute(phi(start = StartAngle), n = AxisOfRotation, useAxisFlange=true);
 
     parameter Modelica.SIunits.Angle StartAngle = 0;
     parameter Modelica.Mechanics.MultiBody.Types.Axis AxisOfRotation = {0,0,1};
@@ -54,4 +54,11 @@ package Playmola
     uses(Modelica(version="3.2.1"), ModelManagement(version="1.1.3")),
     version="1",
     conversion(noneFromVersion=""));
+  model SimpleInertia
+     extends Modelica.Mechanics.Rotational.Components.Inertia(J=MomentOfIntertia,w(start=StartAngularVelocity));
+
+      parameter Modelica.SIunits.Inertia MomentOfIntertia = 1;
+      parameter Modelica.SIunits.AngularVelocity StartAngularVelocity = 0;
+
+  end SimpleInertia;
 end Playmola;
