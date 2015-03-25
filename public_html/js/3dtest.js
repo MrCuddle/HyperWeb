@@ -1299,7 +1299,9 @@ function Playmola(){
         
 
         scope.addClass("Playmola.SimpleWorld", "World");
-        scope.loadParts();
+        scope.loadBushing();
+        scope.addClass("Playmola.SimpleInertia", "Parts");
+        //scope.loadParts();
         scope.loadDymolaBox();
         scope.loadDymolaCylinder();
         scope.loadRevoluteJoint();
