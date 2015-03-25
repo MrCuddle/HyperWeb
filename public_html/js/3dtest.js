@@ -46,6 +46,7 @@ function Playmola(){
 
     var disableControls = false;
     var schematicMode = true;
+    var simulationMode = false;
     
     var palette; //palette of 3D models to add to the scene
     var dymolaInterface;
@@ -55,6 +56,8 @@ function Playmola(){
     var audio;
     
     var particleGroup = null;
+    
+    var playAnimation = false;
 
 
     function generateModelicaCode() { 
@@ -153,6 +156,8 @@ function Playmola(){
             if(bounds.containsPoint(pointer)){
                 if(hoverTileX != -1){
                     var newComponent = cloneAndScaleComponent(categories[selectedCategory][hoverTileX + hoverTileY * tilesX]);
+                    if(simulationMode)
+                        leaveSimulationMode();
                     
                     raycaster.setFromCamera(new THREE.Vector2(( event.clientX / domElement.getBoundingClientRect().width ) * 2 - 1, - ( event.clientY / domElement.getBoundingClientRect().height ) * 2 + 1), camera);
                     var projPlane = new THREE.Plane().setFromNormalAndCoplanarPoint(new THREE.Vector3(0,0, -1).applyQuaternion(camera.quaternion),new THREE.Vector3());
@@ -528,7 +533,7 @@ function Playmola(){
             if(categories["Bodies"] === undefined){
                 scope.addCategory("Bodies");
             }
-            var bodyBoxClassName = "Modelica.Mechanics.MultiBody.Parts.BodyBox";
+            var bodyBoxClassName = "Playmola.SimpleBodyBox";
             var dymBox = new DymolaBox(0.5,0.5,0.5);
             var componentsInClass = dymolaInterface.Dymola_AST_ComponentsInClass(bodyBoxClassName);
             for(var i = 0; i < componentsInClass.length; i++){
@@ -538,6 +543,7 @@ function Playmola(){
                 if(dymolaInterface.callDymolaFunction("Dymola_AST_ComponentVariability", params) === "parameter"){
                     var componentParam = [];
                     componentParam["name"] = componentsInClass[i];
+                    componentParam.name = componentParam.name.substring(1);
                     componentParam["sizes"] = dymolaInterface.callDymolaFunction("Dymola_AST_ComponentSizes",params);
                     componentParam["fullTypeName"] = dymolaInterface.callDymolaFunction("Dymola_AST_ComponentFullTypeName", params);
                     componentParam["description"] = dymolaInterface.callDymolaFunction("Dymola_AST_ComponentDescription",params);
@@ -644,7 +650,7 @@ function Playmola(){
             if(categories["Bodies"] === undefined){
                 scope.addCategory("Bodies");
             }
-            var bodyCylinderClassName = "Modelica.Mechanics.MultiBody.Parts.BodyCylinder";
+            var bodyCylinderClassName = "Playmola.SimpleBodyCylinder";
             var dymCyl = new DymolaCylinder();
             var componentsInClass = dymolaInterface.Dymola_AST_ComponentsInClass(bodyCylinderClassName);
             for(var i = 0; i < componentsInClass.length; i++){
@@ -654,6 +660,7 @@ function Playmola(){
                 if(dymolaInterface.callDymolaFunction("Dymola_AST_ComponentVariability", params) === "parameter"){
                     var componentParam = [];
                     componentParam["name"] = componentsInClass[i];
+                    componentParam.name = componentParam.name.substring(1);
                     componentParam["sizes"] = dymolaInterface.callDymolaFunction("Dymola_AST_ComponentSizes",params);
                     componentParam["fullTypeName"] = dymolaInterface.callDymolaFunction("Dymola_AST_ComponentFullTypeName", params);
                     componentParam["description"] = dymolaInterface.callDymolaFunction("Dymola_AST_ComponentDescription",params);
@@ -859,7 +866,7 @@ function Playmola(){
                     componentParam.toSimulate = true;
                     if(componentParam.name === "StartTranslation")
                         componentParam.callback = function(translation){
-                            if(!isNaN(angle))
+                            if(!isNaN(translation))
                                 this.translation = translation;
                         };
                     if(componentParam.name === "AxisOfTranslation")
@@ -1123,7 +1130,7 @@ function Playmola(){
         };
         
         
-        this.addClass = function(classname, category){
+        this.addClass = function(classname, category, removeFirst){
             if(categories[category] === undefined){
                 scope.addCategory(category);
             }
@@ -1148,11 +1155,14 @@ function Playmola(){
                 if(dymolaInterface.callDymolaFunction("Dymola_AST_ComponentVariability", params) === "parameter"){
                     var componentParam = [];
                     componentParam["name"] = componentsInClass[j];
+                    if(removeFirst)
+                        componentParam.name = componentParam.name.substring(1);
                     componentParam["sizes"] = dymolaInterface.callDymolaFunction("Dymola_AST_ComponentSizes",params);
                     componentParam["fullTypeName"] = dymolaInterface.callDymolaFunction("Dymola_AST_ComponentFullTypeName", params);
                     componentParam["description"] = dymolaInterface.callDymolaFunction("Dymola_AST_ComponentDescription",params);
                     componentParam["changed"] = false;
                     componentParam["toSimulate"] = true;
+
                     obj2.parameters.push(componentParam);
                 }
             }
@@ -1216,7 +1226,7 @@ function Playmola(){
                     componentParam["description"] = classToLoad.components[j].description;
                     componentParam["changed"] = false;
                     componentParam.toSimulate = true;
-                    componentParam.currentValue = classToLoad.components[j].defaultvalue;
+                    componentParam.currentValue = classToLoad.components[j].defaultValue;
                     obj2.parameters.push(componentParam);
                 }
             }
@@ -1269,7 +1279,7 @@ function Playmola(){
                             var indexOfEquals = classes[i].defaultValues[j].indexOf('=');
                             var indexOfSemicolon = classes[i].defaultValues[j].indexOf(')', indexOfEquals);
                             var defaultValue = classes[i].defaultValues[j].substring(indexOfEquals+1, indexOfSemicolon);
-                            classes[i].components[j].defaultvalue = defaultValue;
+                            classes[i].components[j].defaultValue = defaultValue;
                         }
                     }
                     scope.addPreloadedClass(classes[i], category);
@@ -1288,7 +1298,7 @@ function Playmola(){
         };
         
 
-
+        scope.addClass("Playmola.SimpleWorld", "World");
         scope.loadParts();
         scope.loadDymolaBox();
         scope.loadDymolaCylinder();
@@ -1296,9 +1306,6 @@ function Playmola(){
         scope.loadPrismaticJoint();
         scope.loadRollingWheelJoint();
         scope.loadFixedRotation();
-        scope.loadBushing();
-        scope.addClass("Modelica.Mechanics.MultiBody.World", "World");
-        scope.addClass("Playmola.SimpleInertia", "Parts");
         scope.addPackage("Playmola.UserComponents", "Custom Components");
 
         
@@ -1450,6 +1457,7 @@ function Playmola(){
         this.axis = new THREE.Vector3(0,0,1);
         this.type = "RevoluteJoint";
         this.animatePhi = null;
+        this.currentFrame = 0;
         
         this.clone = function(){
             var newRevolute = new RevoluteJoint();
@@ -1481,8 +1489,10 @@ function Playmola(){
         
         this.enforceConstraint = function(){
             //Animate rotation
-            if(this.animatePhi !== null && this.animatePhi.length > 0){
-                this.phi = this.animatePhi.shift();
+            if(this.animatePhi !== null && this.currentFrame < this.animatePhi.length){
+                this.phi = this.animatePhi[this.currentFrame];
+                if(playAnimation)
+                    this.currentFrame++;
             }
             this.frameBConnector.actualOrientation.setFromAxisAngle(this.axis,this.phi);
         };
@@ -1499,6 +1509,7 @@ function Playmola(){
         this.axis = new THREE.Vector3(1,0,0);
         this.type = "PrismaticJoint";
         this.animateTranslation = null;
+        this.currentFrame = 0;
         
         this.clone = function(){
             var newPrismatic = new PrismaticJoint();
@@ -1530,8 +1541,10 @@ function Playmola(){
         
         this.enforceConstraint = function(){
             //Animate translation
-            if(this.animateTranslation !== null && this.animateTranslation.length > 0){
-                this.translation = this.animateTranslation.shift();
+            if(this.animateTranslation !== null && this.currentFrame < this.animateTranslation.length){
+                this.translation = this.animateTranslation[this.currentFrame];
+                if(playAnimation)
+                    this.currentFrame++;
             }
             this.frameBConnector.actualPosition.copy(this.axis.clone().multiplyScalar(this.translation));
         };
@@ -1549,6 +1562,7 @@ function Playmola(){
         this.type = "RollingWheelJoint";
         this.animateTranslation = null;
         this.animatePhi = null;
+        this.currentFrame = 0;
         
         this.clone = function(){
             var newRollingWheel = new RollingWheelJoint();
@@ -1581,8 +1595,10 @@ function Playmola(){
                 this.translation = this.animateTranslation.shift();
             }
             //Animate rotation
-            if(this.animatePhi !== null && this.animatePhi.length > 0){
-                this.phi = this.animatePhi.shift();
+            if(this.animatePhi !== null && this.currentFrame < this.animatePhi.length){
+                this.phi = this.animatePhi[this.currentFrame];
+                if(playAnimation)
+                    this.currentFrame++;
             }
             this.frameBConnector.actualOrientation.setFromAxisAngle(new THREE.Vector3(0,0,1),this.phi);
             this.frameBConnector.actualPosition.set(this.translation,this.radius,0);
@@ -1847,9 +1863,6 @@ function Playmola(){
     
     function init(){
         
-        
-        
-        
         try{
             dymolaInterface = new DymolaInterface();
             if(!dymolaInterface.isDymolaRunning()){
@@ -2060,49 +2073,32 @@ function Playmola(){
             onWindowResize();
         });
         
+        $("#button_simulate").on('click', trySimulation);
+        
         //Bind keyboard commands
         bindKeys();
  
+        $("#button_play_simulation").on('click', function(){
+            playAnimation = true;
+        });
+        $("#button_stop_simulation").on('click', function(){
+            playAnimation = false;
+            
+        });
+        $("#button_rewind_simulation").on('click', function(){
+            joints.forEach(function(j){
+                j.currentFrame = 0;
+            })
+        });
         
+        world = palette.makeComponent("World","Playmola.SimpleWorld");
+        world.position.set(-2,0,0); 
     }
     
     function bindKeys(){
         $(document).bind('keydown', function(e) {
             if(e.keyCode == 13){ //enter
-		var source = generateModelicaCode();
-                
-                try{
-
-                    if(dymolaInterface.setClassText("", source)){
-                        dymolaInterface.simulateModel("TestModel",0,5,0,0,"Dassl", 0.0001,0.0, "testmodelresults");
-                        joints.forEach(function(j){
-                            var times = [];
-                            for(var i = 0; i <= 5; i+=1/60)
-                                times.push(i);
-                            if(j.type === "RevoluteJoint"){
-                                var phis = dymolaInterface.interpolateTrajectory("testmodelresults.mat",new Array(j.name + ".phi"),times);
-                                j.animatePhi = phis[0];
-                            } 
-                            else if (j.type === "PrismaticJoint"){
-                                var translations = dymolaInterface.interpolateTrajectory("testmodelresults.mat",new Array(j.name + ".s"),times);
-                                j.animateTranslation = translations[0];
-                            }
-                            else if (j.type === "RollingWheelJoint"){
-                                var translations = dymolaInterface.interpolateTrajectory("testmodelresults.mat",new Array(j.name + ".prismatic.s"),times);
-                                j.animateTranslation = translations[0];
-                                var phis = dymolaInterface.interpolateTrajectory("testmodelresults.mat",new Array(j.name + ".revolute.phi"),times);
-                                j.animatePhi = phis[0];
-                            }
-                        });
-                        
-                    }
-
-                }
-                catch(err)
-                {
-                    console.log(err.message);
-                }
-                
+                trySimulation();
             }
             else if (e.keyCode == 46){ //delete
                 deleteSelectedObject();
@@ -2116,8 +2112,63 @@ function Playmola(){
         });
     }
     
+    function trySimulation(){
+        var source = generateModelicaCode();     
+        try{
+            if(dymolaInterface.setClassText("", source)){
+                dymolaInterface.simulateModel("TestModel",0,5,0,0,"Dassl", 0.0001,0.0, "testmodelresults");
+                enterSimulationMode();
+            }
+        }
+        catch(err)
+        {
+            console.log(err.message);
+        }
+    }
+    
+    function enterSimulationMode(){
+        simulationMode = true;
+        if(schematicMode){
+            $('#button_schematic_mode').click();
+                   schematicMode = false;
+               }
+               joints.forEach(function(j){
+               var times = [];
+               for(var i = 0; i <= 5; i+=1/60)
+                   times.push(i);
+               if(j.type === "RevoluteJoint"){
+                   var phis = dymolaInterface.interpolateTrajectory("testmodelresults.mat",new Array(j.name + ".phi"),times);
+                   j.animatePhi = phis[0];
+               } 
+               else if (j.type === "PrismaticJoint"){
+                   var translations = dymolaInterface.interpolateTrajectory("testmodelresults.mat",new Array(j.name + ".s"),times);
+                   j.animateTranslation = translations[0];
+               }
+               else if (j.type === "RollingWheelJoint"){
+                   var translations = dymolaInterface.interpolateTrajectory("testmodelresults.mat",new Array(j.name + ".prismatic.s"),times);
+                   j.animateTranslation = translations[0];
+                   var phis = dymolaInterface.interpolateTrajectory("testmodelresults.mat",new Array(j.name + ".revolute.phi"),times);
+                   j.animatePhi = phis[0];
+               }
+           });
+        
+        $("#button_play_simulation").css("visibility", "visible");
+        $("#button_stop_simulation").css("visibility","visible");
+        $("#button_rewind_simulation").css("visibility","visible");
+    };
+    
+    function leaveSimulationMode(){
+        joints.forEach(function(j){
+            j.currentFrame = 0;
+        });
+        playAnimation = false;
+        $("#button_play_simulation").css("visibility", "hidden");
+        $("#button_stop_simulation").css("visibility","hidden");
+        $("#button_rewind_simulation").css("visibility","hidden");
+    }
+    
     function deleteSelectedObject(){
-        if(selectedObject !== null){
+        if(selectedObject !== null && selectedObject.name !== "world"){
 
             for(var i = 0; i < connections.length; i++){
                 if(connections[i].connectorA.getParent() === selectedObject || connections[i].connectorB.getParent() === selectedObject){
@@ -2128,6 +2179,7 @@ function Playmola(){
                     scene.remove(connections[i]);
                     connections.splice(i,1);
                     i--;
+
                 }
             }
             objectCollection.splice(objectCollection.indexOf(selectedObject),1);
@@ -2586,7 +2638,46 @@ function Playmola(){
         foregroundConnectors.length = 0;
     }
     
-    
+
+    function selectObject(object){
+        if(selectedObject !== null){
+            deselectObject();
+        }
+        selectedObject = object;
+        initParticleSystem(object.position);
+        transformControls.attach(selectedObject);
+//        transformControls.dragging = true;
+        
+        //Change the selected object's material so it looked "selected"
+        selectedObject.traverse(function(child){
+            if(child instanceof THREE.Mesh){
+                if(child.userData.initColor === undefined)
+                    child.userData.initColor = child.material.color;
+                child.material.color = new THREE.Color(0xB0E2FF);
+             }
+        });
+        
+        //Set up the parameters panel for this object
+        if(selectedObject instanceof DymolaComponent){
+            $("#detailsPanel").css({"overflow-y":"auto"});
+            $("#detailsPanel").panel("open");
+            $("#parameters").append("<button id='delete_button' style='margin-bottom:30px'>Delete</button>");
+            $("#delete_button").on('click', function(){
+                $("#detailsPanel").panel("close");
+                deleteSelectedObject();
+            })
+            for(var i = 0; i < selectedObject.parameters.length; i++){
+                generateNewDetailsForm(selectedObject.parameters[i]);
+            }
+            if(selectedObject.colorSettings !== undefined){
+                for(var i = 0; i < selectObject.colorSettings.length; i++){
+                    generateNewDetailsForm(selectedObject.colorSettings[i]);
+                }
+            }
+            $("#detailsPanel").enhanceWithin();
+        }
+    }
+
     
     function generateNewDetailsForm(parameter){
         var id = "id"+parameter.name;
@@ -2616,6 +2707,8 @@ function Playmola(){
             $("#"+id).on('input', function(){
                parameter.currentValue = $(this).val();
                parameter.changed = true;
+               if($(this).val() == "")
+                   parameter.changed = false;
                if(parameter.callback !== undefined)
                    parameter.callback.call(selectedObject, parameter.currentValue);
             });
@@ -2654,7 +2747,19 @@ function Playmola(){
         
     }
     
-    
+    function deselectObject(){
+        $("#detailsPanel").panel("close");
+        if(selectedObject)
+        {
+            selectedObject.traverse(function(child){
+               if(child instanceof THREE.Mesh)
+                   child.material.color = child.userData.initColor;
+            });
+            transformControls.detach(selectedObject);
+            selectedObject = null;
+            shutdownParticleSystem();
+        }
+    } 
     
     var connectorFrom, connectorTo;
     

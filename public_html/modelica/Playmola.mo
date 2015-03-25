@@ -50,10 +50,38 @@ package Playmola
 
   package UserComponents
   end UserComponents;
+
+  model SimpleBodyBox
+    extends Modelica.Mechanics.MultiBody.Parts.BodyBox(r = _r, r_shape = _r_shape, lengthDirection = _lengthDirection, length = _length, width = _width, height = _height, density = _density);
+
+    parameter Modelica.SIunits.Position _r[3]={0,0,0};
+    parameter Modelica.SIunits.Position _r_shape[3]={0,0,0};
+    parameter Modelica.Mechanics.MultiBody.Types.Axis _lengthDirection={1,0,0};
+    parameter Modelica.SIunits.Length _length=0.5;
+    parameter Modelica.SIunits.Distance _width=0.5;
+    parameter Modelica.SIunits.Distance _height=0.5;
+    parameter Modelica.SIunits.Density _density=7700;
+  end SimpleBodyBox;
+
+  model SimpleBodyCylinder
+    extends Modelica.Mechanics.MultiBody.Parts.BodyCylinder(r = _r, r_shape = _r_shape, lengthDirection = _lengthDirection, length = _length, diameter = _diameter);
+      parameter Modelica.SIunits.Position _r[3]={0,0,0}
+      "Vector from frame_a to frame_b, resolved in frame_a";
+    parameter Modelica.SIunits.Position _r_shape[3]={0,0,0}
+      "Vector from frame_a to cylinder origin, resolved in frame_a";
+    parameter Modelica.Mechanics.MultiBody.Types.Axis _lengthDirection={1,0,0}
+      "Vector in length direction of cylinder, resolved in frame_a"
+      annotation (Evaluate=true);
+    parameter Modelica.SIunits.Length _length=0.5 "Length of cylinder";
+    parameter Modelica.SIunits.Distance _diameter=0.5 "Diameter of cylinder";
+  equation
+
+  end SimpleBodyCylinder;
   annotation (
     uses(Modelica(version="3.2.1"), ModelManagement(version="1.1.3")),
     version="1",
     conversion(noneFromVersion=""));
+
   model SimpleInertia
      extends Modelica.Mechanics.Rotational.Components.Inertia(J=MomentOfIntertia,w(start=StartAngularVelocity));
 
@@ -61,4 +89,12 @@ package Playmola
       parameter Modelica.SIunits.AngularVelocity StartAngularVelocity = 0;
 
   end SimpleInertia;
+
+  model SimpleWorld
+    extends Modelica.Mechanics.MultiBody.World(g = _Gravity, n = _DirectionOfGravity);
+    parameter Modelica.SIunits.Acceleration _Gravity=9.81;
+    parameter Modelica.Mechanics.MultiBody.Types.Axis _DirectionOfGravity={0,-1,0};
+
+  end SimpleWorld;
+
 end Playmola;
