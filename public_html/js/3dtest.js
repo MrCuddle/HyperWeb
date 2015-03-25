@@ -1154,7 +1154,7 @@ function Playmola(){
                     componentParam["description"] = classToLoad.components[j].description;
                     componentParam["changed"] = false;
                     componentParam.toSimulate = true;
-                    componentParam.currentValue = classToLoad.components[j].defaultvalue;
+                    componentParam.currentValue = classToLoad.components[j].defaultValue;
                     obj2.parameters.push(componentParam);
                 }
             }
@@ -1207,7 +1207,7 @@ function Playmola(){
                             var indexOfEquals = classes[i].defaultValues[j].indexOf('=');
                             var indexOfSemicolon = classes[i].defaultValues[j].indexOf(')', indexOfEquals);
                             var defaultValue = classes[i].defaultValues[j].substring(indexOfEquals+1, indexOfSemicolon);
-                            classes[i].components[j].defaultvalue = defaultValue;
+                            classes[i].components[j].defaultValue = defaultValue;
                         }
                     }
                     scope.addPreloadedClass(classes[i], category);
@@ -1226,15 +1226,14 @@ function Playmola(){
         };
         
 
-
+        scope.addClass("Modelica.Mechanics.MultiBody.World", "World");
         scope.loadParts();
         scope.loadDymolaBox();
         scope.loadDymolaCylinder();
         scope.loadRevoluteJoint();
         scope.loadPrismaticJoint();
-//        scope.loadRollingWheelJoint();
-//        scope.loadFixedRotation();
-        scope.addClass("Modelica.Mechanics.MultiBody.World", "World");
+////        scope.loadRollingWheelJoint();
+////        scope.loadFixedRotation();
 //        scope.addPackage("Playmola.UserComponents", "Custom Components");
 
         
@@ -2469,6 +2468,8 @@ function Playmola(){
             $("#"+id).on('input', function(){
                parameter.currentValue = $(this).val();
                parameter.changed = true;
+               if($(this).val() == "")
+                   parameter.changed = false;
                if(parameter.callback !== undefined)
                    parameter.callback.call(selectedObject, parameter.currentValue);
             });
