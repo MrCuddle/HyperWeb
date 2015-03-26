@@ -2640,47 +2640,6 @@ function Playmola(){
         foregroundConnectors.length = 0;
     }
     
-
-    function selectObject(object){
-        if(selectedObject !== null){
-            deselectObject();
-        }
-        selectedObject = object;
-        initParticleSystem(object.position);
-        transformControls.attach(selectedObject);
-//        transformControls.dragging = true;
-        
-        //Change the selected object's material so it looked "selected"
-        selectedObject.traverse(function(child){
-            if(child instanceof THREE.Mesh){
-                if(child.userData.initColor === undefined)
-                    child.userData.initColor = child.material.color;
-                child.material.color = new THREE.Color(0xB0E2FF);
-             }
-        });
-        
-        //Set up the parameters panel for this object
-        if(selectedObject instanceof DymolaComponent){
-            $("#detailsPanel").css({"overflow-y":"auto"});
-            $("#detailsPanel").panel("open");
-            $("#parameters").append("<button id='delete_button' style='margin-bottom:30px'>Delete</button>");
-            $("#delete_button").on('click', function(){
-                $("#detailsPanel").panel("close");
-                deleteSelectedObject();
-            })
-            for(var i = 0; i < selectedObject.parameters.length; i++){
-                generateNewDetailsForm(selectedObject.parameters[i]);
-            }
-            if(selectedObject.colorSettings !== undefined){
-                for(var i = 0; i < selectObject.colorSettings.length; i++){
-                    generateNewDetailsForm(selectedObject.colorSettings[i]);
-                }
-            }
-            $("#detailsPanel").enhanceWithin();
-        }
-    }
-
-    
     function generateNewDetailsForm(parameter){
         var id = "id"+parameter.name;
         $("#parameters").append('<div id="' + id +'_" style="padding-bottom:5px">');
@@ -2749,19 +2708,6 @@ function Playmola(){
         
     }
     
-    function deselectObject(){
-        $("#detailsPanel").panel("close");
-        if(selectedObject)
-        {
-            selectedObject.traverse(function(child){
-               if(child instanceof THREE.Mesh)
-                   child.material.color = child.userData.initColor;
-            });
-            transformControls.detach(selectedObject);
-            selectedObject = null;
-            shutdownParticleSystem();
-        }
-    } 
     
     var connectorFrom, connectorTo;
     
