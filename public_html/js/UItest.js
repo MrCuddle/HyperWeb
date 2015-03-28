@@ -34,16 +34,16 @@
         });
         
        
-       var schematicMode = true;
-       $('#button_schematic_mode').on('click', function(){
+       var schematicMode = false;
+       $('#button_schematic_mode').change(function(){
             if(schematicMode === false){
                 playmola.enterSchematicMode();
-                $('#button_schematic_mode').html('3D Mode');
+                //$('#button_schematic_mode').html('3D Mode');
                 schematicMode = true;
             }
             else {
                 playmola.exitSchematicMode();
-                $('#button_schematic_mode').html('Exploded view');
+                //$('#button_schematic_mode').html('Exploded view');
                 schematicMode = false;
             }
        });

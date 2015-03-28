@@ -45,7 +45,7 @@ function Playmola(){
     var world = null; //WORLD dymola component
 
     var disableControls = false;
-    var schematicMode = true;
+    var schematicMode = false;
     var simulationMode = false;
     
     var palette; //palette of 3D models to add to the scene
@@ -63,7 +63,7 @@ function Playmola(){
     function generateModelicaCode() { 
         var source = "model TestModel\n";
         objectCollection.forEach(function(obj){
-            if(obj.typeName === "Modelica.Mechanics.MultiBody.World")
+            if(obj.typeName === "Playmola.SimpleWorld")
                 source += "inner "
             source += obj.typeName + " " + obj.name;
             var first = true;
@@ -78,7 +78,10 @@ function Playmola(){
                                 source +="(";
                                 first = false;
                             }
-                            source += param.name + "=" + param.currentValue;
+                            if(param.convertToRadians != undefined && param.convertToRadians == true)
+                                source += param.name + "=" + THREE.Math.degToRad(parseFloat(param.currentValue));
+                            else
+                                source += param.name + "=" + param.currentValue;
                         }
                     }
                 });
@@ -350,7 +353,7 @@ function Playmola(){
             newcomponent.name = "Obj" + objCounter;
             objCounter++;
 
-            if(newcomponent.typeName === "Modelica.Mechanics.MultiBody.World") {
+            if(newcomponent.typeName === "Playmola.SimpleWorld") {
                 world = newcomponent;
                 newcomponent.name = "world";
             }
@@ -413,10 +416,12 @@ function Playmola(){
             }
         };
         
-        this.addCategory = function(name){
+        this.addCategory = function(name, hidden){
             categories[name] = [];
-            $("#select-custom-1").append("<option value='" + name + "'>" + name + "</option>");
-            $("#select-custom-1").enhanceWithin();
+            if(hidden == undefined || hidden == false){
+                $("#select-custom-1").append("<option value='" + name + "'>" + name + "</option>");
+                $("#select-custom-1").enhanceWithin();
+            }
         }
         
         //generate backing planes...
@@ -788,9 +793,10 @@ function Playmola(){
                     componentParam["changed"] = false;
                     componentParam.toSimulate = true;
                     if(componentParam.name === "StartAngle")
+                        componentParam.convertToRadians = true;
                         componentParam.callback = function(angle){
                             if(!isNaN(angle))
-                                this.phi = angle;
+                                this.phi = THREE.Math.degToRad(angle);
                         };
                     if(componentParam.name === "AxisOfRotation")
                         componentParam.callback = function(vector){
@@ -1130,9 +1136,10 @@ function Playmola(){
         };
         
         
-        this.addClass = function(classname, category, removeFirst){
+        this.addClass = function(classname, category, categoryHidden){
+            if(categoryHidden === undefined) categoryHidden = false;
             if(categories[category] === undefined){
-                scope.addCategory(category);
+                scope.addCategory(category, categoryHidden);
             }
             
             var exportModelSource = dymolaInterface.exportWebGL(classname);
@@ -1155,8 +1162,6 @@ function Playmola(){
                 if(dymolaInterface.callDymolaFunction("Dymola_AST_ComponentVariability", params) === "parameter"){
                     var componentParam = [];
                     componentParam["name"] = componentsInClass[j];
-                    if(removeFirst)
-                        componentParam.name = componentParam.name.substring(1);
                     componentParam["sizes"] = dymolaInterface.callDymolaFunction("Dymola_AST_ComponentSizes",params);
                     componentParam["fullTypeName"] = dymolaInterface.callDymolaFunction("Dymola_AST_ComponentFullTypeName", params);
                     componentParam["description"] = dymolaInterface.callDymolaFunction("Dymola_AST_ComponentDescription",params);
@@ -1298,7 +1303,7 @@ function Playmola(){
         };
         
 
-        scope.addClass("Playmola.SimpleWorld", "World");
+        scope.addClass("Playmola.SimpleWorld", "World", true);
         scope.loadBushing();
         scope.addClass("Playmola.SimpleInertia", "Parts");
         //scope.loadParts();
@@ -2090,7 +2095,8 @@ function Playmola(){
         $("#button_rewind_simulation").on('click', function(){
             joints.forEach(function(j){
                 j.currentFrame = 0;
-            })
+            });
+            playAnimation = false;
         });
         
         world = palette.makeComponent("World","Playmola.SimpleWorld");
@@ -2345,6 +2351,7 @@ function Playmola(){
                 selectObject(intersectionFound);
                 return true;
             }
+            deselectObject();
             return false;
         }
     }
@@ -2545,6 +2552,7 @@ function Playmola(){
             transformControls.dragging = false;
             ClearForegroundScene();
         }
+        if(!schematicMode) self.exitSchematicMode();
     }
     
     //Needs a lot of work......
@@ -2749,6 +2757,8 @@ function Playmola(){
                 $( "#jointPopup" ).popup('open', {x:dropPos.x,y:dropPos.y });
             }
         }
+        
+        
     }
     
     this.connectObjects = function(jointType){
@@ -2800,13 +2810,11 @@ function Playmola(){
                 
             }
         }
+        
+        if(!schematicMode) self.exitSchematicMode();
     };
-    
-//    function onMouseMover(){
-//        if(selectedObject && transformControls.dragging){
-//            //Highlight possible connections
-//        }
-//    }
+
+
 
     this.cancelConnectObjects = function(){
         disableControls = false;
@@ -2815,102 +2823,76 @@ function Playmola(){
     }
     
     this.enterSchematicMode = function(){
-        //Loop through all objects and push apart
-//        for(var i = 0; i < objectCollection.length; i++){
-//            if(objectCollection[i].group === undefined){
-//                //Do nothing, since this isn't a group
-//            } else {
-//                //This is a group, move objects apart along the axes of their connection points
-//                //Start with one object and traverse connections:
-//                schematicPushApart(objectCollection[i].children[0], null, new THREE.Vector3(0,0,0));
-//            }
-//        }
+                
+        if(simulationMode)
+            leaveSimulationMode();
         
-//        for(var i = 0; i < joints.length; i++){
-//            joints[i].visible = true;
-//        }
+        joints.forEach(function(j){
+            j.enforceConstraint(); 
+        });
+        constrainComponents();
+        
+        
+
+        var stack = [];
+        world.connectors.forEach(function(c){
+            stack.push(c);
+        });
+        var translations = [];
+        translations.push(new THREE.Vector3(0,0,0));
+        
+        while(stack.length > 0){
+            var connector = stack.pop();  
+            var baseT = translations.pop();
+            connector.connectedTo.forEach(function(connectedTo){
+                //Stop at a bushing or if the connector isn't a frame
+                if((connectedTo.userData.name == "frame_a" || connectedTo.userData.name == "frame_b") && connectedTo.getParent().typeName != "VisualMultiBody.Joints.Bushing" && connectedTo.getParent() !== connector.userData.prev){
+                    
+                    //Push components apart:
+                    var t = new THREE.Vector3(0.5,0,0).applyQuaternion(connectedTo.getParent().quaternion).add(baseT); 
+                    connectedTo.getParent().position.add(t);
+           
+                    connectedTo.getParent().connectors.forEach(function(c){
+                        if(c.userData.name == "frame_a" || c.userData.name == "frame_b"){
+                            c.userData.prev = connector.getParent();
+                            stack.push(c);
+                            translations.push(t);
+                        }
+                    });
+                }
+            });
+            connector.userData.prev = undefined;
+        }
+        
 
         connections.forEach(function(c){
            c.visible = true; 
         });
+        objectCollection.forEach(function(o){
+            o.visible = true;
+        });
         schematicMode = true;
         
     }
-    
-    //CONNECTION LOOPS ARE NOT ALLOWED!
-    function schematicPushApart(obj, prevObj, accumulatedTranslation){
-
-        obj.userData.oldPosition = obj.position.clone();
-        obj.userData.targetQuaternion = obj.quaternion.clone();
-        obj.userData.targetPosition = obj.position.clone().add(accumulatedTranslation);
-        obj.userData.targetObject = null;
-        movingObjects.push(obj);
-
-        for(var i = 0; i < obj.connectionPoints.length; i++){
-            //Skip the object we came from
-            if(obj.connectionPoints[i].connectable ||obj.connectionPoints[i].connectedTo.getConnection(obj.connectionPoints[i]).parentObject === prevObj)
-                continue;
-            
-            
-            
-            var translation = new THREE.Vector3();
-            var y = new THREE.Vector3();
-            var z = new THREE.Vector3();
-            obj.connectionPoints[i].coordinateSystem.extractBasis(translation,y,z);
-            translation.multiplyScalar(2);
-            var m = new THREE.Matrix4();
-            m.extractRotation(obj.matrix);
-            translation.applyMatrix4(m);
-            
-            
-            var temp = obj.connectionPoints[i].position.clone();
-            obj.localToWorld(temp);
-           //Move the joint:
-            obj.connectionPoints[i].connectedTo.position.copy(temp);
-            obj.connectionPoints[i].connectedTo.userData.oldPosition = temp.clone();
-            obj.connectionPoints[i].connectedTo.visible = true;
-            obj.connectionPoints[i].connectedTo.userData.targetQuaternion = obj.connectionPoints[i].connectedTo.quaternion.clone();
-            var halfTranslation = translation.clone();
-            halfTranslation.multiplyScalar(0.5);
-            halfTranslation.add(accumulatedTranslation);
-            obj.connectionPoints[i].connectedTo.userData.targetPosition = obj.connectionPoints[i].connectedTo.position.clone().add(halfTranslation);
-            movingObjects.push(obj.connectionPoints[i].connectedTo);
-            
-            translation.add(accumulatedTranslation);
-            
-            
-            
-            
-            
-            schematicPushApart(obj.connectionPoints[i].connectedTo.getConnection(obj.connectionPoints[i]).parentObject, obj,translation);
-        }
-    }
+   
     
     this.exitSchematicMode = function(){
-        //Loop through all objects and return to their original positions
-//        for(var i = 0; i < objectCollection.length; i++){
-//            if(objectCollection[i].group === undefined){
-//                //Do nothing, since this isn't a group
-//            } else {
-//                //Return the group's children to their original positions
-//                for(var j = 0; j < objectCollection[i].children.length; j++){
-//                    objectCollection[i].children[j].userData.targetPosition = objectCollection[i].children[j].userData.oldPosition.clone();
-//                    movingObjects.push(objectCollection[i].children[j]);
-//                }
-//                for(var j = 0; j < joints.length; j++){
-//                    joints[j].userData.targetPosition = joints[j].userData.oldPosition.clone();
-//                    movingObjects.push(joints[j]);
-//                }
-//            }
-//        }
+
         connections.forEach(function(c){
            c.visible = false; 
         });
         objectCollection.forEach(function(o){
-            //Hide non-parts
-        })
+            if(o.typeName == "Playmola.SimpleBodyBox" || o.typeName == "Playmola.SimpleBodyCylinder" || o.typeName == "Playmola.SimpleWorld"){
+                o.visible = true;
+            } else {
+                o.visible = false;
+            }
+        });
         schematicMode = false;
+        
+
     };
+    
     function logic() {
         //moveObjects();
         
@@ -2927,14 +2909,7 @@ function Playmola(){
                //j.animationUpdatedThisFrame = false;
             });
             
-            //Enforce CONNECTION constraints here:
-            if(world != null){
-                world.connectors.forEach(function(c){
-                    resolveConnection(c);
-                });
-            }
-
-
+            constrainComponents();
             
         }
         
@@ -2943,6 +2918,15 @@ function Playmola(){
         });
         
         requestAnimationFrame(render);
+    }
+    
+    function constrainComponents(){
+        //Enforce CONNECTION constraints here:
+        if(world != null){
+            world.connectors.forEach(function(c){
+                resolveConnection(c);
+            });
+        }
     }
     
     //from is the connector we just came from, so don't go back there!

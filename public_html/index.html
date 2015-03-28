@@ -22,15 +22,15 @@ and open the template in the editor.
                 padding: 10px;
             }
             
-            #menu .button {
-
+            #menu div {
+                display: inline-block;
                
             }
             
             #menu {
                 position: absolute;
                 left: 10px;
-                top: 300px;
+                top: 0px;
             }
             
             .jointButton {
@@ -72,6 +72,27 @@ and open the template in the editor.
                 clear: both;
             }
             
+            .ui-flipswitch .ui-btn.ui-flipswitch-on {
+                text-indent: -7.6em;
+            }
+            .ui-flipswitch .ui-flipswitch-off {
+              text-indent: 1em;
+            }
+
+            .ui-flipswitch {
+              width: 10.875em;
+            }
+            .ui-flipswitch.ui-flipswitch-active {
+              padding-left: 9em;
+              width: 1.875em;
+            }
+            @media (min-width: 28em) {
+              // Repeated from rule .ui-flipswitch above
+              .ui-field-contain > label + .ui-flipswitch {
+                width: 1.875em;
+              }
+            }
+            
             
         </style>
     </head>
@@ -82,11 +103,24 @@ and open the template in the editor.
             </select>
         </div>
         <div id="menu">
-            <button id="button_schematic_mode">3D Mode</button>
+            <div>
+            <select data-role="flipswitch" id="button_schematic_mode">
+                 <option value="leave">3D</option>
+                 <option value="arrive">Exploded</option>
+            </select>
+            </div>
+             <div>
             <button id="button_simulate">Simulate</button>
+             </div>
+             <div>
             <button id="button_play_simulation" style="visibility:hidden">Play</button>
+             </div>
+             <div>
             <button id="button_stop_simulation" style="visibility:hidden">Stop</button>
+             </div>
+             <div>
             <button id="button_rewind_simulation" style="visibility:hidden">Rewind</button>
+             </div>
         </div>
         <div id="container"></div>
         
