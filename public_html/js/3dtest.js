@@ -2120,11 +2120,18 @@ function Playmola(){
         });
     }
     
+    function getSecondsToSimulate(){
+        var seconds = parseInt($("#input_simulation_length").val());
+        if(isNaN(seconds) || seconds > 6)
+            seconds = 6;
+        return seconds;
+    }
+    
     function trySimulation(){
         var source = generateModelicaCode();     
         try{
             if(dymolaInterface.setClassText("", source)){
-                if(dymolaInterface.simulateModel("TestModel",0,5,0,0,"Dassl", 0.0001,0.0, "testmodelresults"))
+                if(dymolaInterface.simulateModel("TestModel",0,getSecondsToSimulate(),0,0,"Dassl", 0.0001,0.0, "testmodelresults"))
                     enterSimulationMode();
             }
         }
@@ -2144,7 +2151,7 @@ function Playmola(){
                }
                joints.forEach(function(j){
                var times = [];
-               for(var i = 0; i <= 5; i+=1/60)
+               for(var i = 0; i <= getSecondsToSimulate(); i+=1/60)
                    times.push(i);
                if(j.type === "RevoluteJoint"){
                    var phis = dymolaInterface.interpolateTrajectory("testmodelresults.mat",new Array(j.name + ".phi"),times);
@@ -2165,6 +2172,9 @@ function Playmola(){
         $("#button_play_simulation").css("visibility", "visible");
         $("#button_stop_simulation").css("visibility","visible");
         $("#button_rewind_simulation").css("visibility","visible");
+        $("#button_rewind_simulation").click();
+        
+        //$("#input_simulation_length").css("visibility", "hidden");
     };
     
     function leaveSimulationMode(){
@@ -2178,6 +2188,7 @@ function Playmola(){
         $("#button_play_simulation").css("visibility", "hidden");
         $("#button_stop_simulation").css("visibility","hidden");
         $("#button_rewind_simulation").css("visibility","hidden");
+        //$("#input_simulation_length").css("visibility", "visible");
     }
     
     function deleteSelectedObject(){
