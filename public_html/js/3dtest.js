@@ -2124,8 +2124,8 @@ function Playmola(){
         var source = generateModelicaCode();     
         try{
             if(dymolaInterface.setClassText("", source)){
-                dymolaInterface.simulateModel("TestModel",0,5,0,0,"Dassl", 0.0001,0.0, "testmodelresults");
-                enterSimulationMode();
+                if(dymolaInterface.simulateModel("TestModel",0,5,0,0,"Dassl", 0.0001,0.0, "testmodelresults"))
+                    enterSimulationMode();
             }
         }
         catch(err)
@@ -2136,6 +2136,8 @@ function Playmola(){
     
     function enterSimulationMode(){
         simulationMode = true;
+        audio.stopMusic();
+        audio.playSimulate();
         if(schematicMode){
             $('#button_schematic_mode').click();
                    schematicMode = false;
@@ -2166,6 +2168,9 @@ function Playmola(){
     };
     
     function leaveSimulationMode(){
+        simulationMode = false;
+        audio.stopMusic();
+        audio.playTheme();
         joints.forEach(function(j){
             j.currentFrame = 0;
         });

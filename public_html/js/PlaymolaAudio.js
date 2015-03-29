@@ -69,7 +69,8 @@ PlaymolaAudio = function(){
   bufferLoader = new BufferLoader(
           audioCtx, ['Sound/clickity.wav',
                      'Sound/chillaxin.mp3',
-                     'Sound/weld.mp3'
+                     'Sound/weld.mp3',
+                     'Sound/clinkclonk.mp3'
           ], this.finishedLoading);
   bufferLoader.load();
   
@@ -104,6 +105,17 @@ PlaymolaAudio = function(){
     self.currentTrack = theme;
     theme.onended = self.playTheme;
   };
+  
+  this.playSimulate = function() {
+    var simulTune = audioCtx.createBufferSource();
+    simulTune.buffer = currentBufferList[3];
+    simulTune.connect(audioCtx.destination);
+    simulTune.start(0);
+    self.currentTrack = simulTune;
+    simulTune.onended = self.playSimulate;
+  };
+  
+  
 };
 
 PlaymolaAudio.prototype = Object.create(PlaymolaAudio);
