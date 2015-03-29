@@ -32,6 +32,9 @@ function Playmola(){
     //Little hack to help with dragging into scene from the palette...
     var dontCheckConnectors = false;
     
+    var sceneScale = 0.3;
+    var importedComponentScale = 0.009;
+    var connectorHightlightRadius = 0.08;
     
     //DymolaComponent Connection-related:
     var draggingConnection = false;
@@ -41,6 +44,8 @@ function Playmola(){
     var selectedConnection = null;
     
     var mouseMovedSinceMouseDown = false;
+    
+    var objCounter = 0;
        
     var world = null; //WORLD dymola component
 
@@ -127,7 +132,7 @@ function Playmola(){
         var tileInnerSize = 60;
         var bounds = new THREE.Box2(new THREE.Vector2(10,110), new THREE.Vector2(10,110));
         
-        var objCounter = 0;
+        
 
         this.palettescene = new THREE.Scene();
         
@@ -359,7 +364,7 @@ function Playmola(){
             }
             if(newcomponent.type === "RevoluteJoint" || newcomponent.type === "PrismaticJoint" || newcomponent.type === "RollingWheelJoint") joints.push(newcomponent);
 
-            newcomponent.scale.set(newcomponent.userData.sceneScale,newcomponent.userData.sceneScale,newcomponent.userData.sceneScale);
+            newcomponent.scale.set(newcomponent.userData.sceneScale,newcomponent.userData.sceneScale,newcomponent.userData.sceneScale).multiplyScalar(sceneScale);
 
 
             newcomponent.children[0].position.add(newcomponent.userData.centerOffset);
@@ -434,7 +439,7 @@ function Playmola(){
         }
         
         //Make a bunch of categories
-        this.addCategory("Parts");
+        //this.addCategory("Parts");
         
         $("#select-custom-1").on('change', function(event){
             scope.selectCategory(event.target.value);
@@ -837,7 +842,7 @@ function Playmola(){
                     obj2.connectors.push(conn); 
             });
             
-            scope.add(obj2, "Joints", false, 1, 0.005);
+            scope.add(obj2, "Joints", false, 1, importedComponentScale);
         }
         
         this.loadPrismaticJoint = function(){
@@ -914,7 +919,7 @@ function Playmola(){
                     obj2.connectors.push(conn); 
             });
             
-            scope.add(obj2, "Joints", false, 1, 0.005);
+            scope.add(obj2, "Joints", false, 1, importedComponentScale);
         }
         
         this.loadRollingWheelJoint = function(){
@@ -985,7 +990,7 @@ function Playmola(){
                     obj2.connectors.push(conn); 
             });
             
-            scope.add(obj2, "Joints", false, 1, 0.005);
+            scope.add(obj2, "Joints", false, 1, importedComponentScale);
         }
         
         this.loadBushing = function(){
@@ -1050,7 +1055,7 @@ function Playmola(){
                     obj2.connectors.push(conn); 
             });
             
-            scope.add(obj2, "Joints", false, 1, 0.005);
+            scope.add(obj2, "Joints", false, 1, importedComponentScale);
         }
         
         this.loadFixedRotation = function(){
@@ -1132,11 +1137,11 @@ function Playmola(){
                     obj2.connectors.push(conn); 
             });
             
-            scope.add(obj2, "FixedRotation", false, 1, 0.005);
+            scope.add(obj2, "FixedRotation", false, 1, importedComponentScale);
         };
         
         
-        this.addClass = function(classname, category, categoryHidden){
+        this.addClass = function(classname, category, scale, categoryHidden){
             if(categoryHidden === undefined) categoryHidden = false;
             if(categories[category] === undefined){
                 scope.addCategory(category, categoryHidden);
@@ -1201,7 +1206,7 @@ function Playmola(){
                 obj2.connectors.push(conn); 
             });
             
-            scope.add(obj2, category, false, 1, 0.005);
+            scope.add(obj2, category, false, 1, scale);
         };
         
         this.addPreloadedClass = function(classToLoad, category){
@@ -1264,7 +1269,7 @@ function Playmola(){
                 obj2.connectors.push(conn); 
             });
             
-            scope.add(obj2, category, false, 1, 0.005);
+            scope.add(obj2, category, false, 1, importedComponentScale);
         };
         
         this.addPackage = function(package, category){
@@ -1303,9 +1308,9 @@ function Playmola(){
         };
         
 
-        scope.addClass("Playmola.SimpleWorld", "World", true);
+        scope.addClass("Playmola.SimpleWorld", "World", 0.015, true);
         scope.loadBushing();
-        scope.addClass("Playmola.SimpleInertia", "Parts");
+        scope.addClass("Playmola.SimpleInertia", "Parts", importedComponentScale);
         //scope.loadParts();
         scope.loadDymolaBox();
         scope.loadDymolaCylinder();
@@ -1491,7 +1496,7 @@ function Playmola(){
         };
         
         this.align = function(){
-            this.children[0].quaternion.setFromUnitVectors(new THREE.Vector3(1,0,0), this.axis);
+            //this.children[0].quaternion.setFromUnitVectors(new THREE.Vector3(1,0,0), this.axis);
         };
         
         this.enforceConstraint = function(){
@@ -1543,7 +1548,7 @@ function Playmola(){
         };
         
         this.align = function(){
-            this.children[0].quaternion.setFromUnitVectors(new THREE.Vector3(1,0,0), this.axis);
+            //this.children[0].quaternion.setFromUnitVectors(new THREE.Vector3(1,0,0), this.axis);
         };
         
         this.enforceConstraint = function(){
@@ -1598,8 +1603,8 @@ function Playmola(){
         
         this.enforceConstraint = function(){
             //Animate translation
-            if(this.animateTranslation !== null && this.animateTranslation.length > 0){
-                this.translation = this.animateTranslation.shift();
+            if(this.animateTranslation !== null && this.currentFrame < this.animateTranslation.length){
+                this.translation = this.animateTranslation[this.currentFrame];
             }
             //Animate rotation
             if(this.animatePhi !== null && this.currentFrame < this.animatePhi.length){
@@ -1837,7 +1842,7 @@ function Playmola(){
             this.frameAConnector.position.set(0,0,0).sub(this.r_shape);
             this.frameAConnector.actualPosition = this.frameAConnector.position.clone();
             this.frameBConnector.position.copy(this.frameAConnector.position).add(this.r);
-            this.frameBConnector.actualPosition = this.frameBConnector.position.clone();
+            this.frameBConnector.actualPosition = this.frameBConnector.position.clone();  
         };
 
     };
@@ -2012,6 +2017,9 @@ function Playmola(){
             }
             else {
                 if(!mouseMovedSinceMouseDown && transformControls.dragging && leftMouseDown){
+                    if(event.ctrlKey){
+                        DuplicateAndSelect(selectedObject);
+                    }
                     HighlightCompatibleConnectors(selectedObject);
                 }
                 if(leftMouseDown && selectedObject){
@@ -2029,7 +2037,7 @@ function Playmola(){
                         cPos.x = ( cPos.x * widthHalf ) + widthHalf;
                         cPos.y = - ( cPos.y * heightHalf ) + heightHalf;
                         cPos.z = 0;
-                        var closest = checkForConnection(cPos, selectedObject);
+                        var closest = checkForConnection(cPos, c, selectedObject);
                         if(closest !== null && c.connectedTo !== closest && closest.userData.tempDistSquared < distance){
                             closestConnector = closest;
                             distance = closest.userData.tempDistSquared;
@@ -2475,7 +2483,7 @@ function Playmola(){
                 scene.add(connectionLine);
             }
             
-            var closest = checkForConnection(new THREE.Vector3(event.clientX, event.clientY, 0));
+            var closest = checkForConnection(new THREE.Vector3(event.clientX, event.clientY, 0), draggingFrom);
             HighlightOverlappedConnector(closest);
             if(closest !== null)
                 connectionLine.material.color.setHex(0xffff00);
@@ -2491,7 +2499,7 @@ function Playmola(){
         }
     }
     
-    function checkForConnection(position, toExclude){
+    function checkForConnection(position, startConnector, toExclude){
         var widthHalf = window.innerWidth / 2;
         var heightHalf = window.innerHeight / 2;
         var distance = 1000000;
@@ -2502,8 +2510,8 @@ function Playmola(){
                 for(var j = 0; j < objectCollection[i].connectors.length; j++){
                     //If an object to be excluded has been specified, skip its connectors
                     if(toExclude !== undefined && toExclude == objectCollection[i]) break;
-                    //Don't allow connecting a connector to itself
-                    if(objectCollection[i].connectors[j] !== draggingFrom){
+                    //Don't allow connecting a connector to itself or to an incompatible connector
+                    if(objectCollection[i].connectors[j] !== startConnector && CanBeConnected(objectCollection[i].connectors[j],startConnector)){
                         //Get the screen position of the connector
                         var connectorScreenPos = objectCollection[i].connectors[j].position.clone();
                         objectCollection[i].connectors[j].parent.localToWorld(connectorScreenPos);
@@ -2530,7 +2538,7 @@ function Playmola(){
             scene.remove(connectionLine);
             connectionLine = null;
             
-            var closest = checkForConnection(new THREE.Vector3(event.clientX, event.clientY, 0));
+            var closest = checkForConnection(new THREE.Vector3(event.clientX, event.clientY, 0), draggingFrom);
             
             if(closest !== null){
                 var connection = new Connection(draggingFrom, closest);
@@ -2570,31 +2578,7 @@ function Playmola(){
         }
         if(!schematicMode) self.exitSchematicMode();
     }
-    
-    //Needs a lot of work......
-    function AreConnectorsCompatible(c1,c2){
-        if(c1.userData.name == "frame_a"){
-            if(c2.userData.name == "frame_b")
-                return true;
-            return false;
-        }
-        if(c1.userData.name == "frame_b"){
-            if(c2.userData.name == "frame_a")
-                return true;
-            return false;
-        }
-        if(c2.userData.name == "frame_a"){
-            if(c1.userData.name == "frame_b")
-                return true;
-            return false;
-        }
-        if(c2.userData.name == "frame_b"){
-            if(c1.userData.name == "frame_a")
-                return true;
-            return false;
-        }
-        return true;
-    }
+
     
     function HighlightSelectableConnectors(){
         
@@ -2606,10 +2590,10 @@ function Playmola(){
                 if(o !== dymolaComponent.getParent()){
                     o.connectors.forEach(function(c){
                         
-                        if(AreConnectorsCompatible(c,dymolaComponent)){
+                        if(CanBeConnected(c,dymolaComponent)){
 
                             //Make a sphere:
-                            var sphere = new THREE.Mesh( new THREE.SphereGeometry(0.1, 20,20), new THREE.MeshPhongMaterial( {color: 0xff00ff, opacity: 0.5, transparent: true} ) );                     
+                            var sphere = new THREE.Mesh( new THREE.SphereGeometry(connectorHightlightRadius*sceneScale, 20,20), new THREE.MeshPhongMaterial( {color: 0xff00ff, opacity: 0.5, transparent: true} ) );                     
                             sphere.position.copy(c.position);
                             c.parent.localToWorld(sphere.position);
                             foregroundScene.add(sphere);
@@ -2626,10 +2610,10 @@ function Playmola(){
                 if(o !== dymolaComponent){
                     o.connectors.forEach(function(c){
                         for(var i = 0; i < dymolaComponent.connectors.length; i++){
-                            if(AreConnectorsCompatible(c,dymolaComponent.connectors[i]) && c.connectedTo !== dymolaComponent.connectors[i]){
+                            if(CanBeConnected(c,dymolaComponent.connectors[i]) && c.connectedTo !== dymolaComponent.connectors[i]){
 
                                 //Make a sphere:
-                                var sphere = new THREE.Mesh( new THREE.SphereGeometry(0.1, 20,20), new THREE.MeshPhongMaterial( {color: 0xff00ff, opacity: 0.5, transparent: true} ) );                     
+                                var sphere = new THREE.Mesh( new THREE.SphereGeometry(connectorHightlightRadius*sceneScale, 20,20), new THREE.MeshPhongMaterial( {color: 0xff00ff, opacity: 0.5, transparent: true} ) );                     
                                 sphere.position.copy(c.position);
                                 c.parent.localToWorld(sphere.position);
                                 foregroundScene.add(sphere);
@@ -2650,10 +2634,12 @@ function Playmola(){
         foregroundConnectors.forEach(function(c){
             c.material.opacity = 0.5;
             c.material.color.setHex(0xff00ff);
+            c.scale.set(1,1,1);
         });
         if(connector !== null && connector.foregroundBuddy !== undefined){
             connector.foregroundBuddy.material.opacity = 1.0;
-            connector.foregroundBuddy.material.color.setHex(0x00ff00);
+            connector.foregroundBuddy.material.color.setHex(0xffff00);
+            connector.foregroundBuddy.scale.set(1.5,1.5,1.5);
         }
     }
     
@@ -2753,7 +2739,7 @@ function Playmola(){
                 cPos.x = ( cPos.x * widthHalf ) + widthHalf;
                 cPos.y = - ( cPos.y * heightHalf ) + heightHalf;
                 cPos.z = 0;
-                var closest = checkForConnection(cPos, selectedObject);
+                var closest = checkForConnection(cPos, c, selectedObject);
                 if(closest !== null && c.connectedTo !== closest && closest.userData.tempDistSquared < distance){
                     closestConnector = closest;
                     distance = closest.userData.tempDistSquared;
@@ -2836,7 +2822,7 @@ function Playmola(){
         disableControls = false;
         //selectObject(selectedObject);
         transformControls.dragging = false;
-    }
+    };
     
     this.enterSchematicMode = function(){
                 
@@ -2865,7 +2851,7 @@ function Playmola(){
                 if((connectedTo.userData.name == "frame_a" || connectedTo.userData.name == "frame_b") && connectedTo.getParent().typeName != "VisualMultiBody.Joints.Bushing" && connectedTo.getParent() !== connector.userData.prev){
                     
                     //Push components apart:
-                    var t = new THREE.Vector3(0.5,0,0).applyQuaternion(connectedTo.getParent().quaternion).add(baseT); 
+                    var t = new THREE.Vector3(0.5*sceneScale,0,0).applyQuaternion(connectedTo.getParent().quaternion).add(baseT); 
                     connectedTo.getParent().position.add(t);
            
                     connectedTo.getParent().connectors.forEach(function(c){
@@ -2938,11 +2924,21 @@ function Playmola(){
     
     function constrainComponents(){
         //Enforce CONNECTION constraints here:
+        objectCollection.forEach(function(o){
+            o.userData.constrained = false;
+        });
         if(world != null){
             world.connectors.forEach(function(c){
                 resolveConnection(c);
             });
         }
+        objectCollection.forEach(function(o){
+            if(!o.userData.constrained){
+                o.connectors.forEach(function(c){
+                    resolveConnection(c);
+                });
+            }
+        });
     }
     
     //from is the connector we just came from, so don't go back there!
@@ -2964,13 +2960,14 @@ function Playmola(){
                 connectedTo.getParent().updateMatrixWorld(true);
 
                 //Move the object connected to frame B
-                var connAWorld = c.actualPosition.clone().multiplyScalar(1/c.getParent().scale.x); //FIX SCALE HERE!
+                var connAWorld = c.actualPosition.clone().multiplyScalar(1/c.getParent().scale.x * sceneScale); //FIX SCALE HERE!
                 c.getParent().localToWorld(connAWorld);
-                var connBWorld = connectedTo.actualPosition.clone().multiplyScalar(1/connectedTo.getParent().scale.x);
+                var connBWorld = connectedTo.actualPosition.clone().multiplyScalar(1/connectedTo.getParent().scale.x * sceneScale);
                 connectedTo.getParent().localToWorld(connBWorld);
                 connectedTo.getParent().position.sub(connBWorld.sub(connAWorld));
                 connectedTo.getParent().updateMatrixWorld(true);
 
+                connectedTo.getParent().userData.constrained = true;
 
                 //Stop at a bushing
                 if(connectedTo.getParent().typeName != "VisualMultiBody.Joints.Bushing"){
@@ -3017,6 +3014,79 @@ function Playmola(){
         return false;
    
     }
+    
+    
+    function DuplicateAndSelect(component){
+        var duplicate = component.clone();
+        duplicate.traverse(function(o){
+            if(o.material !== undefined) o.material = o.material.clone();
+        });
+        duplicate.name = "obj" + objCounter;
+        objCounter++;
+        if(IsJoint(component)) joints.push(duplicate);
+        objectCollection.push(duplicate);
+        selectObject(duplicate);
+        scene.add(duplicate);
+        transformControls.dragging = true;
+    }
+    
+    
+    function CanBeConnected(A,B){
+        if(AreComponentsDirectlyConnectedViaJoints(A.getParent(),B.getParent())) return false;
+        if(A === B) return false;
+        if(A.getParent() === B.getParent()) return false;
+        
+        if(A.userData.name == "frame_a"){
+            if(B.userData.name == "frame_b")
+                return true;
+            return false;
+        }
+        if(A.userData.name == "frame_b"){
+            if(B.userData.name == "frame_a")
+                return true;
+            return false;
+        }
+        if(A.userData.name != "frame_a" && A.userData.name != "frame_b"){
+            if(B.userData.name == "frame_a" || B.userData.name == "frame_b")
+                return false;
+            return true;
+        }
+        return true;
+    }
+    
+    function AreComponentsDirectlyConnected(A,B){
+        for(var i = 0; i < A.connectors.length; i++){
+            for(var j = 0; j < A.connectors[i].connectedTo.length; j++){
+                if(A.connectors[i].connectedTo[j].getParent() == B)
+                    return true;
+            }
+        }
+        return false;
+    }
+    
+    function AreComponentsDirectlyConnectedViaJoints(A,B){
+        for(var i = 0; i < A.connectors.length; i++){
+            for(var j = 0; j < A.connectors[i].connectedTo.length; j++){
+                if(A.connectors[i].connectedTo[j].getParent() == B)
+                    return true;
+                
+                if(IsJoint(A.connectors[i].connectedTo[j].getParent())){
+                    var ret = AreComponentsDirectlyConnected(A.connectors[i].connectedTo[j].getParent(),B);
+                    if(ret)
+                        return true;
+                }
+            }
+        }
+        return false;
+    }
+    
+    function IsJoint(component){
+        if(component.typeName == "Playmola.SimpleRevoluteJoint"
+                || component.typeName == "Playmola.SimplePrismaticJoint"
+                || component.typeName == "VisualMultiBody.Joints.RollingWheel") return true;
+        return false;
+    }
+    
     
     function render(){
         renderer.clear();
