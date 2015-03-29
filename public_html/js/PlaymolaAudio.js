@@ -70,7 +70,8 @@ PlaymolaAudio = function(){
           audioCtx, ['Sound/clickity.wav',
                      'Sound/chillaxin.mp3',
                      'Sound/weld.mp3',
-                     'Sound/clinkclonk.mp3'
+                     'Sound/clinkclonk.mp3',
+                     'Sound/ERROR.wav'
           ], this.finishedLoading);
   bufferLoader.load();
   
@@ -90,6 +91,13 @@ PlaymolaAudio = function(){
   
   this.stopWelding = function(){
       weldSound.stop(0);
+  }
+  
+    this.playError = function(){
+      var errorSound = audioCtx.createBufferSource();
+      errorSound.buffer = currentBufferList[4];
+      errorSound.connect(audioCtx.destination);
+      errorSound.start(0);
   }
   
   this.stopMusic = function(){

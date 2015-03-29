@@ -2141,11 +2141,14 @@ function Playmola(){
             if(dymolaInterface.setClassText("", source)){
                 if(dymolaInterface.simulateModel("TestModel",0,getSecondsToSimulate(),0,0,"Dassl", 0.0001,0.0, "testmodelresults"))
                     enterSimulationMode();
+                else
+                    audio.playError();
             }
         }
         catch(err)
         {
             console.log(err.message);
+            audio.playError();
         }
     }
     
