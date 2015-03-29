@@ -63,6 +63,7 @@ function Playmola(){
     var particleGroup = null;
     
     var playAnimation = false;
+    var animationIsDone = false;
 
 
     function generateModelicaCode() { 
@@ -2115,6 +2116,10 @@ function Playmola(){
         bindKeys();
  
         $("#button_play_simulation").on('click', function(){
+            if(animationIsDone){
+                $("#button_rewind_simulation").click();
+                animationIsDone = false;
+            }
             playAnimation = true;
         });
         $("#button_stop_simulation").on('click', function(){
@@ -2131,6 +2136,7 @@ function Playmola(){
         initializeWorld();
         
         $("#button_clear_objects").on('click', function(){
+           deselectObject();
            while(objectCollection.length > 0){
                var toDelete = objectCollection.shift();
                scene.remove(toDelete);
@@ -2140,6 +2146,8 @@ function Playmola(){
                scene.remove(toDelete);
            }
            initializeWorld();
+           if(simulationMode)
+               leaveSimulationMode();
         });
     }
     
@@ -2423,6 +2431,12 @@ function Playmola(){
         deselectObject();
         deselectConnection();
         selectedObject = object;
+        //något åt detta hållet för att markera objekt?
+//        var outlineMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000, side: THREE.BackSide } );
+//        var outlineMesh = new THREE.Mesh(object.mesh.children[0].geometry, outlineMaterial);
+//        outlineMesh.position.set(object.position.x, object.position.y,object.position.z);
+//        outlineMesh.scale.set(0.3,0.3,0.3);
+//        scene.add(outlineMesh);
         //initParticleSystem(object.position);
         transformControls.attach(selectedObject);
         
@@ -2963,6 +2977,7 @@ function Playmola(){
             if(joints.length > 0 && jointsDoneMoving == joints.length){
                 audio.playAnimDone();
                 jointsDoneMoving = 0;
+                animationIsDone = true;
             }
             
             constrainComponents();
