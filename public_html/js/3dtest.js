@@ -424,10 +424,29 @@ function Playmola(){
         this.addCategory = function(name, hidden){
             categories[name] = [];
             if(hidden == undefined || hidden == false){
-                $("#select-custom-1").append("<option value='" + name + "'>" + name + "</option>");
+                $("#select-custom-1").append("<option value='" + name + "' id='opt" + name + "'>" + name + "</option>");
                 $("#select-custom-1").enhanceWithin();
             }
         }
+        
+        scope.addCategory("Joints",true)
+        
+        $("#select-custom-1").on('change', function(event){
+            scope.selectCategory(event.target.value);
+        });
+        
+        this.hideCategory = function(category){
+            
+            $("#opt" + category).remove();
+             $("#select-custom-1").selectmenu("destroy").selectmenu({style:'dropdown'});
+             $("#select-custom-1").enhanceWithin();
+        };
+        
+        this.unhideCategory = function(category){
+            $("#select-custom-1").append("<option value='" + category + "' id='opt" + category + "'>" + category + "</option>");
+            $("#select-custom-1").enhanceWithin();
+            $("#select-custom-1").selectmenu("destroy").selectmenu({style:'dropdown'});
+        };
         
         //generate backing planes...
         for(var i = 0; i < 25; i++){
@@ -441,9 +460,7 @@ function Playmola(){
         //Make a bunch of categories
         //this.addCategory("Parts");
         
-        $("#select-custom-1").on('change', function(event){
-            scope.selectCategory(event.target.value);
-        });
+        
 
         
         //this.selectCategory("joints");
@@ -1311,7 +1328,6 @@ function Playmola(){
         scope.addClass("Playmola.SimpleWorld", "World", 0.015, true);
         scope.loadBushing();
         scope.addClass("Playmola.SimpleInertia", "Parts", importedComponentScale);
-        //scope.loadParts();
         scope.loadDymolaBox();
         scope.loadDymolaCylinder();
         scope.loadRevoluteJoint();
@@ -1321,22 +1337,7 @@ function Playmola(){
         scope.addPackage("Playmola.UserComponents", "Custom Components");
 
         
-        //scope.addClass("Modelica.Mechanics.MultiBody.World", "World");
-        //scope.addClass("Modelica.Mechanics.MultiBody.Joints.Revolute", "Joints");
-        //scope.addClass("Modelica.Mechanics.Rotational.Components.Damper", "Damper");
-
-        //scope.loadDymolaCylinder();
-        //scope.addPackage("Modelica.Mechanics.MultiBody.Parts", "DymolaParts");
-        //scope.addPackage("Modelica.Mechanics.Rotational.Components", "RotComponents");
-        //scope.addPackage("Modelica.Mechanics.MultiBody.Joints", "Joints");
-        
-        
-        
-//        scope.addClass("Modelica.Mechanics.MultiBody.Joints.Revolute", "Joints");
-//        scope.addClass("Modelica.Mechanics.Rotational.Components.Damper", "Damper");
-
-
-
+ 
 
     };
     Palette.prototype.constructor = THREE.Palette;
@@ -2520,7 +2521,7 @@ function Playmola(){
         var closest = null;
 
         for(var i = 0; i < objectCollection.length; i++){
-            //if(objectCollection[i].type == 'DymolaComponent'){
+            if(objectCollection[i].visible){
                 for(var j = 0; j < objectCollection[i].connectors.length; j++){
                     //If an object to be excluded has been specified, skip its connectors
                     if(toExclude !== undefined && toExclude == objectCollection[i]) break;
@@ -2541,7 +2542,7 @@ function Playmola(){
                         }
                     }
                 }
-            //}
+            }
         }
         return closest;
     }
@@ -2601,7 +2602,7 @@ function Playmola(){
     function HighlightCompatibleConnectors(dymolaComponent){
         if(dymolaComponent instanceof Connector){
             objectCollection.forEach(function(o){
-                if(o !== dymolaComponent.getParent()){
+                if(o !== dymolaComponent.getParent() && o.visible){
                     o.connectors.forEach(function(c){
                         
                         if(CanBeConnected(c,dymolaComponent)){
@@ -2621,7 +2622,7 @@ function Playmola(){
         }
         else {
             objectCollection.forEach(function(o){
-                if(o !== dymolaComponent){
+                if(o !== dymolaComponent && o.visible){
                     o.connectors.forEach(function(c){
                         for(var i = 0; i < dymolaComponent.connectors.length; i++){
                             if(CanBeConnected(c,dymolaComponent.connectors[i]) && c.connectedTo !== dymolaComponent.connectors[i]){
@@ -2839,7 +2840,10 @@ function Playmola(){
     };
     
     this.enterSchematicMode = function(){
-                
+        if(!schematicMode)
+            palette.unhideCategory("Joints");     
+        
+        
         if(simulationMode)
             leaveSimulationMode();
         
@@ -2893,6 +2897,10 @@ function Playmola(){
    
     
     this.exitSchematicMode = function(){
+        if(schematicMode){
+            palette.hideCategory("Joints");
+            palette.selectCategory("Bodies");
+        }
 
         connections.forEach(function(c){
            c.visible = false; 
