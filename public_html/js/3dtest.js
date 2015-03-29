@@ -1510,6 +1510,10 @@ function Playmola(){
             this.frameBConnector.actualOrientation.setFromAxisAngle(this.axis,this.phi);
         };
         
+        this.isAnimationDone = function(){
+            return (this.animatePhi !== null && this.animatePhi.length > 0 && this.currentFrame == this.animatePhi.length - 1);
+        }
+        
     }
     RevoluteJoint.prototype = Object.create(DymolaComponent.prototype);
     
@@ -1561,6 +1565,10 @@ function Playmola(){
             }
             this.frameBConnector.actualPosition.copy(this.axis.clone().multiplyScalar(this.translation));
         };
+        
+        this.isAnimationDone = function(){
+            return (this.animateTranslation !== null && this.animateTranslation.length > 0 && this.currentFrame == this.animateTranslation.length - 1);
+        }
         
     }
     PrismaticJoint.prototype = Object.create(DymolaComponent.prototype);
@@ -1616,6 +1624,9 @@ function Playmola(){
             this.frameBConnector.actualOrientation.setFromAxisAngle(new THREE.Vector3(0,0,1),this.phi);
             this.frameBConnector.actualPosition.set(this.translation,this.radius,0);
         };
+        this.isAnimationDone = function(){
+            return (this.animateTranslation !== null && this.animateTranslation.length > 0 && this.currentFrame == this.animateTranslation.length - 1);
+        }
         
     }
     RollingWheelJoint.prototype = Object.create(DymolaComponent.prototype);
@@ -2116,18 +2127,31 @@ function Playmola(){
             });
             playAnimation = false;
         });
+
+        initializeWorld();
         
+        $("#button_clear_objects").on('click', function(){
+           while(objectCollection.length > 0){
+               var toDelete = objectCollection.shift();
+               scene.remove(toDelete);
+           } 
+           while(connections.length > 0){
+               var toDelete = connections.shift();
+               scene.remove(toDelete);
+           }
+           initializeWorld();
+        });
+    }
+    
+    function initializeWorld() {
         world = palette.makeComponent("World","Playmola.SimpleWorld");
-        world.position.set(-2,0,0); 
+        world.position.set(-0.5,0,0); 
     }
     
     function bindKeys(){
         $(document).bind('keydown', function(e) {
             if(e.keyCode == 13){ //enter
                 trySimulation();
-            }
-            else if (e.keyCode == 46){ //delete
-                deleteSelectedObject();
             }
             else if (e.keyCode == 36){ //home
                 camera.position.set(0,0.25,4);
@@ -2917,6 +2941,7 @@ function Playmola(){
 
     };
     
+    var jointsDoneMoving = 0;
     function logic() {
         //moveObjects();
         
@@ -2931,7 +2956,14 @@ function Playmola(){
             joints.forEach(function(j){
                j.enforceConstraint(); 
                //j.animationUpdatedThisFrame = false;
+               if(j.isAnimationDone())
+                   jointsDoneMoving++;
             });
+            
+            if(joints.length > 0 && jointsDoneMoving == joints.length){
+                audio.playAnimDone();
+                jointsDoneMoving = 0;
+            }
             
             constrainComponents();
             
