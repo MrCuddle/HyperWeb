@@ -60,6 +60,7 @@ PlaymolaAudio = function(){
   var currentBufferList;
   var weldSound;
   var self = this;
+  this.isMusicPlaying;
   
     this.finishedLoading = function(bufferList){
       currentBufferList = bufferList;
@@ -103,6 +104,7 @@ PlaymolaAudio = function(){
   this.stopMusic = function(){
       self.currentTrack.onended = null;
       self.currentTrack.stop();
+      self.isMusicPlaying = false;
   };
   
   this.playTheme = function(){
@@ -112,6 +114,7 @@ PlaymolaAudio = function(){
     theme.start(0);
     self.currentTrack = theme;
     theme.onended = self.playTheme;
+    self.isMusicPlaying = true;
   };
   
   this.playSimulate = function() {
@@ -121,6 +124,7 @@ PlaymolaAudio = function(){
     simulTune.start(0);
     self.currentTrack = simulTune;
     simulTune.onended = self.playSimulate;
+        self.isMusicPlaying = true;
   };
   
   

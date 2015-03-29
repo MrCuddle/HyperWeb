@@ -1897,7 +1897,16 @@ function Playmola(){
         
  
         audio = new PlaymolaAudio();
-
+        $("#button_audio_toggle").on('click', function(){
+            if(audio.isMusicPlaying)
+                audio.stopMusic();
+            else{
+                if(simulationMode)
+                    audio.playSimulate();
+                else
+                    audio.playTheme();
+            }
+        });
         
         
         scene = new THREE.Scene();
@@ -2154,8 +2163,10 @@ function Playmola(){
     
     function enterSimulationMode(){
         simulationMode = true;
-        audio.stopMusic();
-        audio.playSimulate();
+        if(audio.isMusicPlaying){
+            audio.stopMusic();
+            audio.playSimulate();
+        }
         if(schematicMode){
             $('#button_schematic_mode').click();
                    schematicMode = false;
