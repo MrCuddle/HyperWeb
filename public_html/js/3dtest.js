@@ -14,6 +14,9 @@ function Playmola(){
     var transformControls;
     var raycaster;
     
+    var radio;
+    var big_red_button;
+    
     var axisHelper;
     
     var movingObjects = [];
@@ -2016,6 +2019,32 @@ function Playmola(){
             scene.add(desk);
         }, "models/");
         
+        jsonloader.load("./models/radio.json", function(geometry,mat){
+            radio = new THREE.Mesh(geometry, mat[0]);
+            
+            radio.position.set(-1.15,-0.95,-0.55);
+            radio.rotation.set(0,THREE.Math.degToRad(-70),0);
+            
+            radio.scale.set(0.3,0.3,0.3);
+            radio.castShadow = true;
+            radio.receiveShadow = true;
+            radio.material.shading = THREE.SmoothShading;
+            scene.add(radio);
+        }, "models/");
+        
+        jsonloader.load("./models/big_red_button.json", function(geometry,mat){
+            big_red_button = new THREE.Mesh(geometry, new THREE.MeshFaceMaterial(mat));
+            
+            big_red_button.position.set(1.25,-0.85,0.35);
+            big_red_button.rotation.set(0,THREE.Math.degToRad(-20),0);
+            
+            big_red_button.scale.set(0.15,0.15,0.15);
+            big_red_button.castShadow = true;
+            big_red_button.receiveShadow = true;
+            big_red_button.material.shading = THREE.SmoothShading;
+            scene.add(big_red_button);
+        }, "models/");
+        
 
         var pointlight = new THREE.PointLight(0xffffff, 1, 10);
         pointlight.position.set(0,2,0);
@@ -2046,6 +2075,7 @@ function Playmola(){
         
         //Palette has event handling priority, since it is always on top
         palette = new Palette(renderer.domElement);  
+        initializeWorld();
         
         //Handle mouse events:
         $(renderer.domElement).on('vmousedown', function(event){
@@ -2061,7 +2091,10 @@ function Playmola(){
             var mousePos = new THREE.Vector2(( event.clientX / window.innerWidth ) * 2 - 1,- ( event.clientY / window.innerHeight ) * 2 + 1);
             var result = intersectionTest(mousePos);
             if(!result)
-                trySelectConnectionLine(mousePos);
+                result = trySelectConnectionLine(mousePos);
+            if(!result)
+                tryClickInteractiveObject(mousePos);
+            
         });
         
         $(renderer.domElement).on('vmousemove', function(event){
@@ -2176,7 +2209,7 @@ function Playmola(){
             playAnimation = false;
         });
 
-        initializeWorld();
+        
         
         $("#button_clear_objects").on('click', function(){
            deselectObject();
@@ -2603,7 +2636,32 @@ function Playmola(){
         }
         if(intersectionFound){
             selectConnection(intersectionFound);
+            return true;
         }
+        return false;
+    }
+    
+    function tryClickInteractiveObject(mousePos){
+        raycaster.setFromCamera(mousePos, camera);
+
+        var intersect = raycaster.intersectObject(radio,true);
+        if(intersect.length > 0){
+            audio.playClick();
+            if(audio.isMusicPlaying)
+                audio.stopMusic();
+            else{
+                if(simulationMode)
+                    audio.playSimulate();
+                else
+                    audio.playTheme();
+            }
+        }
+        intersect = raycaster.intersectObject(big_red_button,true);
+        if(intersect.length > 0){
+            audio.playClick();
+            trySimulation();
+        }
+
     }
     
     function dragConnection(event){
@@ -3123,7 +3181,7 @@ function Playmola(){
             cameraControls.update();
         }
         transformControls.update();
-        palette.update();
+        if(palette != null) palette.update();
         
         
         if(!schematicMode){
@@ -3353,7 +3411,7 @@ function Playmola(){
         renderer.clearDepth();
         renderer.render(foregroundScene, camera);
         renderer.clearDepth();
-        palette.render(renderer);
+        if(palette != null) palette.render(renderer);
     }
     
     init();
