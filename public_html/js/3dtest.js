@@ -2356,7 +2356,9 @@ function Playmola(){
         }
     }
     
-    function initParticleSystem(origin){
+    var particleParent = null;
+    
+    function initParticleSystem(origin, parent){
         if(particleGroup)
             scene.remove(particleGroup.mesh);
         particleGroup = new SPE.Group({
@@ -2386,12 +2388,14 @@ function Playmola(){
         });
 
         particleGroup.addEmitter( emitter );
-        scene.add( particleGroup.mesh );
+        particleParent = parent;
+        parent.add( particleGroup.mesh );
         audio.playWelding();
     }
     
     function shutdownParticleSystem(){
-        scene.remove(particleGroup.mesh);
+        particleParent.remove(particleGroup.mesh);
+        particleParent = null;
         particleGroup = null;
         audio.stopWelding();
     }
@@ -2668,9 +2672,15 @@ function Playmola(){
             
             if(closest !== null){
                 var connection = new Connection(draggingFrom, closest);
+                
                 connections.push(connection);
                 scene.add(connection);
-                    
+                if(!schematicMode){
+//                    var pos = closest.position.clone();
+//                    closest.parent.localToWorld(pos);
+                    initParticleSystem(THREE.Vector3(0,0,0), closest);
+                    setTimeout(shutdownParticleSystem, 3000);
+                }
                 if(CheckKinematicLoop(connection)){
                     selectConnection(connection);
                     deleteSelectedObject();
