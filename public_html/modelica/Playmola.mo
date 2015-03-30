@@ -77,10 +77,6 @@ package Playmola
   equation
 
   end SimpleBodyCylinder;
-  annotation (
-    uses(Modelica(version="3.2.1"), ModelManagement(version="1.1.3")),
-    version="1",
-    conversion(noneFromVersion=""));
 
   model SimpleInertia
      extends Modelica.Mechanics.Rotational.Components.Inertia(J=MomentOfIntertia,w(start=StartAngularVelocity));
@@ -97,4 +93,43 @@ package Playmola
 
   end SimpleWorld;
 
+  annotation (
+    uses(Modelica(version="3.2.1"), ModelManagement(version="1.1.3")),
+    version="1",
+    conversion(noneFromVersion=""));
+  model SimpleSpringDamper
+
+    extends Modelica.Mechanics.Rotational.Components.SpringDamper(c=SpringConstant,d=DampingConstant,phi_rel0=UnstretchedSpringAngle);
+
+    parameter Modelica.SIunits.RotationalSpringConstant SpringConstant = 1.0e5;
+    parameter Modelica.SIunits.RotationalDampingConstant DampingConstant = 0;
+    parameter Modelica.SIunits.Angle UnstretchedSpringAngle=0;
+  end SimpleSpringDamper;
+
+  model SimpleDamper
+    extends Modelica.Mechanics.Rotational.Components.Damper(d=DampingConstant);
+    parameter Modelica.SIunits.RotationalDampingConstant DampingConstant = 0;
+  equation
+
+  end SimpleDamper;
+
+  model SimpleConstantSpeed
+    extends Modelica.Mechanics.Rotational.Sources.ConstantSpeed( w_fixed = AngularVelocity);
+    parameter Modelica.SIunits.AngularVelocity AngularVelocity = 0;
+  equation
+
+  end SimpleConstantSpeed;
+
+  model SimpleBushing
+    extends VisualMultiBody.Joints.Bushing;
+  equation
+
+  end SimpleBushing;
+
+  model SimpleConstantTorque
+    extends Modelica.Mechanics.Rotational.Sources.ConstantTorque(tau_constant = TauConstant);
+    parameter Modelica.SIunits.Torque TauConstant = 0;
+  equation
+
+  end SimpleConstantTorque;
 end Playmola;
