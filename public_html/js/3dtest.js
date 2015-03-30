@@ -2201,28 +2201,31 @@ function Playmola(){
     }
     
     function trySimulation(){
-        var source = generateModelicaCode();     
+        var source = generateModelicaCode(); 
+        if(audio.isMusicPlaying){
+            audio.stopMusic();
+            audio.playSimulate();
+        }
         try{
             if(dymolaInterface.setClassText("", source)){
                 if(dymolaInterface.simulateModel("TestModel",0,getSecondsToSimulate(),0,0,"Dassl", 0.0001,0.0, "testmodelresults"))
                     enterSimulationMode();
-                else
+                else{
                     audio.playError();
+                    leaveSimulationMode();
+                }
             }
         }
         catch(err)
         {
-            console.log(err.message);
             audio.playError();
+            leaveSimulationMode();
+            console.log(err.message);
         }
     }
     
     function enterSimulationMode(){
         simulationMode = true;
-        if(audio.isMusicPlaying){
-            audio.stopMusic();
-            audio.playSimulate();
-        }
         if(schematicMode){
             $('#button_schematic_mode').click();
                    schematicMode = false;
@@ -2257,8 +2260,10 @@ function Playmola(){
     
     function leaveSimulationMode(){
         simulationMode = false;
-        audio.stopMusic();
-        audio.playTheme();
+        if(audio.isMusicPlaying){
+            audio.stopMusic();
+            audio.playTheme();
+        }
         joints.forEach(function(j){
             j.resetAnimation();
         });
