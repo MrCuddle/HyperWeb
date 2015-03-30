@@ -2709,8 +2709,11 @@ function Playmola(){
         if(parameter.fullTypeName === "Boolean"){
             $("#"+id+"_").append('<span><input name="' + id + '" id="' + id + '" type="checkbox" data-role="none" data-mini="true"></span>');
         }
-        else if(parameter.fullTypeName === "Real" && parameter.sizes[0] === 3){
-            $("#"+id+"_").append('<span><input name="' + id + '" id="' + id + '" placeholder="x,y,z"' + value + ' data-mini="true" data-role="none"></span>');
+        else if(isVector(parameter)){
+            var xyz = parameter.currentValue.toString().replace("{","").replace("}","").split(",");
+            $("#"+id+"_").append('<span><input name="' + id + "x" + '" id="' + id + "x" + '" placeholder="x"' + "value=" + xyz[0] + ' data-mini="true" data-role="none"></span>');
+            $("#"+id+"_").append('<input name="' + id + "y" + '" id="' + id + "y" + '" placeholder="y"' + "value=" + xyz[1] + ' data-mini="true" data-role="none">');
+            $("#"+id+"_").append('<input name="' + id + "z" + '" id="' + id + "z" +'" placeholder="z"' + "value=" + xyz[2] + ' data-mini="true" data-role="none"></span>');
         }
         else{
             $("#"+id+"_").append('<span><input name="' + id + '" id="' + id + '"' + value + ' data-mini="true" data-role="none"></span>');
@@ -2721,6 +2724,45 @@ function Playmola(){
             $("#"+id).change(function(){
                parameter.currentValue = this.checked; 
                parameter.changed = true;
+               if(parameter.callback !== undefined)
+                   parameter.callback.call(selectedObject, parameter.currentValue);
+            });
+        }
+        else if(isVector(parameter)){
+            $('#'+id + "x").on('input', function(){
+               var xVal = $(this).val();
+               var yVal = $('#' + id + "y").val();
+               var zVal = $('#' + id + "z").val();
+               parameter.changed = true;
+               if(xVal == "" || yVal == "" || zVal == "")
+                   parameter.changed = false;
+               var currentValue = "{" + xVal + "," + yVal + "," + zVal + "}";
+               parameter.currentValue = currentValue;
+               if(parameter.callback !== undefined)
+                    parameter.callback.call(selectedObject, currentValue);
+            });
+               $('#'+id + "y").on('input', function(){
+               var xVal = $('#' + id + "x").val();
+               var yVal = $(this).val();
+               var zVal = $('#' + id + "z").val();
+               parameter.changed = true;
+               if(xVal == "" || yVal == "" || zVal == "")
+                   parameter.changed = false;
+               var currentValue = "{" + xVal + "," + yVal + "," + zVal + "}";
+               parameter.currentValue = currentValue;
+               if(parameter.callback !== undefined)
+                   parameter.callback.call(selectedObject, currentValue);
+               
+            });
+               $('#'+id + "z").on('input', function(){
+               var xVal = $('#' + id + "x").val();
+               var yVal = $('#' + id + "y").val();
+               var xVal = $(this).val();
+               parameter.changed = true;
+               if(xVal == "" || yVal == "" || zVal == "")
+                   parameter.changed = false;
+               var currentValue = "{" + xVal + "," + yVal + "," + zVal + "}";
+               parameter.currentValue = currentValue;
                if(parameter.callback !== undefined)
                    parameter.callback.call(selectedObject, parameter.currentValue);
             });
@@ -2739,6 +2781,13 @@ function Playmola(){
         
         //alert($("#parameters").html());
         //alert($("#"+id+"_ label").attr('class'));
+    }
+    
+    function isVector(parameter){
+        return (parameter.fullTypeName === "Modelica.SIunits.Position" && parameter.sizes[0] === 3) ||
+                (parameter.fullTypeName === "SI.Position" && parameter.sizes[0] === 3) ||
+                 parameter.fullTypeName === "Modelica.Mechanics.MultiBody.Types.Axis" ||
+                 parameters.fullTypeName === "Types.Axis";
     }
    
     
