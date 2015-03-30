@@ -72,7 +72,8 @@ PlaymolaAudio = function(){
                      'Sound/chillaxin.mp3',
                      'Sound/weld.mp3',
                      'Sound/clinkclonk.mp3',
-                     'Sound/ERROR.wav'
+                     'Sound/ERROR.wav',
+                     'Sound/animdone.mp3'
           ], this.finishedLoading);
   bufferLoader.load();
   
@@ -99,6 +100,13 @@ PlaymolaAudio = function(){
       errorSound.buffer = currentBufferList[4];
       errorSound.connect(audioCtx.destination);
       errorSound.start(0);
+  }
+  
+  this.playAnimDone = function(){
+      var animDone = audioCtx.createBufferSource();
+      animDone.buffer = currentBufferList[5];
+      animDone.connect(audioCtx.destination);
+      animDone.start(0);
   }
   
   this.stopMusic = function(){

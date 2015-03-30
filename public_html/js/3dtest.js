@@ -65,6 +65,7 @@ function Playmola(){
     var particleGroup = null;
     
     var playAnimation = false;
+    var animationIsDone = false;
 
 
     function generateModelicaCode() { 
@@ -1514,6 +1515,10 @@ function Playmola(){
             this.animatePhi = null;
             this.currentFrame = 0;
         };
+
+        this.isAnimationDone = function(){
+            return (this.animatePhi !== null && this.animatePhi.length > 0 && this.currentFrame == this.animatePhi.length - 1);
+        }
         
     }
     RevoluteJoint.prototype = Object.create(DymolaComponent.prototype);
@@ -1571,6 +1576,9 @@ function Playmola(){
             this.animateTranslation = null;
             this.currentFrame = 0;
         };
+        this.isAnimationDone = function(){
+            return (this.animateTranslation !== null && this.animateTranslation.length > 0 && this.currentFrame == this.animateTranslation.length - 1);
+        }
         
     }
     PrismaticJoint.prototype = Object.create(DymolaComponent.prototype);
@@ -1626,6 +1634,9 @@ function Playmola(){
             this.frameBConnector.actualOrientation.setFromAxisAngle(new THREE.Vector3(0,0,1),this.phi);
             this.frameBConnector.actualPosition.set(this.translation,this.radius,0);
         };
+        this.isAnimationDone = function(){
+            return (this.animateTranslation !== null && this.animateTranslation.length > 0 && this.currentFrame == this.animateTranslation.length - 1);
+        }
         
         this.resetAnimation = function(){
             this.animatePhi = null;
@@ -2125,6 +2136,10 @@ function Playmola(){
         bindKeys();
  
         $("#button_play_simulation").on('click', function(){
+            if(animationIsDone){
+                $("#button_rewind_simulation").click();
+                animationIsDone = false;
+            }
             playAnimation = true;
         });
         $("#button_stop_simulation").on('click', function(){
@@ -2137,18 +2152,34 @@ function Playmola(){
             });
             playAnimation = false;
         });
+
+        initializeWorld();
         
+        $("#button_clear_objects").on('click', function(){
+           deselectObject();
+           while(objectCollection.length > 0){
+               var toDelete = objectCollection.shift();
+               scene.remove(toDelete);
+           } 
+           while(connections.length > 0){
+               var toDelete = connections.shift();
+               scene.remove(toDelete);
+           }
+           initializeWorld();
+           if(simulationMode)
+               leaveSimulationMode();
+        });
+    }
+    
+    function initializeWorld() {
         world = palette.makeComponent("World","Playmola.SimpleWorld");
-        world.position.set(-2,0,0); 
+        world.position.set(-0.5,0,0); 
     }
     
     function bindKeys(){
         $(document).bind('keydown', function(e) {
             if(e.keyCode == 13){ //enter
                 //trySimulation();
-            }
-            else if (e.keyCode == 46){ //delete
-                deleteSelectedObject();
             }
             else if (e.keyCode == 36){ //home
                 camera.position.set(0,0.25,4);
@@ -2422,6 +2453,12 @@ function Playmola(){
         deselectObject();
         deselectConnection();
         selectedObject = object;
+        //något åt detta hållet för att markera objekt?
+//        var outlineMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000, side: THREE.BackSide } );
+//        var outlineMesh = new THREE.Mesh(object.mesh.children[0].geometry, outlineMaterial);
+//        outlineMesh.position.set(object.position.x, object.position.y,object.position.z);
+//        outlineMesh.scale.set(0.3,0.3,0.3);
+//        scene.add(outlineMesh);
         //initParticleSystem(object.position);
         transformControls.attach(selectedObject);
         
@@ -2941,9 +2978,10 @@ function Playmola(){
 
     };
     
-    function logic() {        
-        
-       
+
+    var jointsDoneMoving = 0;
+    function logic() {
+        //moveObjects();
         
         if(!disableControls){
             cameraControls.update();
@@ -2956,7 +2994,15 @@ function Playmola(){
             joints.forEach(function(j){
                j.enforceConstraint(); 
                //j.animationUpdatedThisFrame = false;
+               if(j.isAnimationDone())
+                   jointsDoneMoving++;
             });
+            
+            if(joints.length > 0 && jointsDoneMoving == joints.length){
+                audio.playAnimDone();
+                jointsDoneMoving = 0;
+                animationIsDone = true;
+            }
             
             constrainComponents();
             
