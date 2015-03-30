@@ -93,10 +93,6 @@ package Playmola
 
   end SimpleWorld;
 
-  annotation (
-    uses(Modelica(version="3.2.1"), ModelManagement(version="1.1.3")),
-    version="1",
-    conversion(noneFromVersion=""));
   model SimpleSpringDamper
 
     extends Modelica.Mechanics.Rotational.Components.SpringDamper(c=SpringConstant,d=DampingConstant,phi_rel0=UnstretchedSpringAngle);
@@ -132,4 +128,14 @@ package Playmola
   equation
 
   end SimpleConstantTorque;
+  annotation (
+    uses(Modelica(version="3.2.1"), ModelManagement(version="1.1.3")),
+    version="1",
+    conversion(noneFromVersion=""));
+  model SimpleFixedRotation
+    extends Modelica.Mechanics.MultiBody.Parts.FixedRotation(r = Translation, n=AxisOfRotation, angle = Angle);
+    parameter Modelica.SInits.Position Translation[3]={0,0,0};
+    parameter Modelica.Mechanics.MultiBody.Types.Axis AxisOfRotation={1,0,0};
+    parameter Modelica.SIunits.Conversions.NonSIunits.Angle_deg Angle = 0;
+  end SimpleFixedRotation;
 end Playmola;
