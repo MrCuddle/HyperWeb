@@ -199,11 +199,13 @@ function Playmola(){
                 } else {
                     if(hoverTileX != -1){
                         categories[selectedCategory][hoverTileX + hoverTileY * tilesX].scale.multiplyScalar(1/1.6);
+                        $("#label_hovered").text("");
                     }
                     hoverTileX = hoverTileX_;
                     hoverTileY = hoverTileY_;
                     if(hoverTileX + hoverTileY * tilesX < categories[selectedCategory].length){
                          categories[selectedCategory][hoverTileX + hoverTileY * tilesX].scale.multiplyScalar(1.6);
+                         $("#label_hovered").text(categories[selectedCategory][hoverTileX + hoverTileY * tilesX].typeName);
                     } else {
                         hoverTileX = -1;
                         hoverTileY = -1;
@@ -212,6 +214,7 @@ function Playmola(){
                 
             } else {
                 mouseover = false;
+                $("#label_hovered").text("");
                 if(hoverTileX != -1){
                     categories[selectedCategory][hoverTileX + hoverTileY * tilesX].scale.multiplyScalar(1/1.6);
                     hoverTileX = -1;
@@ -2453,12 +2456,6 @@ function Playmola(){
         deselectObject();
         deselectConnection();
         selectedObject = object;
-        //något åt detta hållet för att markera objekt?
-//        var outlineMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000, side: THREE.BackSide } );
-//        var outlineMesh = new THREE.Mesh(object.mesh.children[0].geometry, outlineMaterial);
-//        outlineMesh.position.set(object.position.x, object.position.y,object.position.z);
-//        outlineMesh.scale.set(0.3,0.3,0.3);
-//        scene.add(outlineMesh);
         //initParticleSystem(object.position);
         transformControls.attach(selectedObject);
         
@@ -2476,6 +2473,7 @@ function Playmola(){
         if(selectedObject instanceof DymolaComponent){
             $("#detailsPanel").css({"overflow-y":"auto"});
             $("#detailsPanel").panel("open");
+            $("#parameters").append("<label>" + selectedObject.typeName +"</label>");
             $("#parameters").append("<button id='delete_button' style='margin-bottom:30px'>Delete</button>");
             $("#delete_button").on('click', function(){
                 $("#detailsPanel").panel("close");
