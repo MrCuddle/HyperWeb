@@ -34,14 +34,15 @@ package Playmola
   end Class;
 
   model SimpleRevoluteJoint
-    extends Modelica.Mechanics.MultiBody.Joints.Revolute(phi(start = StartAngle), n = AxisOfRotation, useAxisFlange=true);
+    extends Modelica.Mechanics.MultiBody.Joints.Revolute(phi(start = StartAngle), w(start = StartVelocity), n = AxisOfRotation, useAxisFlange=true);
 
     parameter Modelica.SIunits.Angle StartAngle = 0;
+    parameter Modelica.SIunits.AngularVelocity StartVelocity = 0;
     parameter Modelica.Mechanics.MultiBody.Types.Axis AxisOfRotation = {0,0,1};
   end SimpleRevoluteJoint;
 
   model SimplePrismaticJoint
-    extends Modelica.Mechanics.MultiBody.Joints.Prismatic(s(start = StartTranslation), n=AxisOfTranslation);
+    extends Modelica.Mechanics.MultiBody.Joints.Prismatic(s(start = StartTranslation), n=AxisOfTranslation, useAxisFlange=true);
 
     parameter Modelica.SIunits.Position StartTranslation = 0;
     parameter Modelica.Mechanics.MultiBody.Types.Axis AxisOfTranslation = {1,0,0};
@@ -87,19 +88,18 @@ package Playmola
   end SimpleInertia;
 
   model SimpleWorld
-    extends Modelica.Mechanics.MultiBody.World(g = _Gravity, n = _DirectionOfGravity);
-    parameter Modelica.SIunits.Acceleration _Gravity=9.81;
-    parameter Modelica.Mechanics.MultiBody.Types.Axis _DirectionOfGravity={0,-1,0};
+    extends Modelica.Mechanics.MultiBody.World(g = Gravity, n = DirectionOfGravity);
+    parameter Modelica.SIunits.Acceleration Gravity=9.81;
+    parameter Modelica.Mechanics.MultiBody.Types.Axis DirectionOfGravity={0,-1,0};
 
   end SimpleWorld;
 
   model SimpleSpringDamper
 
-    extends Modelica.Mechanics.Rotational.Components.SpringDamper(c=SpringConstant,d=DampingConstant,phi_rel0=UnstretchedSpringAngle);
+    extends Modelica.Mechanics.Translational.Components.SpringDamper(c=SpringConstant,d=DampingConstant);
 
     parameter Modelica.SIunits.RotationalSpringConstant SpringConstant = 1.0e5;
     parameter Modelica.SIunits.RotationalDampingConstant DampingConstant = 0;
-    parameter Modelica.SIunits.Angle UnstretchedSpringAngle=0;
   end SimpleSpringDamper;
 
   model SimpleDamper
@@ -128,14 +128,15 @@ package Playmola
   equation
 
   end SimpleConstantTorque;
+
+  model SimpleFixedRotation
+    extends Modelica.Mechanics.MultiBody.Parts.FixedRotation(r = Translation, n=AxisOfRotation, angle = Angle);
+    parameter Modelica.SIunits.Position Translation[3]={0,0,0};
+    parameter Modelica.Mechanics.MultiBody.Types.Axis AxisOfRotation={1,0,0};
+    parameter Modelica.SIunits.Conversions.NonSIunits.Angle_deg Angle = 0;
+  end SimpleFixedRotation;
   annotation (
     uses(Modelica(version="3.2.1"), ModelManagement(version="1.1.3")),
     version="1",
     conversion(noneFromVersion=""));
-  model SimpleFixedRotation
-    extends Modelica.Mechanics.MultiBody.Parts.FixedRotation(r = Translation, n=AxisOfRotation, angle = Angle);
-    parameter Modelica.SInits.Position Translation[3]={0,0,0};
-    parameter Modelica.Mechanics.MultiBody.Types.Axis AxisOfRotation={1,0,0};
-    parameter Modelica.SIunits.Conversions.NonSIunits.Angle_deg Angle = 0;
-  end SimpleFixedRotation;
 end Playmola;
