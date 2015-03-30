@@ -14,6 +14,8 @@ function Playmola(){
     var transformControls;
     var raycaster;
     
+    var axisHelper;
+    
     var movingObjects = [];
     var joints = [];
     var objectCollection = []; //Collection of all active objects in scene
@@ -239,6 +241,8 @@ function Playmola(){
         var width = domElement.getBoundingClientRect().width;
         var height = domElement.getBoundingClientRect().height;
         this.camera = new THREE.OrthographicCamera(width / -2, width / 2, height / 2, height / -2, 1, 1000);
+        camera.add
+           
 
         this.update = function(){
             if(mouseover){
@@ -1339,10 +1343,6 @@ function Playmola(){
         scope.loadRollingWheelJoint();
         scope.loadFixedRotation();
         scope.addPackage("Playmola.UserComponents", "Custom Components");
-
-        
- 
-
     };
     Palette.prototype.constructor = THREE.Palette;
 
@@ -1514,6 +1514,11 @@ function Playmola(){
             this.frameBConnector.actualOrientation.setFromAxisAngle(this.axis,this.phi);
         };
         
+        this.resetAnimation = function(){
+            this.animatePhi = null;
+            this.currentFrame = 0;
+        };
+
         this.isAnimationDone = function(){
             return (this.animatePhi !== null && this.animatePhi.length > 0 && this.currentFrame == this.animatePhi.length - 1);
         }
@@ -1570,6 +1575,10 @@ function Playmola(){
             this.frameBConnector.actualPosition.copy(this.axis.clone().multiplyScalar(this.translation));
         };
         
+        this.resetAnimation = function(){
+            this.animateTranslation = null;
+            this.currentFrame = 0;
+        };
         this.isAnimationDone = function(){
             return (this.animateTranslation !== null && this.animateTranslation.length > 0 && this.currentFrame == this.animateTranslation.length - 1);
         }
@@ -1631,6 +1640,12 @@ function Playmola(){
         this.isAnimationDone = function(){
             return (this.animateTranslation !== null && this.animateTranslation.length > 0 && this.currentFrame == this.animateTranslation.length - 1);
         }
+        
+        this.resetAnimation = function(){
+            this.animatePhi = null;
+            this.animateTranslation = null;
+            this.currentFrame = 0;
+        };
         
     }
     RollingWheelJoint.prototype = Object.create(DymolaComponent.prototype);
@@ -1911,6 +1926,9 @@ function Playmola(){
         camera = new THREE.PerspectiveCamera(45,window.innerWidth/window.innerHeight,0.1,1000);
         camera.position.set(0,0.25,4);
         
+        
+        
+        
  
         audio = new PlaymolaAudio();
         $("#button_audio_toggle").on('click', function(){
@@ -1928,6 +1946,8 @@ function Playmola(){
         scene = new THREE.Scene();
         scene.add(camera);
         foregroundScene = new THREE.Scene();
+        axisHelper = new THREE.AxisHelper(0.5);
+        scene.add(axisHelper);
         
         var directionalLight = new THREE.DirectionalLight();
         directionalLight.position.set(5,10,10);
@@ -2162,7 +2182,7 @@ function Playmola(){
     function bindKeys(){
         $(document).bind('keydown', function(e) {
             if(e.keyCode == 13){ //enter
-                trySimulation();
+                //trySimulation();
             }
             else if (e.keyCode == 36){ //home
                 camera.position.set(0,0.25,4);
@@ -2240,7 +2260,7 @@ function Playmola(){
         audio.stopMusic();
         audio.playTheme();
         joints.forEach(function(j){
-            j.currentFrame = 0;
+            j.resetAnimation();
         });
         playAnimation = false;
         $("#button_play_simulation").css("visibility", "hidden");
@@ -2392,6 +2412,8 @@ function Playmola(){
             var intersectionFound = null;
             var distance = 1000000;
             for(var i = 0; i < objectCollection.length; i++){
+                if(!objectCollection[i].visible) //Don't allow selection of invisible objects
+                    continue;
                 var intersect = raycaster.intersectObject(objectCollection[i],true);
                 if(intersect.length > 0){
                     if(intersect[0].distance < distance){
@@ -2441,8 +2463,9 @@ function Playmola(){
         selectedObject.traverse(function(child){
             if(child instanceof THREE.Mesh){
                 if(child.userData.initColor === undefined)
-                    child.userData.initColor = child.material.color;
-                child.material.color = new THREE.Color(0xB0E2FF);
+                child.oldMaterial = child.material;
+                //child.material.color = new THREE.Color(0xB0E2FF);
+                child.material = new THREE.MeshPhongMaterial( { color: 0x000000, specular: 0x666666, emissive: 0xff0000, shininess: 10, shading: THREE.SmoothShading, opacity: 0.9, transparent: true } )
              }
         });
         
@@ -2474,7 +2497,7 @@ function Playmola(){
             $("#detailsPanel").panel("close");
             selectedObject.traverse(function(child){
                if(child instanceof THREE.Mesh)
-                   child.material.color = child.userData.initColor;
+                   child.material = child.oldMaterial;
             });
             transformControls.detach(selectedObject);
             selectedObject = null;
@@ -3002,6 +3025,7 @@ function Playmola(){
 
     };
     
+
     var jointsDoneMoving = 0;
     function logic() {
         //moveObjects();
@@ -3034,6 +3058,15 @@ function Playmola(){
         connections.forEach(function(c){
             c.update();
         });
+        
+        //Update the axis helper's position
+         var lookAt = new THREE.Vector3(0,0, -1).applyQuaternion(camera.quaternion);
+        var left = new THREE.Vector3(-1,0, 0).applyQuaternion(camera.quaternion);
+        var down = new THREE.Vector3(0,-1, 0).applyQuaternion(camera.quaternion);
+        lookAt.multiplyScalar(3);
+        left.multiplyScalar(2.1);
+        down.multiplyScalar(1);
+        axisHelper.position.copy(camera.position.clone().add(lookAt).add(left).add(down));
         
         requestAnimationFrame(render);
     }
@@ -3135,7 +3168,8 @@ function Playmola(){
     function DuplicateAndSelect(component){
         var duplicate = component.clone();
         duplicate.traverse(function(o){
-            if(o.material !== undefined) o.material = o.material.clone();
+            if(o.oldMaterial !== undefined) o.material = o.oldMaterial.clone();
+            else if(o.material !== undefined) o.material = o.material.clone();
         });
         duplicate.name = "obj" + objCounter;
         objCounter++;
@@ -3205,6 +3239,15 @@ function Playmola(){
     
     
     function render(){
+        if(selectedObject){
+            var timer = 0.0001 * Date.now();
+            selectedObject.traverse(function(child){
+                if(child instanceof THREE.Mesh){
+                    child.material.emissive.setHSL( 0.54, 1, 0.35 * ( 0.75 + 0.25 * Math.cos( 35 * timer ) ) );
+                }
+            });
+        }
+
         renderer.clear();
         if(particleGroup)
             particleGroup.tick();
