@@ -833,6 +833,7 @@ function Playmola(){
                                 this.phi = THREE.Math.degToRad(angle);
                         };
                     if(componentParam.name === "AxisOfRotation")
+                        componentParam.currentValue = "{0,0,1}";
                         componentParam.callback = function(vector){
                             var xyz = vector.toString().replace("{","").replace("}","").split(",");
                             if(xyz.length == 3)
@@ -910,6 +911,7 @@ function Playmola(){
                                 this.translation = translation;
                         };
                     if(componentParam.name === "AxisOfTranslation")
+                        componentParam.currentValue = "{1,0,0}";
                         componentParam.callback = function(vector){
                             var xyz = vector.toString().replace("{","").replace("}","").split(",");
                             if(xyz.length == 3)
@@ -1103,11 +1105,11 @@ function Playmola(){
             }
             var obj2 = new FixedRotation();
             obj2.typeName = "Modelica.Mechanics.MultiBody.Parts.FixedRotation";
-            var componentsInClass = dymolaInterface.Dymola_AST_ComponentsInClass("Modelica.Mechanics.MultiBody.Parts.FixedRotation");
+            var componentsInClass = dymolaInterface.Dymola_AST_ComponentsInClass("Playmola.SimpleFixedRotation");
 
             for(var j = 0; j < componentsInClass.length; j++){
                 var params = [];
-                params.push("Modelica.Mechanics.MultiBody.Parts.FixedRotation");
+                params.push("Playmola.SimpleFixedRotation");
                 params.push(componentsInClass[j]);
                 if(dymolaInterface.callDymolaFunction("Dymola_AST_ComponentVariability", params) === "parameter"){
                     var componentParam = [];
@@ -1117,26 +1119,32 @@ function Playmola(){
                     componentParam["description"] = dymolaInterface.callDymolaFunction("Dymola_AST_ComponentDescription",params);
                     componentParam["changed"] = false;
                     componentParam.toSimulate = true;
-                    if(componentParam.name === "r")
+                    if(componentParam.name === "Translation"){
+                        componentParam.currentValue = "{0,0,0}";
                         componentParam.callback = function(vector){
                             var xyz = vector.toString().replace("{","").replace("}","").split(",");
                             if(xyz.length == 3)
                                 this.translation = new THREE.Vector3(parseFloat(xyz[0]),parseFloat(xyz[1]),parseFloat(xyz[2]));
                             this.updateFrames();
                         };
-                    else if(componentParam.name === "n")
+                    }
+                    else if(componentParam.name === "AxisOfRotation"){
+                        componentParam.currentValue = "{1,0,0}";
                         componentParam.callback = function(vector){
                             var xyz = vector.toString().replace("{","").replace("}","").split(",");
                             if(xyz.length == 3)
                                 this.rotationAxis = new THREE.Vector3(parseFloat(xyz[0]),parseFloat(xyz[1]),parseFloat(xyz[2]));
                             this.updateFrames();
                         };
-                    else if(componentParam.name === "angle")
+                    }
+                    else if(componentParam.name === "angle"){
+                        componentParam.currentValue = 0;
                         componentParam.callback = function(angle){
                             if(!isNaN(angle))
                                 this.rotationAngle = angle;
                             this.updateFrames();
                         };
+                    }
                     obj2.parameters.push(componentParam);
                 }
             }
@@ -2188,6 +2196,8 @@ function Playmola(){
     
     function initializeWorld() {
         world = palette.makeComponent("World","Playmola.SimpleWorld");
+        world.parameters[0].currentValue = "9.81";
+        world.parameters[1].currentValue = "{0,-1,0}";
         world.position.set(-0.5,0,0); 
     }
     
@@ -2357,7 +2367,7 @@ function Playmola(){
     }
     
     var particleParent = null;
-    
+    var isWelding;
     function initParticleSystem(origin, parent){
         if(particleGroup)
             scene.remove(particleGroup.mesh);
@@ -2391,6 +2401,8 @@ function Playmola(){
         particleParent = parent;
         parent.add( particleGroup.mesh );
         audio.playWelding();
+        isWelding = true;
+        setTimeout(shutdownParticleSystem, 2200);
     }
     
     function shutdownParticleSystem(){
@@ -2398,6 +2410,7 @@ function Playmola(){
         particleParent = null;
         particleGroup = null;
         audio.stopWelding();
+        isWelding = false;
     }
     
     
@@ -2480,7 +2493,7 @@ function Playmola(){
             }
 
             //Check if the intersected  object was a DymolaComponent and check if the intersection was on a connector
-            if(!dontCheckConnectors && intersectionFound !== null && (intersectionFound.type == 'DymolaComponent' || intersectionFound instanceof DymolaComponent)){
+            if(!isWelding && !dontCheckConnectors && intersectionFound !== null && (intersectionFound.type == 'DymolaComponent' || intersectionFound instanceof DymolaComponent)){
                 //Loop through the connectors to see if one is intersected
                 var connectorPicked = false;
                 for(var i = 0; i < intersectionFound.connectors.length; i++){
@@ -2664,55 +2677,56 @@ function Playmola(){
     
     //If a connection line is being drawn and the mouse button is released, check for a potential connection
     function completeConnection(event){
-        if(draggingConnection){
-            scene.remove(connectionLine);
-            connectionLine = null;
-            
-            var closest = checkForConnection(new THREE.Vector3(event.clientX, event.clientY, 0), draggingFrom);
-            
-            if(closest !== null){
-                var connection = new Connection(draggingFrom, closest);
-                
-                connections.push(connection);
-                scene.add(connection);
-                if(!schematicMode){
-//                    var pos = closest.position.clone();
-//                    closest.parent.localToWorld(pos);
-                    initParticleSystem(THREE.Vector3(0,0,0), closest);
-                    setTimeout(shutdownParticleSystem, 3000);
-                }
-                if(CheckKinematicLoop(connection)){
-                    selectConnection(connection);
-                    deleteSelectedObject();
-                    
-                    var bushing = palette.makeComponent("HiddenComponents","VisualMultiBody.Joints.Bushing");
-                     //Position the new joint half way between the two connectors
-                    var p1 = draggingFrom.position.clone();
-                    draggingFrom.parent.localToWorld(p1);
-                    var p2 = closest.position.clone();
-                    closest.parent.localToWorld(p2);
-                    bushing.position.copy(p1.add(p2).multiplyScalar(0.5));
+        if(!isWelding){
+            if(draggingConnection){
+                scene.remove(connectionLine);
+                connectionLine = null;
 
-                    var connection1 = new Connection(draggingFrom, bushing.frameAConnector);
-                    connections.push(connection1);
-                    scene.add(connection1);
-                    var connection2 = new Connection(bushing.frameBConnector, closest);
-                    connections.push(connection2);
-                    scene.add(connection2);
-                    
-                    //alert("!KINEMATIC LOOP!");
-                } 
-                
-                audio.playClick();
-                
+                var closest = checkForConnection(new THREE.Vector3(event.clientX, event.clientY, 0), draggingFrom);
+
+                if(closest !== null){
+                    var connection = new Connection(draggingFrom, closest);
+
+                    connections.push(connection);
+                    scene.add(connection);
+                    if(!schematicMode){
+    //                    var pos = closest.position.clone();
+    //                    closest.parent.localToWorld(pos);
+                        initParticleSystem(THREE.Vector3(0,0,0), closest);
+                    }
+                    if(CheckKinematicLoop(connection)){
+                        selectConnection(connection);
+                        deleteSelectedObject();
+
+                        var bushing = palette.makeComponent("HiddenComponents","VisualMultiBody.Joints.Bushing");
+                         //Position the new joint half way between the two connectors
+                        var p1 = draggingFrom.position.clone();
+                        draggingFrom.parent.localToWorld(p1);
+                        var p2 = closest.position.clone();
+                        closest.parent.localToWorld(p2);
+                        bushing.position.copy(p1.add(p2).multiplyScalar(0.5));
+
+                        var connection1 = new Connection(draggingFrom, bushing.frameAConnector);
+                        connections.push(connection1);
+                        scene.add(connection1);
+                        var connection2 = new Connection(bushing.frameBConnector, closest);
+                        connections.push(connection2);
+                        scene.add(connection2);
+
+                        //alert("!KINEMATIC LOOP!");
+                    } 
+
+                    audio.playClick();
+
+                }
+
+                draggingConnection = false;
+                draggingFrom = null;
+                transformControls.dragging = false;
+                ClearForegroundScene();
             }
-            
-            draggingConnection = false;
-            draggingFrom = null;
-            transformControls.dragging = false;
-            ClearForegroundScene();
+            if(!schematicMode) self.exitSchematicMode();
         }
-        if(!schematicMode) self.exitSchematicMode();
     }
 
     
@@ -2949,56 +2963,61 @@ function Playmola(){
     }
     
     this.connectObjects = function(jointType){
-        if(jointType == "none"){
-            var connection = new Connection(connectorFrom, connectorTo);
-            connections.push(connection);
-            scene.add(connection);
-            audio.playClick();
-        } else {
-            var joint = palette.makeComponent("Joints", jointType);
-            if(joint != null){
-                //Position the new joint half way between the two connectors
-                var p1 = connectorFrom.position.clone();
-                connectorFrom.parent.localToWorld(p1);
-                var p2 = connectorTo.position.clone();
-                connectorTo.parent.localToWorld(p2);
-                joint.position.copy(p1.add(p2).multiplyScalar(0.5));
-                
-                var connection1 = new Connection(connectorFrom, joint.frameAConnector);
-                connections.push(connection1);
-                scene.add(connection1);
-                var connection2 = new Connection(joint.frameBConnector, connectorTo);
-                connections.push(connection2);
-                scene.add(connection2);
-                    
-                if(CheckKinematicLoop(connection2)){
-                    selectConnection(connection2);
-                    deleteSelectedObject();
-                    
-                    var bushing = palette.makeComponent("HiddenComponents","VisualMultiBody.Joints.Bushing");
-                     //Position the new joint half way between the two connectors
-                    var p1 = joint.frameBConnector.position.clone();
-                    joint.frameBConnector.parent.localToWorld(p1);
+        if(!isWelding){
+            if(jointType == "none"){
+                var connection = new Connection(connectorFrom, connectorTo);
+                connections.push(connection);
+                scene.add(connection);
+                initParticleSystem(THREE.Vector3(0,0,0), connectorTo);
+                audio.playClick();
+            } else {
+                var joint = palette.makeComponent("Joints", jointType);
+                if(joint != null){
+                    //Position the new joint half way between the two connectors
+                    var p1 = connectorFrom.position.clone();
+                    connectorFrom.parent.localToWorld(p1);
                     var p2 = connectorTo.position.clone();
                     connectorTo.parent.localToWorld(p2);
-                    bushing.position.copy(p1.add(p2).multiplyScalar(0.5));
+                    joint.position.copy(p1.add(p2).multiplyScalar(0.5));
 
-                    var connection3 = new Connection(joint.frameBConnector, bushing.frameAConnector);
-                    connections.push(connection3);
-                    scene.add(connection3);
-                    var connection4 = new Connection(bushing.frameBConnector, connectorTo);
-                    connections.push(connection4);
-                    scene.add(connection4);
-                    
-                    //alert("!KINEMATIC LOOP!");
+                    var connection1 = new Connection(connectorFrom, joint.frameAConnector);
+                    connections.push(connection1);
+                    scene.add(connection1);
+                    var connection2 = new Connection(joint.frameBConnector, connectorTo);
+                    connections.push(connection2);
+                    scene.add(connection2);
+
+                    initParticleSystem(THREE.Vector3(0,0,0), connectorTo);
+
+                    if(CheckKinematicLoop(connection2)){
+                        selectConnection(connection2);
+                        deleteSelectedObject();
+
+                        var bushing = palette.makeComponent("HiddenComponents","VisualMultiBody.Joints.Bushing");
+                         //Position the new joint half way between the two connectors
+                        var p1 = joint.frameBConnector.position.clone();
+                        joint.frameBConnector.parent.localToWorld(p1);
+                        var p2 = connectorTo.position.clone();
+                        connectorTo.parent.localToWorld(p2);
+                        bushing.position.copy(p1.add(p2).multiplyScalar(0.5));
+
+                        var connection3 = new Connection(joint.frameBConnector, bushing.frameAConnector);
+                        connections.push(connection3);
+                        scene.add(connection3);
+                        var connection4 = new Connection(bushing.frameBConnector, connectorTo);
+                        connections.push(connection4);
+                        scene.add(connection4);
+
+                        //alert("!KINEMATIC LOOP!");
+                    }
+                    audio.playClick();
+
+
                 }
-                audio.playClick();
-                
-                
             }
+
+            if(!schematicMode) self.exitSchematicMode();
         }
-        
-        if(!schematicMode) self.exitSchematicMode();
     };
 
 
