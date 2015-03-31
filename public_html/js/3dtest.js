@@ -641,6 +641,7 @@ function Playmola(){
                             var xyz = vector.toString().replace("{","").replace("}","").split(",");
                             if(xyz.length == 3)
                                 this.lengthDirection = new THREE.Vector3(parseFloat(xyz[0]),parseFloat(xyz[1]),parseFloat(xyz[2]));
+                            this.lengthDirection.normalize();
                             this.resize();
                             this.updateFrames();
                         };
@@ -756,6 +757,7 @@ function Playmola(){
                             var xyz = vector.toString().replace("{","").replace("}","").split(",");
                             if(xyz.length == 3)
                                 this.lengthDirection = new THREE.Vector3(parseFloat(xyz[0]),parseFloat(xyz[1]),parseFloat(xyz[2]));
+                            this.lengthDirection.normalize();
                             this.resize();
                             this.updateFrames();
                         };
@@ -855,6 +857,7 @@ function Playmola(){
                             var xyz = vector.toString().replace("{","").replace("}","").split(",");
                             if(xyz.length == 3)
                                 this.axis = new THREE.Vector3(parseFloat(xyz[0]),parseFloat(xyz[1]),parseFloat(xyz[2]));
+                            this.axis.normalize();
                             this.align();
                         };
                     }
@@ -936,6 +939,7 @@ function Playmola(){
                             var xyz = vector.toString().replace("{","").replace("}","").split(",");
                             if(xyz.length == 3)
                                 this.axis = new THREE.Vector3(parseFloat(xyz[0]),parseFloat(xyz[1]),parseFloat(xyz[2]));
+                            this.axis.normalize();
                             this.align();
                         };
                     }
@@ -1996,7 +2000,7 @@ function Playmola(){
         scene.add(axisHelper);
         
         var directionalLight = new THREE.DirectionalLight();
-        directionalLight.position.set(5,10,10);
+        directionalLight.position.set(5,7,7);
         directionalLight.intensity = 0.5;
         directionalLight.castShadow = true;
         directionalLight.shadowCameraNear = 5;
@@ -2035,6 +2039,7 @@ function Playmola(){
             var room = new THREE.Mesh(geometry, materials );
             room.receiveShadow = true;
             room.castShadow = false;
+            room.rotation.set(0,THREE.Math.degToRad(-90),0);
             scene.add(room);
         });
         
@@ -2070,6 +2075,19 @@ function Playmola(){
             big_red_button.receiveShadow = true;
             big_red_button.material.shading = THREE.SmoothShading;
             scene.add(big_red_button);
+        }, "models/");
+        
+        jsonloader.load("./models/screwdriver.json", function(geometry,mat){
+            var screwdriver = new THREE.Mesh(geometry, new THREE.MeshFaceMaterial(mat));
+            
+            screwdriver.position.set(-1,-0.95,0.55);
+            screwdriver.rotation.set(0,THREE.Math.degToRad(-70),0);
+            
+            screwdriver.scale.set(0.05,0.05,0.05);
+            screwdriver.castShadow = true;
+            screwdriver.receiveShadow = true;
+            screwdriver.material.shading = THREE.SmoothShading;
+            scene.add(screwdriver);
         }, "models/");
         
 
