@@ -2942,8 +2942,10 @@ function Playmola(){
                parameter.changed = true;
                if(parameter.callback !== undefined)
                    parameter.callback.call(selectedObject, parameter.currentValue);
-               self.exitSchematicMode();
-            self.enterSchematicMode();
+               if(schematicMode){
+                    self.exitSchematicMode();
+                    self.enterSchematicMode();
+               }
             });
             
         }
@@ -2959,8 +2961,10 @@ function Playmola(){
                parameter.currentValue = currentValue;
                if(parameter.callback !== undefined)
                     parameter.callback.call(selectedObject, currentValue);
-                self.exitSchematicMode();
-            self.enterSchematicMode();
+                if(schematicMode){
+                    self.exitSchematicMode();
+                    self.enterSchematicMode();
+               }
             });
                $('#'+id + "y").on('input', function(){
                var xVal = $('#' + id + "x").val();
@@ -2973,8 +2977,10 @@ function Playmola(){
                parameter.currentValue = currentValue;
                if(parameter.callback !== undefined)
                    parameter.callback.call(selectedObject, currentValue);
-               self.exitSchematicMode();
-            self.enterSchematicMode();
+               if(schematicMode){
+                    self.exitSchematicMode();
+                    self.enterSchematicMode();
+               }
                
             });
                $('#'+id + "z").on('input', function(){
@@ -2988,8 +2994,10 @@ function Playmola(){
                parameter.currentValue = currentValue;
                if(parameter.callback !== undefined)
                    parameter.callback.call(selectedObject, parameter.currentValue);
-               self.exitSchematicMode();
-                self.enterSchematicMode();
+               if(schematicMode){
+                    self.exitSchematicMode();
+                    self.enterSchematicMode();
+               }
             });
             
         }
@@ -3002,8 +3010,10 @@ function Playmola(){
                if(parameter.callback !== undefined)
                    parameter.callback.call(selectedObject, parameter.currentValue);
                
-               self.exitSchematicMode();
-               self.enterSchematicMode();
+               if(schematicMode){
+                    self.exitSchematicMode();
+                    self.enterSchematicMode();
+               }
             });
         }
         $("#detailsPanel").enhanceWithin();
