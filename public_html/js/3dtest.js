@@ -368,7 +368,18 @@ function Playmola(){
                 
             objectCollection.push(newcomponent);
             scene.add(newcomponent);
-            newcomponent.name = "Obj" + objCounter;
+            //newcomponent.name = "Obj" + objCounter;
+            var index = 1;
+            var simplifiedTypeName = newcomponent.typeName;
+            var lastDot = simplifiedTypeName.lastIndexOf(".");
+            simplifiedTypeName = simplifiedTypeName.substring(lastDot + 1);
+            for(var i = 0; i < objectCollection.length; i++){
+                if(objectCollection[i].name === simplifiedTypeName + index){
+                    index++;
+                    i = 0;
+                }
+            }
+            newcomponent.name = simplifiedTypeName + index;
             objCounter++;
 
             if(newcomponent.typeName === "Playmola.SimpleWorld") {
@@ -1543,7 +1554,7 @@ function Playmola(){
         };
         
         this.align = function(){
-            //this.children[0].quaternion.setFromUnitVectors(new THREE.Vector3(1,0,0), this.axis);
+            this.children[0].quaternion.setFromUnitVectors(new THREE.Vector3(1,0,0), this.axis);
         };
         
         this.enforceConstraint = function(){
@@ -1606,7 +1617,7 @@ function Playmola(){
         };
         
         this.align = function(){
-            //this.children[0].quaternion.setFromUnitVectors(new THREE.Vector3(1,0,0), this.axis);
+            this.children[0].quaternion.setFromUnitVectors(new THREE.Vector3(1,0,0), this.axis);
         };
         
         this.enforceConstraint = function(){
@@ -1696,7 +1707,6 @@ function Playmola(){
             this.animateTranslation = null;
             this.currentFrame = 0;
         };
-        
     }
     RollingWheelJoint.prototype = Object.create(DymolaComponent.prototype);
     
@@ -2320,6 +2330,7 @@ function Playmola(){
                 else{
                     audio.playError();
                     leaveSimulationMode();
+                    alert(dymolaInterface.getLastError());
                 }
             }
         }
@@ -2643,6 +2654,23 @@ function Playmola(){
                 $("#detailsPanel").panel("close");
                 deleteSelectedObject();
             })
+        selectedObject.initialName = selectedObject.name;
+        $("#parameters").append('<div id="objectName_" style="padding-bottom:5px">');
+        $("#objectName_").append('<label for="objectName">' + 'Name' + '</label>'); 
+        var value = 'value = ' + selectedObject.name;
+        $("#objectName_").append('<span><input name="' + 'objectName' + '" id="' + 'objectName' + '"' + value + ' data-mini="true" data-role="none"></span>');
+        $("#objectName_").append('<div class="clear"></div>');
+        $("#objectName").on('input', function() {
+            var newName = $(this).val();
+            for(var i = 0; i < objectCollection.length; i++){
+                if(selectedObject !== objectCollection[i] && newName === objectCollection[i].name){
+                    selectedObject.name = selectedObject.initialName;
+                    return;
+                }
+            }
+            selectedObject.name = $(this).val(); 
+        });
+        
             for(var i = 0; i < selectedObject.parameters.length; i++){
                 generateNewDetailsForm(selectedObject.parameters[i]);
             }
@@ -2653,6 +2681,121 @@ function Playmola(){
             }
             $("#detailsPanel").enhanceWithin();
         }
+    }
+    
+    
+        function generateNewDetailsForm(parameter){
+        var id = "id"+parameter.name;
+        $("#parameters").append('<div id="' + id +'_" style="padding-bottom:5px">');
+        $("#"+id+"_").append('<label for="'+id+'">'+ parameter.name + '' +'</label>'); 
+        var value = (typeof parameter.currentValue !== 'undefined') ? 'value="' + parameter.currentValue + '"' : "";
+        if(parameter.fullTypeName === "Boolean"){
+            $("#"+id+"_").append('<span><input name="' + id + '" id="' + id + '" type="checkbox" data-role="none" data-mini="true"></span>');
+        }
+        else if(isVector(parameter)){
+            var xyz = parameter.currentValue.toString().replace("{","").replace("}","").split(",");
+            $("#"+id+"_").append('<span><div style="display:inline-block"><input name="' + id + "x" + '" id="' + id + "x" + '" placeholder="x"' + "value=" + xyz[0] + ' data-mini="true" data-role="none" style="width:25px"></div>' 
+                    + '<div style="display:inline-block"><input name="' + id + "y" + '" id="' + id + "y" + '" placeholder="y"' + "value=" + xyz[1] + ' data-mini="true" data-role="none" style="width:25px"></div>' 
+                    + '<div style="display:inline-block"><input name="' + id + "z" + '" id="' + id + "z" +'" placeholder="z"' + "value=" + xyz[2] + ' data-mini="true" data-role="none" style="width:25px"></div></span>');
+        }
+        else{
+            $("#"+id+"_").append('<span><input name="' + id + '" id="' + id + '"' + value + ' data-mini="true" data-role="none"></span>');
+        }
+        $("#"+id+"_").append('<div class="clear"></div>');
+        //$("#"+id+"_").append('<a href="#popup' + parameter.name + '" data-rel="popup" class="ui-btn ui-corner-all ui-shadow ui-btn-inline" data-transition="pop">?</a><div data-role="popup" id="popup' + parameter.name + '"><p>' + parameter.description + '</p></div>');
+        if(parameter.fullTypeName === "Boolean"){
+            $("#"+id).change(function(){
+               parameter.currentValue = this.checked; 
+               parameter.changed = true;
+               if(parameter.callback !== undefined)
+                   parameter.callback.call(selectedObject, parameter.currentValue);
+               if(schematicMode){
+                    self.exitSchematicMode();
+                    self.enterSchematicMode();
+               }
+               if(simulationMode)
+                   leaveSimulationMode();
+            });
+            
+        }
+        else if(isVector(parameter)){
+            $('#'+id + "x").on('input', function(){
+               var xVal = $(this).val();
+               var yVal = $('#' + id + "y").val();
+               var zVal = $('#' + id + "z").val();
+               parameter.changed = true;
+               if(xVal == "" || yVal == "" || zVal == "")
+                   parameter.changed = false;
+               var currentValue = "{" + xVal + "," + yVal + "," + zVal + "}";
+               parameter.currentValue = currentValue;
+               if(parameter.callback !== undefined)
+                    parameter.callback.call(selectedObject, currentValue);
+                if(schematicMode){
+                    self.exitSchematicMode();
+                    self.enterSchematicMode();
+               }
+                if(simulationMode)
+                   leaveSimulationMode();
+            });
+               $('#'+id + "y").on('input', function(){
+               var xVal = $('#' + id + "x").val();
+               var yVal = $(this).val();
+               var zVal = $('#' + id + "z").val();
+               parameter.changed = true;
+               if(xVal == "" || yVal == "" || zVal == "")
+                   parameter.changed = false;
+               var currentValue = "{" + xVal + "," + yVal + "," + zVal + "}";
+               parameter.currentValue = currentValue;
+               if(parameter.callback !== undefined)
+                   parameter.callback.call(selectedObject, currentValue);
+               if(schematicMode){
+                    self.exitSchematicMode();
+                    self.enterSchematicMode();
+               }
+                if(simulationMode)
+                   leaveSimulationMode();
+            });
+               $('#'+id + "z").on('input', function(){
+               var xVal = $('#' + id + "x").val();
+               var yVal = $('#' + id + "y").val();
+               var zVal = $(this).val();
+               parameter.changed = true;
+               if(xVal == "" || yVal == "" || zVal == "")
+                   parameter.changed = false;
+               var currentValue = "{" + xVal + "," + yVal + "," + zVal + "}";
+               parameter.currentValue = currentValue;
+               if(parameter.callback !== undefined)
+                   parameter.callback.call(selectedObject, parameter.currentValue);
+               if(schematicMode){
+                    self.exitSchematicMode();
+                    self.enterSchematicMode();
+               }
+                if(simulationMode)
+                   leaveSimulationMode();
+            });
+            
+        }
+        else{
+            $("#"+id).on('input', function(){
+               parameter.currentValue = $(this).val();
+               parameter.changed = true;
+               if($(this).val() == "")
+                   parameter.changed = false;
+               if(parameter.callback !== undefined)
+                   parameter.callback.call(selectedObject, parameter.currentValue);
+               
+               if(schematicMode){
+                    self.exitSchematicMode();
+                    self.enterSchematicMode();
+               }
+                if(simulationMode)
+                   leaveSimulationMode();
+            });
+        }
+        $("#detailsPanel").enhanceWithin();
+        
+        //alert($("#parameters").html());
+        //alert($("#"+id+"_ label").attr('class'));
     }
     
     function deselectObject(){
@@ -2918,111 +3061,6 @@ function Playmola(){
             foregroundScene.remove(c);
         });
         foregroundConnectors.length = 0;
-    }
-    
-    function generateNewDetailsForm(parameter){
-        var id = "id"+parameter.name;
-        $("#parameters").append('<div id="' + id +'_" style="padding-bottom:5px">');
-        $("#"+id+"_").append('<label for="'+id+'">'+ parameter.name + '' +'</label>'); 
-        var value = (typeof parameter.currentValue !== 'undefined') ? 'value="' + parameter.currentValue + '"' : "";
-        if(parameter.fullTypeName === "Boolean"){
-            $("#"+id+"_").append('<span><input name="' + id + '" id="' + id + '" type="checkbox" data-role="none" data-mini="true"></span>');
-        }
-        else if(isVector(parameter)){
-            var xyz = parameter.currentValue.toString().replace("{","").replace("}","").split(",");
-            $("#"+id+"_").append('<span><div style="display:inline-block"><input name="' + id + "x" + '" id="' + id + "x" + '" placeholder="x"' + "value=" + xyz[0] + ' data-mini="true" data-role="none" style="width:25px"></div>' 
-                    + '<div style="display:inline-block"><input name="' + id + "y" + '" id="' + id + "y" + '" placeholder="y"' + "value=" + xyz[1] + ' data-mini="true" data-role="none" style="width:25px"></div>' 
-                    + '<div style="display:inline-block"><input name="' + id + "z" + '" id="' + id + "z" +'" placeholder="z"' + "value=" + xyz[2] + ' data-mini="true" data-role="none" style="width:25px"></div></span>');
-        }
-        else{
-            $("#"+id+"_").append('<span><input name="' + id + '" id="' + id + '"' + value + ' data-mini="true" data-role="none"></span>');
-        }
-        $("#"+id+"_").append('<div class="clear"></div>');
-        //$("#"+id+"_").append('<a href="#popup' + parameter.name + '" data-rel="popup" class="ui-btn ui-corner-all ui-shadow ui-btn-inline" data-transition="pop">?</a><div data-role="popup" id="popup' + parameter.name + '"><p>' + parameter.description + '</p></div>');
-        if(parameter.fullTypeName === "Boolean"){
-            $("#"+id).change(function(){
-               parameter.currentValue = this.checked; 
-               parameter.changed = true;
-               if(parameter.callback !== undefined)
-                   parameter.callback.call(selectedObject, parameter.currentValue);
-               if(schematicMode){
-                    self.exitSchematicMode();
-                    self.enterSchematicMode();
-               }
-            });
-            
-        }
-        else if(isVector(parameter)){
-            $('#'+id + "x").on('input', function(){
-               var xVal = $(this).val();
-               var yVal = $('#' + id + "y").val();
-               var zVal = $('#' + id + "z").val();
-               parameter.changed = true;
-               if(xVal == "" || yVal == "" || zVal == "")
-                   parameter.changed = false;
-               var currentValue = "{" + xVal + "," + yVal + "," + zVal + "}";
-               parameter.currentValue = currentValue;
-               if(parameter.callback !== undefined)
-                    parameter.callback.call(selectedObject, currentValue);
-                if(schematicMode){
-                    self.exitSchematicMode();
-                    self.enterSchematicMode();
-               }
-            });
-               $('#'+id + "y").on('input', function(){
-               var xVal = $('#' + id + "x").val();
-               var yVal = $(this).val();
-               var zVal = $('#' + id + "z").val();
-               parameter.changed = true;
-               if(xVal == "" || yVal == "" || zVal == "")
-                   parameter.changed = false;
-               var currentValue = "{" + xVal + "," + yVal + "," + zVal + "}";
-               parameter.currentValue = currentValue;
-               if(parameter.callback !== undefined)
-                   parameter.callback.call(selectedObject, currentValue);
-               if(schematicMode){
-                    self.exitSchematicMode();
-                    self.enterSchematicMode();
-               }
-               
-            });
-               $('#'+id + "z").on('input', function(){
-               var xVal = $('#' + id + "x").val();
-               var yVal = $('#' + id + "y").val();
-               var zVal = $(this).val();
-               parameter.changed = true;
-               if(xVal == "" || yVal == "" || zVal == "")
-                   parameter.changed = false;
-               var currentValue = "{" + xVal + "," + yVal + "," + zVal + "}";
-               parameter.currentValue = currentValue;
-               if(parameter.callback !== undefined)
-                   parameter.callback.call(selectedObject, parameter.currentValue);
-               if(schematicMode){
-                    self.exitSchematicMode();
-                    self.enterSchematicMode();
-               }
-            });
-            
-        }
-        else{
-            $("#"+id).on('input', function(){
-               parameter.currentValue = $(this).val();
-               parameter.changed = true;
-               if($(this).val() == "")
-                   parameter.changed = false;
-               if(parameter.callback !== undefined)
-                   parameter.callback.call(selectedObject, parameter.currentValue);
-               
-               if(schematicMode){
-                    self.exitSchematicMode();
-                    self.enterSchematicMode();
-               }
-            });
-        }
-        $("#detailsPanel").enhanceWithin();
-        
-        //alert($("#parameters").html());
-        //alert($("#"+id+"_ label").attr('class'));
     }
     
     function isVector(parameter){
