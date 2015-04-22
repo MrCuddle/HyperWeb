@@ -2313,8 +2313,10 @@ function Playmola(){
         }
         try{
             if(dymolaInterface.setClassText("", source)){
-                if(dymolaInterface.simulateModel("TestModel",0,getSecondsToSimulate(),0,0,"Dassl", 0.0001,0.0, "testmodelresults"))
+                if(dymolaInterface.simulateModel("TestModel",0,getSecondsToSimulate(),0,0,"Dassl", 0.0001,0.0, "testmodelresults")){
+                    audio.playAnimDone();
                     enterSimulationMode();
+                }
                 else{
                     audio.playError();
                     leaveSimulationMode();
@@ -2330,6 +2332,7 @@ function Playmola(){
     }
     
     function enterSimulationMode(){
+        deselectObject();
         simulationMode = true;
         if(schematicMode){
             $('#button_schematic_mode').click();
