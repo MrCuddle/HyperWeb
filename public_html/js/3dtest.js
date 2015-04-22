@@ -71,6 +71,10 @@ function Playmola(){
     var animationIsDone = false;
 
 
+    this.getCamera = function(){
+        return camera;
+    };
+
     function generateModelicaCode() { 
         var source = "model TestModel\n";
         objectCollection.forEach(function(obj){
@@ -545,6 +549,18 @@ function Playmola(){
         }
         
         function colorParametersDecorator(obj){
+            var color = {
+                name : "Color",
+                fullTypeName : "Color",
+                currentValue : "#00ff00",
+                toSimulate : false,
+                callback : function(val){
+                    if(true){
+                        this.currentColor = parseInt(val.replace(/^#/, '0x'));
+                        this.recolor();
+                    }
+                }
+            };
             var red = {
                 name : "Red",
                 fullTypeName : "Integer",
@@ -581,7 +597,7 @@ function Playmola(){
                     }
                 }
             }
-            obj.push(red,green,blue);
+            obj.push(color);
         };
         
         this.loadDymolaBox = function(){
@@ -1801,6 +1817,7 @@ function Playmola(){
         this.currentRed = 0;
         this.currentGreen = 255;
         this.currentBlue = 0;
+        this.currentColor = 0x00ff00;
 
         var moi = this;
         
@@ -1834,10 +1851,12 @@ function Playmola(){
         };
         
         this.recolor = function(){
-            var newColor = new THREE.Color(moi.currentRed/255, moi.currentGreen/255, moi.currentBlue/255);
+            //var newColor = new THREE.Color(moi.currentRed/255, moi.currentGreen/255, moi.currentBlue/255);
+            var newColor = this.currentColor;
             moi.traverse(function(child){
             if(child instanceof THREE.Mesh && child.parent !== moi.frameAConnector && child.parent !== moi.frameBConnector){
                 child.userData.initColor = newColor;
+                child.oldMaterial.color.setHex(newColor);
              }
         });
         };
@@ -1881,6 +1900,7 @@ function Playmola(){
         this.currentRed = 0;
         this.currentGreen = 255;
         this.currentBlue = 0;
+        this.currentColor = 0x00ff00;
         
         var moi = this;
         this.clone = function(){
@@ -1915,10 +1935,12 @@ function Playmola(){
         };
         
         this.recolor = function(){
-            var newColor = new THREE.Color(moi.currentRed/255, moi.currentGreen/255, moi.currentBlue/255);
+            //var newColor = new THREE.Color(moi.currentRed/255, moi.currentGreen/255, moi.currentBlue/255);
+            var newColor = this.currentColor;
             moi.traverse(function(child){
             if(child instanceof THREE.Mesh && child.parent !== moi.frameAConnector && child.parent !== moi.frameBConnector){
                 child.userData.initColor = newColor;
+                child.oldMaterial.color.setHex(newColor);
              }
         });
         };
@@ -2305,6 +2327,9 @@ function Playmola(){
             else if (e.keyCode == 77){ //m
                 audio.stopMusic();
             }
+            else if (e.keyCode == 67){ //c
+                $('#cameraPos').toggle();
+            }
         });
     }
     
@@ -2623,6 +2648,7 @@ function Playmola(){
                 return true;
             }
             deselectObject();
+            deselectConnection();
             return false;
         }
     }
@@ -2683,120 +2709,6 @@ function Playmola(){
         }
     }
     
-    
-        function generateNewDetailsForm(parameter){
-        var id = "id"+parameter.name;
-        $("#parameters").append('<div id="' + id +'_" style="padding-bottom:5px">');
-        $("#"+id+"_").append('<label for="'+id+'">'+ parameter.name + '' +'</label>'); 
-        var value = (typeof parameter.currentValue !== 'undefined') ? 'value="' + parameter.currentValue + '"' : "";
-        if(parameter.fullTypeName === "Boolean"){
-            $("#"+id+"_").append('<span><input name="' + id + '" id="' + id + '" type="checkbox" data-role="none" data-mini="true"></span>');
-        }
-        else if(isVector(parameter)){
-            var xyz = parameter.currentValue.toString().replace("{","").replace("}","").split(",");
-            $("#"+id+"_").append('<span><div style="display:inline-block"><input name="' + id + "x" + '" id="' + id + "x" + '" placeholder="x"' + "value=" + xyz[0] + ' data-mini="true" data-role="none" style="width:25px"></div>' 
-                    + '<div style="display:inline-block"><input name="' + id + "y" + '" id="' + id + "y" + '" placeholder="y"' + "value=" + xyz[1] + ' data-mini="true" data-role="none" style="width:25px"></div>' 
-                    + '<div style="display:inline-block"><input name="' + id + "z" + '" id="' + id + "z" +'" placeholder="z"' + "value=" + xyz[2] + ' data-mini="true" data-role="none" style="width:25px"></div></span>');
-        }
-        else{
-            $("#"+id+"_").append('<span><input name="' + id + '" id="' + id + '"' + value + ' data-mini="true" data-role="none"></span>');
-        }
-        $("#"+id+"_").append('<div class="clear"></div>');
-        //$("#"+id+"_").append('<a href="#popup' + parameter.name + '" data-rel="popup" class="ui-btn ui-corner-all ui-shadow ui-btn-inline" data-transition="pop">?</a><div data-role="popup" id="popup' + parameter.name + '"><p>' + parameter.description + '</p></div>');
-        if(parameter.fullTypeName === "Boolean"){
-            $("#"+id).change(function(){
-               parameter.currentValue = this.checked; 
-               parameter.changed = true;
-               if(parameter.callback !== undefined)
-                   parameter.callback.call(selectedObject, parameter.currentValue);
-               if(schematicMode){
-                    self.exitSchematicMode();
-                    self.enterSchematicMode();
-               }
-               if(simulationMode)
-                   leaveSimulationMode();
-            });
-            
-        }
-        else if(isVector(parameter)){
-            $('#'+id + "x").on('input', function(){
-               var xVal = $(this).val();
-               var yVal = $('#' + id + "y").val();
-               var zVal = $('#' + id + "z").val();
-               parameter.changed = true;
-               if(xVal == "" || yVal == "" || zVal == "")
-                   parameter.changed = false;
-               var currentValue = "{" + xVal + "," + yVal + "," + zVal + "}";
-               parameter.currentValue = currentValue;
-               if(parameter.callback !== undefined)
-                    parameter.callback.call(selectedObject, currentValue);
-                if(schematicMode){
-                    self.exitSchematicMode();
-                    self.enterSchematicMode();
-               }
-                if(simulationMode)
-                   leaveSimulationMode();
-            });
-               $('#'+id + "y").on('input', function(){
-               var xVal = $('#' + id + "x").val();
-               var yVal = $(this).val();
-               var zVal = $('#' + id + "z").val();
-               parameter.changed = true;
-               if(xVal == "" || yVal == "" || zVal == "")
-                   parameter.changed = false;
-               var currentValue = "{" + xVal + "," + yVal + "," + zVal + "}";
-               parameter.currentValue = currentValue;
-               if(parameter.callback !== undefined)
-                   parameter.callback.call(selectedObject, currentValue);
-               if(schematicMode){
-                    self.exitSchematicMode();
-                    self.enterSchematicMode();
-               }
-                if(simulationMode)
-                   leaveSimulationMode();
-            });
-               $('#'+id + "z").on('input', function(){
-               var xVal = $('#' + id + "x").val();
-               var yVal = $('#' + id + "y").val();
-               var zVal = $(this).val();
-               parameter.changed = true;
-               if(xVal == "" || yVal == "" || zVal == "")
-                   parameter.changed = false;
-               var currentValue = "{" + xVal + "," + yVal + "," + zVal + "}";
-               parameter.currentValue = currentValue;
-               if(parameter.callback !== undefined)
-                   parameter.callback.call(selectedObject, parameter.currentValue);
-               if(schematicMode){
-                    self.exitSchematicMode();
-                    self.enterSchematicMode();
-               }
-                if(simulationMode)
-                   leaveSimulationMode();
-            });
-            
-        }
-        else{
-            $("#"+id).on('input', function(){
-               parameter.currentValue = $(this).val();
-               parameter.changed = true;
-               if($(this).val() == "")
-                   parameter.changed = false;
-               if(parameter.callback !== undefined)
-                   parameter.callback.call(selectedObject, parameter.currentValue);
-               
-               if(schematicMode){
-                    self.exitSchematicMode();
-                    self.enterSchematicMode();
-               }
-                if(simulationMode)
-                   leaveSimulationMode();
-            });
-        }
-        $("#detailsPanel").enhanceWithin();
-        
-        //alert($("#parameters").html());
-        //alert($("#"+id+"_ label").attr('class'));
-    }
     
     function deselectObject(){
         if(selectedObject)
@@ -3061,6 +2973,117 @@ function Playmola(){
             foregroundScene.remove(c);
         });
         foregroundConnectors.length = 0;
+    }
+    
+
+    function generateNewDetailsForm(parameter){
+        var id = "id"+parameter.name;
+        $("#parameters").append('<div id="' + id +'_" style="padding-bottom:5px">');
+        $("#"+id+"_").append('<label for="'+id+'">'+ parameter.name + '' +'</label>'); 
+        var value = (typeof parameter.currentValue !== 'undefined') ? 'value="' + parameter.currentValue + '"' : "";
+        if(parameter.fullTypeName === "Boolean"){
+            $("#"+id+"_").append('<span><input name="' + id + '" id="' + id + '" type="checkbox" data-role="none" data-mini="true"></span>');
+        }
+        else if(isVector(parameter)){
+            var xyz = parameter.currentValue.toString().replace("{","").replace("}","").split(",");
+            $("#"+id+"_").append('<span><div style="display:inline-block"><input name="' + id + "x" + '" id="' + id + "x" + '" placeholder="x"' + "value=" + xyz[0] + ' data-mini="true" data-role="none" style="width:25px"></div>' 
+                    + '<div style="display:inline-block"><input name="' + id + "y" + '" id="' + id + "y" + '" placeholder="y"' + "value=" + xyz[1] + ' data-mini="true" data-role="none" style="width:25px"></div>' 
+                    + '<div style="display:inline-block"><input name="' + id + "z" + '" id="' + id + "z" +'" placeholder="z"' + "value=" + xyz[2] + ' data-mini="true" data-role="none" style="width:25px"></div></span>');
+        } 
+        else if (parameter.fullTypeName === "Color"){
+            //var col =  parameter.currentValue.toString(16).substring(2);
+            $("#"+id+"_").append('<span><input name="' + id + '" id="' + id + '" type="color" id="html5colorpicker"  data-role="none" ' + value + '"></span>');
+
+        }
+        else{
+            $("#"+id+"_").append('<span><input name="' + id + '" id="' + id + '"' + value + ' data-mini="true" data-role="none"></span>');
+        }
+        $("#"+id+"_").append('<div class="clear"></div>');
+        //$("#"+id+"_").append('<a href="#popup' + parameter.name + '" data-rel="popup" class="ui-btn ui-corner-all ui-shadow ui-btn-inline" data-transition="pop">?</a><div data-role="popup" id="popup' + parameter.name + '"><p>' + parameter.description + '</p></div>');
+        if(parameter.fullTypeName === "Boolean"){
+            $("#"+id).change(function(){
+               parameter.currentValue = this.checked; 
+               parameter.changed = true;
+               if(parameter.callback !== undefined)
+                   parameter.callback.call(selectedObject, parameter.currentValue);
+               if(schematicMode){
+                    self.exitSchematicMode();
+                    self.enterSchematicMode();
+               }
+            });
+            
+        }
+        else if(isVector(parameter)){
+            $('#'+id + "x").on('input', function(){
+               var xVal = $(this).val();
+               var yVal = $('#' + id + "y").val();
+               var zVal = $('#' + id + "z").val();
+               parameter.changed = true;
+               if(xVal == "" || yVal == "" || zVal == "")
+                   parameter.changed = false;
+               var currentValue = "{" + xVal + "," + yVal + "," + zVal + "}";
+               parameter.currentValue = currentValue;
+               if(parameter.callback !== undefined)
+                    parameter.callback.call(selectedObject, currentValue);
+                if(schematicMode){
+                    self.exitSchematicMode();
+                    self.enterSchematicMode();
+               }
+            });
+               $('#'+id + "y").on('input', function(){
+               var xVal = $('#' + id + "x").val();
+               var yVal = $(this).val();
+               var zVal = $('#' + id + "z").val();
+               parameter.changed = true;
+               if(xVal == "" || yVal == "" || zVal == "")
+                   parameter.changed = false;
+               var currentValue = "{" + xVal + "," + yVal + "," + zVal + "}";
+               parameter.currentValue = currentValue;
+               if(parameter.callback !== undefined)
+                   parameter.callback.call(selectedObject, currentValue);
+               if(schematicMode){
+                    self.exitSchematicMode();
+                    self.enterSchematicMode();
+               }
+               
+            });
+               $('#'+id + "z").on('input', function(){
+               var xVal = $('#' + id + "x").val();
+               var yVal = $('#' + id + "y").val();
+               var zVal = $(this).val();
+               parameter.changed = true;
+               if(xVal == "" || yVal == "" || zVal == "")
+                   parameter.changed = false;
+               var currentValue = "{" + xVal + "," + yVal + "," + zVal + "}";
+               parameter.currentValue = currentValue;
+               if(parameter.callback !== undefined)
+                   parameter.callback.call(selectedObject, parameter.currentValue);
+               if(schematicMode){
+                    self.exitSchematicMode();
+                    self.enterSchematicMode();
+               }
+            });
+            
+        }
+        else{
+            $("#"+id).on('input', function(){
+               parameter.currentValue = $(this).val();
+               parameter.changed = true;
+               if($(this).val() == "")
+                   parameter.changed = false;
+               if(parameter.callback !== undefined)
+                   parameter.callback.call(selectedObject, parameter.currentValue);
+               
+               if(schematicMode){
+                    self.exitSchematicMode();
+                    self.enterSchematicMode();
+               }
+            });
+        }
+        $("#detailsPanel").enhanceWithin();
+        
+        //alert($("#parameters").html());
+        //alert($("#"+id+"_ label").attr('class'));
     }
     
     function isVector(parameter){
@@ -3342,6 +3365,7 @@ function Playmola(){
         down.multiplyScalar(1);
         axisHelper.position.copy(camera.position.clone().add(lookAt).add(left).add(down));
         
+ 
         requestAnimationFrame(render);
     }
     
@@ -3528,7 +3552,11 @@ function Playmola(){
             var timer = 0.0001 * Date.now();
             selectedObject.traverse(function(child){
                 if(child instanceof THREE.Mesh){
-                    child.material.emissive.setHSL( 0.54, 1, 0.35 * ( 0.75 + 0.25 * Math.cos( 35 * timer ) ) );
+                    if(child.oldMaterial !== undefined){
+                        child.material.emissive.setHSL( child.oldMaterial.color.getHSL().h, child.oldMaterial.color.getHSL().s, 0.35 * ( 0.65 + 0.35 * Math.cos( 35 * timer ) ) );
+                        
+                    }
+                    
                 }
             });
         }
