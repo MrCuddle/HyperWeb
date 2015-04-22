@@ -71,6 +71,10 @@ function Playmola(){
     var animationIsDone = false;
 
 
+    this.getCamera = function(){
+        return camera;
+    };
+
     function generateModelicaCode() { 
         var source = "model TestModel\n";
         objectCollection.forEach(function(obj){
@@ -534,6 +538,18 @@ function Playmola(){
         }
         
         function colorParametersDecorator(obj){
+            var color = {
+                name : "Color",
+                fullTypeName : "Color",
+                currentValue : "#00ff00",
+                toSimulate : false,
+                callback : function(val){
+                    if(true){
+                        this.currentColor = parseInt(val.replace(/^#/, '0x'));
+                        this.recolor();
+                    }
+                }
+            };
             var red = {
                 name : "Red",
                 fullTypeName : "Integer",
@@ -570,7 +586,7 @@ function Playmola(){
                     }
                 }
             }
-            obj.push(red,green,blue);
+            obj.push(color);
         };
         
         this.loadDymolaBox = function(){
@@ -1791,6 +1807,7 @@ function Playmola(){
         this.currentRed = 0;
         this.currentGreen = 255;
         this.currentBlue = 0;
+        this.currentColor = 0x00ff00;
 
         var moi = this;
         
@@ -1824,10 +1841,12 @@ function Playmola(){
         };
         
         this.recolor = function(){
-            var newColor = new THREE.Color(moi.currentRed/255, moi.currentGreen/255, moi.currentBlue/255);
+            //var newColor = new THREE.Color(moi.currentRed/255, moi.currentGreen/255, moi.currentBlue/255);
+            var newColor = this.currentColor;
             moi.traverse(function(child){
             if(child instanceof THREE.Mesh && child.parent !== moi.frameAConnector && child.parent !== moi.frameBConnector){
                 child.userData.initColor = newColor;
+                child.oldMaterial.color.setHex(newColor);
              }
         });
         };
@@ -1871,6 +1890,7 @@ function Playmola(){
         this.currentRed = 0;
         this.currentGreen = 255;
         this.currentBlue = 0;
+        this.currentColor = 0x00ff00;
         
         var moi = this;
         this.clone = function(){
@@ -1905,10 +1925,12 @@ function Playmola(){
         };
         
         this.recolor = function(){
-            var newColor = new THREE.Color(moi.currentRed/255, moi.currentGreen/255, moi.currentBlue/255);
+            //var newColor = new THREE.Color(moi.currentRed/255, moi.currentGreen/255, moi.currentBlue/255);
+            var newColor = this.currentColor;
             moi.traverse(function(child){
             if(child instanceof THREE.Mesh && child.parent !== moi.frameAConnector && child.parent !== moi.frameBConnector){
                 child.userData.initColor = newColor;
+                child.oldMaterial.color.setHex(newColor);
              }
         });
         };
@@ -2295,6 +2317,9 @@ function Playmola(){
             else if (e.keyCode == 77){ //m
                 audio.stopMusic();
             }
+            else if (e.keyCode == 67){ //c
+                $('#cameraPos').toggle();
+            }
         });
     }
     
@@ -2612,6 +2637,7 @@ function Playmola(){
                 return true;
             }
             deselectObject();
+            deselectConnection();
             return false;
         }
     }
@@ -2933,6 +2959,11 @@ function Playmola(){
             $("#"+id+"_").append('<span><div style="display:inline-block"><input name="' + id + "x" + '" id="' + id + "x" + '" placeholder="x"' + "value=" + xyz[0] + ' data-mini="true" data-role="none" style="width:25px"></div>' 
                     + '<div style="display:inline-block"><input name="' + id + "y" + '" id="' + id + "y" + '" placeholder="y"' + "value=" + xyz[1] + ' data-mini="true" data-role="none" style="width:25px"></div>' 
                     + '<div style="display:inline-block"><input name="' + id + "z" + '" id="' + id + "z" +'" placeholder="z"' + "value=" + xyz[2] + ' data-mini="true" data-role="none" style="width:25px"></div></span>');
+        } 
+        else if (parameter.fullTypeName === "Color"){
+            //var col =  parameter.currentValue.toString(16).substring(2);
+            $("#"+id+"_").append('<span><input name="' + id + '" id="' + id + '" type="color" id="html5colorpicker"  data-role="none" ' + value + '"></span>');
+
         }
         else{
             $("#"+id+"_").append('<span><input name="' + id + '" id="' + id + '"' + value + ' data-mini="true" data-role="none"></span>');
@@ -3304,6 +3335,7 @@ function Playmola(){
         down.multiplyScalar(1);
         axisHelper.position.copy(camera.position.clone().add(lookAt).add(left).add(down));
         
+ 
         requestAnimationFrame(render);
     }
     
@@ -3490,7 +3522,11 @@ function Playmola(){
             var timer = 0.0001 * Date.now();
             selectedObject.traverse(function(child){
                 if(child instanceof THREE.Mesh){
-                    child.material.emissive.setHSL( 0.54, 1, 0.35 * ( 0.75 + 0.25 * Math.cos( 35 * timer ) ) );
+                    if(child.oldMaterial !== undefined){
+                        child.material.emissive.setHSL( child.oldMaterial.color.getHSL().h, child.oldMaterial.color.getHSL().s, 0.35 * ( 0.65 + 0.35 * Math.cos( 35 * timer ) ) );
+                        
+                    }
+                    
                 }
             });
         }

@@ -52,4 +52,18 @@
            $('#parameters').empty();
        });
        
+       $('#camX').val(playmola.getCamera().position.x);
+       $('#camY').val(playmola.getCamera().position.y);
+       $('#camZ').val(playmola.getCamera().position.z);
+       
+       $('#camX').on('input',function(){
+           playmola.getCamera().position.set(parseFloat($('#camX').val()),parseFloat($('#camY').val()),parseFloat($('#camZ').val()));
+       });
+       $('#camY').on('input',function(){
+           playmola.getCamera().position.set(parseFloat($('#camX').val()),parseFloat($('#camY').val()),parseFloat($('#camZ').val()));
+       });
+       $('#camZ').on('input',function(){
+           playmola.getCamera().position.set(parseFloat($('#camX').val()),parseFloat($('#camY').val()),parseFloat($('#camZ').val()));
+       });
+       
    });

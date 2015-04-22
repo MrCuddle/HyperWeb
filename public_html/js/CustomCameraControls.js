@@ -42,6 +42,9 @@ CustomCameraControls = function ( camera, domElement, bounds, target ) {
     $(domElement).on('vmousemove', function(event){
         if(dragging){
             curPos = new THREE.Vector2(event.screenX, event.screenY);
+            $('#camX').val(playmola.getCamera().position.x);
+            $('#camY').val(playmola.getCamera().position.y);
+            $('#camZ').val(playmola.getCamera().position.z);
         }
     });
     
