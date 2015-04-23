@@ -497,53 +497,53 @@ function Playmola(){
         
         //this.selectCategory("joints");
         this.loadParts = function(){
-            
-            loader.load("Piston_Study.wrl", function(object){
-                var obj = loadModel(object, new THREE.Vector3(0.,-0.15149054405043,0.), new Array(new ConnectionPoint(new THREE.Vector3(0.,-0.14420647088485,0.))));
-                scope.add(obj, "Parts",true, 0, 4);
-            });
-            loader.load("Master_One_Cylinder.wrl", function(object){
-                var obj = loadModel(object, new THREE.Vector3(-4.5e-2,0.,0.), new Array(new ConnectionPoint(new THREE.Vector3(-4.5e-2,0.,0.))));
-                scope.add(obj, "Parts", true, 0, 4);
-            });
-            loader.load("Rod_Study.wrl", function(object){
-                var obj = loadModel(object, new THREE.Vector3(0.,-8.9431700693962e-2,2.4489282256523e-2), new Array(new ConnectionPoint(new THREE.Vector3(0.,-3.465692988818e-2,4.8978561933508e-2)), new ConnectionPoint(new THREE.Vector3(0.,-0.14420647088485,0.))));
-                scope.add(obj, "Parts", true, 0, 4);
-            });
-            loader.load("Cranck_Study.wrl", function(object){
-                var obj = loadModel(object, new THREE.Vector3(-2.7054598934035e-2,-9.0702960410631e-3,1.2818607418443e-2), new Array(new ConnectionPoint(new THREE.Vector3(0.,-3.465692988818e-2,4.8978561933508e-2)), new ConnectionPoint(new THREE.Vector3(-4.5e-2,0.,0.))));
-                scope.add(obj, "Parts", true, 0, 4);
-            });
+            scope.addCategory("Robot");
+//            loader.load("Piston_Study.wrl", function(object){
+//                var obj = loadModel(object, new THREE.Vector3(0.,-0.15149054405043,0.), new Array(new ConnectionPoint(new THREE.Vector3(0.,-0.14420647088485,0.))));
+//                scope.add(obj, "Parts",true, 0, 4);
+//            });
+//            loader.load("Master_One_Cylinder.wrl", function(object){
+//                var obj = loadModel(object, new THREE.Vector3(-4.5e-2,0.,0.), new Array(new ConnectionPoint(new THREE.Vector3(-4.5e-2,0.,0.))));
+//                scope.add(obj, "Parts", true, 0, 4);
+//            });
+//            loader.load("Rod_Study.wrl", function(object){
+//                var obj = loadModel(object, new THREE.Vector3(0.,-8.9431700693962e-2,2.4489282256523e-2), new Array(new ConnectionPoint(new THREE.Vector3(0.,-3.465692988818e-2,4.8978561933508e-2)), new ConnectionPoint(new THREE.Vector3(0.,-0.14420647088485,0.))));
+//                scope.add(obj, "Parts", true, 0, 4);
+//            });
+//            loader.load("Cranck_Study.wrl", function(object){
+//                var obj = loadModel(object, new THREE.Vector3(-2.7054598934035e-2,-9.0702960410631e-3,1.2818607418443e-2), new Array(new ConnectionPoint(new THREE.Vector3(0.,-3.465692988818e-2,4.8978561933508e-2)), new ConnectionPoint(new THREE.Vector3(-4.5e-2,0.,0.))));
+//                scope.add(obj, "Parts", true, 0, 4);
+//            });
 
             loader.load("models/robot/b0.wrl", function(object){
-                var obj = loadModel(object, new THREE.Vector3(0,0,0), new Array(new ConnectionPoint(new THREE.Vector3(0,0.351,0)),new ConnectionPoint(new THREE.Vector3(0,0,0))));
-                scope.add(obj, "Parts");
+                var obj = loadModel(object, new THREE.Vector3(0,0,0), new Array(new ConnectionPoint(new THREE.Vector3(0,0,0)),new ConnectionPoint(new THREE.Vector3(0,0.351,0))));
+                scope.add(obj, "Robot", true, 0, 1.5);
                 
             });
             loader.load("models/robot/b1.wrl", function(object){
-                var obj = loadModel(object, new THREE.Vector3(0,0,0), new Array(new ConnectionPoint(new THREE.Vector3(0,0.324,0.3)),new ConnectionPoint(new THREE.Vector3(0,0,0))));
-                scope.add(obj, "Parts");
+                var obj = loadModel(object, new THREE.Vector3(0,0,0), new Array(new ConnectionPoint(new THREE.Vector3(0,0,0)),new ConnectionPoint(new THREE.Vector3(0,0.324,0.3))));
+                scope.add(obj, "Robot", true, 0, 1.5);
             });
             loader.load("models/robot/b2.wrl", function(object){
-                var obj = loadModel(object, new THREE.Vector3(0.172,0.205,0), new Array(new ConnectionPoint(new THREE.Vector3(0,0.65,0)),new ConnectionPoint(new THREE.Vector3(0,0,0))));
-                scope.add(obj, "Parts");
+                var obj = loadModel(object, new THREE.Vector3(0.172,0.205,0), new Array(new ConnectionPoint(new THREE.Vector3(0,0,0)),new ConnectionPoint(new THREE.Vector3(0,0.65,0))));
+                scope.add(obj, "Robot", true, 0, 1.5);
             });
             loader.load("models/robot/b3.wrl", function(object){
-                var obj = loadModel(object, new THREE.Vector3(0.064,-0.034,0), new Array(new ConnectionPoint(new THREE.Vector3(0,0.414,-0.155)),new ConnectionPoint(new THREE.Vector3(0,0,0))));
-                scope.add(obj, "Parts");
+                var obj = loadModel(object, new THREE.Vector3(0.064,-0.034,0), new Array(new ConnectionPoint(new THREE.Vector3(0,0,0)),new ConnectionPoint(new THREE.Vector3(0,0.414,-0.155))));
+                scope.add(obj, "Robot", true, 0, 1.5);
             });
 
             loader.load("models/robot/b4.wrl", function(object){
-                var obj = loadModel(object, new THREE.Vector3(0,0,0), new Array(new ConnectionPoint(new THREE.Vector3(0,0.186,0)),new ConnectionPoint(new THREE.Vector3(0,0,0))));
-                scope.add(obj, "Parts");
+                var obj = loadModel(object, new THREE.Vector3(0,0,0), new Array(new ConnectionPoint(new THREE.Vector3(0,0,0)),new ConnectionPoint(new THREE.Vector3(0,0.186,0))));
+                scope.add(obj, "Robot", true, 0, 1.5);
             });
             loader.load("models/robot/b5.wrl", function(object){
-                var obj = loadModel(object, new THREE.Vector3(0,0,0), new Array(new ConnectionPoint(new THREE.Vector3(0,0.125,0)),new ConnectionPoint(new THREE.Vector3(0,0,0))));
-                scope.add(obj, "Parts");
+                var obj = loadModel(object, new THREE.Vector3(0,0,0), new Array(new ConnectionPoint(new THREE.Vector3(0,0,0)),new ConnectionPoint(new THREE.Vector3(0,0.125,0))));
+                scope.add(obj, "Robot", true, 0, 1.5);
             });
             loader.load("models/robot/b6.wrl", function(object){
                 var obj = loadModel(object, new THREE.Vector3(0.05,0.05,0.05), new Array(new ConnectionPoint(new THREE.Vector3(0,0,0))));
-                scope.add(obj, "Parts");
+                scope.add(obj, "Robot", true, 0, 1.5);
 
             });
         }
@@ -1412,6 +1412,8 @@ function Playmola(){
         scope.loadFixedRotation();
         scope.loadBushing();
         scope.addPackage("Playmola.UserComponents", "Custom Components");
+        
+        scope.loadParts();
     };
     Palette.prototype.constructor = THREE.Palette;
 
@@ -2550,6 +2552,7 @@ function Playmola(){
         //Extract the part of the Object3D containing the meshes and puts it in a 
         //new object positioned at the center of mass
         var obj = new DymolaComponent();
+        obj.typeName = "Playmola.Body";
         obj.add(object.children[1]);
         obj.children[0].position.sub(centerOfMass);
         obj.children.forEach(function(child) {
@@ -2563,22 +2566,18 @@ function Playmola(){
 
         //Corrects the position of the connection points and initializes them
         for(var i = 0; i < connectionPoints.length; i++){
-            var v = connectionPoints[i].position;
-            v.sub(centerOfMass);            
+     
             
             var connPoint = new Connector();
-            connPoint.add(new THREE.Mesh(new THREE.SphereGeometry(0.1,20,20),new THREE.MeshPhongMaterial({color:0xff0000})));
+            connPoint.add(new THREE.Mesh(new THREE.SphereGeometry(0.05,20,20),new THREE.MeshPhongMaterial({color:0xff0000})));
             
             connPoint.position.copy(connectionPoints[i].position.clone().sub(centerOfMass));
+            connPoint.actualPosition = connPoint.position.clone();
             connPoint.userData.isConnector = true;
-            connPoint.userData.name = "ADD_ME_LATER";
+            connPoint.userData.name = i == 0 ? "frame_a" : "frame_b";
             obj.add(connPoint);
             obj.connectors.push(connPoint);
-            
-            
-            
-            
-            //connectionPoints[i].position = v;
+
             connectionPoints[i].parentObject = obj; //Record the Object3D this ConnectionPoint is attached to for future reference!
         }
 
@@ -2663,7 +2662,7 @@ function Playmola(){
         //Change the selected object's material so it looked "selected"
         selectedObject.traverse(function(child){
             if(child instanceof THREE.Mesh){
-                if(child.userData.initColor === undefined)
+                //if(child.userData.initColor === undefined)
                 child.oldMaterial = child.material;
                 //child.material.color = new THREE.Color(0xB0E2FF);
                 child.material = new THREE.MeshPhongMaterial( { color: 0x000000, specular: 0x666666, emissive: 0xff0000, shininess: 10, shading: THREE.SmoothShading, opacity: 0.9, transparent: true } )
@@ -3306,7 +3305,7 @@ function Playmola(){
            c.visible = false; 
         });
         objectCollection.forEach(function(o){
-            if(o.typeName == "Playmola.SimpleBodyBox" || o.typeName == "Playmola.SimpleBodyCylinder" || o.typeName == "Playmola.SimpleWorld"){
+            if(o.typeName == "Playmola.SimpleBodyBox" || o.typeName == "Playmola.SimpleBodyCylinder" || o.typeName == "Playmola.SimpleWorld" || o.typeName == "Playmola.Body"){
                 o.visible = true;
             } else {
                 o.visible = false;
@@ -3407,9 +3406,9 @@ function Playmola(){
                 connectedTo.getParent().updateMatrixWorld(true);
 
                 //Move the object connected to frame B
-                var connAWorld = c.actualPosition.clone().multiplyScalar(1/c.getParent().scale.x * sceneScale); //FIX SCALE HERE!
+                var connAWorld = c.actualPosition.clone().multiplyScalar(1/c.getParent().scale.x * sceneScale * c.getParent().userData.sceneScale); //FIX SCALE HERE!
                 c.getParent().localToWorld(connAWorld);
-                var connBWorld = connectedTo.actualPosition.clone().multiplyScalar(1/connectedTo.getParent().scale.x * sceneScale);
+                var connBWorld = connectedTo.actualPosition.clone().multiplyScalar(1/connectedTo.getParent().scale.x * sceneScale * connectedTo.getParent().userData.sceneScale);
                 connectedTo.getParent().localToWorld(connBWorld);
                 connectedTo.getParent().position.sub(connBWorld.sub(connAWorld));
                 connectedTo.getParent().updateMatrixWorld(true);
