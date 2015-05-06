@@ -66,7 +66,7 @@ function Playmola(){
     var audio;
     
     var particleGroup = null;
-    
+   
     var playAnimation = false;
     var animationIsDone = false;
 
@@ -82,7 +82,8 @@ function Playmola(){
                 source += "inner "
             source += obj.typeName + " " + obj.name;
             var first = true;
-            if(obj.parameters.length > 0){
+            if(obj.parameters.length > 0)
+            {
                 obj.parameters.forEach(function(param){
                     if(param.toSimulate){
                         if(param.changed){
@@ -92,6 +93,13 @@ function Playmola(){
                             else {
                                 source +="(";
                                 first = false;
+                                if(obj.userData.shouldAnimatePosition){
+                                    var worldToR = new THREE.Vector3();
+                                    var magic = obj.frameAConnector.actualPosition.clone();
+                                    obj.localToWorld(magic);
+                                    worldToR.subVectors(magic, world.position).multiplyScalar(1/sceneScale);
+                                    source += "r_0(start={"+worldToR.x+","+worldToR.y+","+worldToR.z+"}),";
+                                }
                             }
                             if(param.convertToRadians != undefined && param.convertToRadians == true)
                                 source += param.name + "=" + THREE.Math.degToRad(parseFloat(param.currentValue));
@@ -1820,6 +1828,9 @@ function Playmola(){
         this.currentGreen = 255;
         this.currentBlue = 0;
         this.currentColor = 0x00ff00;
+        this.animatePosition = null;
+        this.currentFrame = 0;
+        this.userData.shouldAnimatePosition = true;
 
         var moi = this;
         
@@ -1876,6 +1887,34 @@ function Playmola(){
             this.frameBConnector.actualPosition = this.frameBConnector.position.clone();
         };
         
+        this.animateFrame = function(){
+            if(this.animatePosition !== null && this.currentFrame < this.animatePosition.length){
+                var newOffset = new THREE.Vector3();
+                newOffset.addVectors(world.position, this.animatePosition[this.currentFrame].clone().multiplyScalar(sceneScale));
+                //newOffset.multiplyScalar(0.3);
+                newOffset.sub(this.frameAConnector.actualPosition.clone().multiplyScalar(this.scale.x));
+                this.position.set(newOffset.x,newOffset.y,newOffset.z);
+            }
+            if(playAnimation)
+                this.currentFrame++;
+        }
+        
+        this.resetAnimation = function(){
+            if(this.animatePosition != null){
+                var newOffset = new THREE.Vector3();
+                newOffset.addVectors(world.position, this.animatePosition[0].clone().multiplyScalar(sceneScale));
+                //newOffset.multiplyScalar(0.3);
+                newOffset.sub(this.frameAConnector.actualPosition.clone().multiplyScalar(this.scale.x));
+                this.position.set(newOffset.x,newOffset.y,newOffset.z);
+            }
+            this.animatePosition = null;
+            this.currentFrame = 0;
+        };
+        
+        this.isAnimationDone = function(){
+            return (this.animatePosition !== null && this.animatePosition.length > 0 && this.currentFrame == this.animatePosition.length - 1);
+        }
+        
         this.resize();
     };
     
@@ -1903,6 +1942,8 @@ function Playmola(){
         this.currentGreen = 255;
         this.currentBlue = 0;
         this.currentColor = 0x00ff00;
+        this.animatePosition;
+        this.userData.shouldAnimatePosition = true;
         
         var moi = this;
         this.clone = function(){
@@ -2286,6 +2327,9 @@ function Playmola(){
             joints.forEach(function(j){
                 j.currentFrame = 0;
             });
+            objectCollection.forEach(function(obj){
+               obj.currentFrame = 0; 
+            });
             playAnimation = false;
         });
 
@@ -2395,6 +2439,24 @@ function Playmola(){
                    j.animatePhi = phis[0];
                }
            });
+           
+           objectCollection.forEach(function(obj){
+              var times = [];
+              for(var i = 0; i <= getSecondsToSimulate(); i+= 1/60){
+                  times.push(i);
+              }
+              
+              if(obj.userData.shouldAnimatePosition){
+                  var positionsX = dymolaInterface.interpolateTrajectory("testmodelresults.mat",new Array(obj.name + ".r_0[1]"),times);
+                  var positionsY = dymolaInterface.interpolateTrajectory("testmodelresults.mat",new Array(obj.name + ".r_0[2]"),times);
+                  var positionsZ = dymolaInterface.interpolateTrajectory("testmodelresults.mat",new Array(obj.name + ".r_0[3]"),times);
+                  var positions = [];
+                  for(var j = 0; j < positionsX[0].length; j++){
+                      positions.push(new THREE.Vector3(positionsX[0][j], positionsY[0][j], positionsZ[0][j]));
+                  }
+                  obj.animatePosition = positions;
+              }
+           });
         
         $("#button_play_simulation").css("visibility", "visible");
         $("#button_stop_simulation").css("visibility","visible");
@@ -2412,6 +2474,11 @@ function Playmola(){
         }
         joints.forEach(function(j){
             j.resetAnimation();
+        });
+        objectCollection.forEach(function(obj){
+           if(obj.userData.shouldAnimatePosition){
+               obj.resetAnimation();
+           } 
         });
         playAnimation = false;
         $("#button_play_simulation").css("visibility", "hidden");
@@ -3245,6 +3312,12 @@ function Playmola(){
             j.resetAnimation();
             j.enforceConstraint(); 
         });
+        
+        objectCollection.forEach(function(obj){
+           if(obj.userData.shouldAnimatePosition){
+               obj.resetAnimation();
+           } 
+        });
         constrainComponents();
         
         
@@ -3341,14 +3414,18 @@ function Playmola(){
                    jointsDoneMoving++;
             });
             
+            objectCollection.forEach(function(obj){
+               if(obj.userData.shouldAnimatePosition){
+                   obj.animateFrame();
+               } 
+            });
+            
             if(joints.length > 0 && jointsDoneMoving == joints.length){
                 audio.playAnimDone();
                 jointsDoneMoving = 0;
                 animationIsDone = true;
             }
-            
             constrainComponents();
-            
         }
         
         connections.forEach(function(c){
@@ -3356,7 +3433,7 @@ function Playmola(){
         });
         
         //Update the axis helper's position
-         var lookAt = new THREE.Vector3(0,0, -1).applyQuaternion(camera.quaternion);
+        var lookAt = new THREE.Vector3(0,0, -1).applyQuaternion(camera.quaternion);
         var left = new THREE.Vector3(-1,0, 0).applyQuaternion(camera.quaternion);
         var down = new THREE.Vector3(0,-1, 0).applyQuaternion(camera.quaternion);
         lookAt.multiplyScalar(3);
