@@ -18,6 +18,11 @@ function Playmola(){
     
     var radio;
     var big_red_button;
+    var desk;
+    var screwdriver;
+    var fancyRoom;
+    var simpleRoom;
+    var isFancy = false;
     
     var axisHelper;
     
@@ -422,6 +427,17 @@ function Playmola(){
                 }
             }
         };
+        
+        this.makeComponentUnkownCategory = function(className){
+            var keys = Object.keys(categories);
+            for(var i = 0; i < keys.length; i++){
+                for(var j = 0; j < categories[keys[i]].length;j++){
+                    if(categories[keys[i]][j].typeName == className){
+                        return cloneAndScaleComponent(categories[keys[i]][j]);
+                    }
+                }    
+            }
+        }
 
         
         this.selectCategory = function(category){
@@ -2106,70 +2122,78 @@ function Playmola(){
         raycaster = new THREE.Raycaster();
    
         
-//        var jsonloader = new THREE.JSONLoader();
-//        
-//        jsonloader.load( "./models/room_boring.json", function(geometry, mat) {
-//            var materials = new THREE.MeshFaceMaterial(mat);
-//            var room = new THREE.Mesh(geometry, materials );
-//            room.receiveShadow = true;
-//            room.castShadow = false;
-//            room.rotation.set(0,THREE.Math.degToRad(-90),0);
-//            scene.add(room);
-//        });
+        var jsonloader = new THREE.JSONLoader();
+        
+        jsonloader.load( "./models/room.json", function(geometry, mat) {
+            var materials = new THREE.MeshFaceMaterial(mat);
+            fancyRoom = new THREE.Mesh(geometry, materials );
+            fancyRoom.receiveShadow = true;
+            fancyRoom.castShadow = false;
+            fancyRoom.rotation.set(0,THREE.Math.degToRad(-90),0);
+            
+        });
 
         var geometry = new THREE.BoxGeometry(10,5,10);
         var mat = new THREE.MeshLambertMaterial({color:0xeeeeee, side:THREE.DoubleSide});
-        var room = new THREE.Mesh(geometry,mat);
-        scene.add(room);
-        //room.position.set(-5,-2.5,-5);
+        simpleRoom = new THREE.Mesh(geometry,mat);
         
-//        jsonloader.load("./models/desk.json", function(geometry,mat){
-//            var desk = new THREE.Mesh(geometry, mat[0]);
-//            desk.position.set(0,-1.05,0);
-//            desk.castShadow = true;
-//            desk.receiveShadow = true;
-//            scene.add(desk);
-//        }, "models/");
+        jsonloader.load("./models/desk.json", function(geometry,mat){
+            desk = new THREE.Mesh(geometry, mat[0]);
+            desk.position.set(0,-1.05,0);
+            desk.castShadow = true;
+            desk.receiveShadow = true;
+            
+        }, "models/");
         
-//        jsonloader.load("./models/radio.json", function(geometry,mat){
-//            radio = new THREE.Mesh(geometry, mat[0]);
-//            
-//            radio.position.set(-1.15,-0.95,-0.55);
-//            radio.rotation.set(0,THREE.Math.degToRad(-70),0);
-//            
-//            radio.scale.set(0.3,0.3,0.3);
-//            radio.castShadow = true;
-//            radio.receiveShadow = true;
-//            radio.material.shading = THREE.SmoothShading;
-//            scene.add(radio);
-//        }, "models/");
+        jsonloader.load("./models/radio.json", function(geometry,mat){
+            radio = new THREE.Mesh(geometry, mat[0]);
+            
+            radio.position.set(-1.15,-0.95,-0.55);
+            radio.rotation.set(0,THREE.Math.degToRad(-70),0);
+            
+            radio.scale.set(0.3,0.3,0.3);
+            radio.castShadow = true;
+            radio.receiveShadow = true;
+            radio.material.shading = THREE.SmoothShading;
+            
+        }, "models/");
         
-//        jsonloader.load("./models/big_red_button.json", function(geometry,mat){
-//            big_red_button = new THREE.Mesh(geometry, new THREE.MeshFaceMaterial(mat));
-//            
-//            big_red_button.position.set(1.25,-0.85,-0.55);
-//            big_red_button.rotation.set(0,THREE.Math.degToRad(-20),0);
-//            
-//            big_red_button.scale.set(0.15,0.15,0.15);
-//            big_red_button.castShadow = true;
-//            big_red_button.receiveShadow = true;
-//            big_red_button.material.shading = THREE.SmoothShading;
-//            scene.add(big_red_button);
-//        }, "models/");
+        jsonloader.load("./models/big_red_button.json", function(geometry,mat){
+            big_red_button = new THREE.Mesh(geometry, new THREE.MeshFaceMaterial(mat));
+            
+            big_red_button.position.set(1.25,-0.85,-0.55);
+            big_red_button.rotation.set(0,THREE.Math.degToRad(-20),0);
+            
+            big_red_button.scale.set(0.15,0.15,0.15);
+            big_red_button.castShadow = true;
+            big_red_button.receiveShadow = true;
+            big_red_button.material.shading = THREE.SmoothShading;
+            
+        }, "models/");
         
-//        jsonloader.load("./models/screwdriver.json", function(geometry,mat){
-//            var screwdriver = new THREE.Mesh(geometry, new THREE.MeshFaceMaterial(mat));
-//            
-//            screwdriver.position.set(-1,-0.95,0.55);
-//            screwdriver.rotation.set(0,THREE.Math.degToRad(-70),0);
-//            
-//            screwdriver.scale.set(0.05,0.05,0.05);
-//            screwdriver.castShadow = true;
-//            screwdriver.receiveShadow = true;
-//            screwdriver.material.shading = THREE.SmoothShading;
-//            scene.add(screwdriver);
-//        }, "models/");
+        jsonloader.load("./models/screwdriver.json", function(geometry,mat){
+            screwdriver = new THREE.Mesh(geometry, new THREE.MeshFaceMaterial(mat));
+            
+            screwdriver.position.set(-1,-0.95,0.55);
+            screwdriver.rotation.set(0,THREE.Math.degToRad(-70),0);
+            
+            screwdriver.scale.set(0.05,0.05,0.05);
+            screwdriver.castShadow = true;
+            screwdriver.receiveShadow = true;
+            screwdriver.material.shading = THREE.SmoothShading;
+            
+        }, "models/");
         
+        
+        if(isFancy){
+            scene.add(fancyRoom);
+            scene.add(desk);
+            scene.add(radio);
+            scene.add(big_red_button);
+            scene.add(screwdriver);
+        } else {
+            scene.add(simpleRoom);
+        }
 
 //        var pointlight = new THREE.PointLight(0xffffff, 2, 10);
 //        pointlight.position.set(0,0,0);
@@ -2352,6 +2376,31 @@ function Playmola(){
            if(simulationMode)
                leaveSimulationMode();
         });
+        
+        
+        
+        
+        loadModelFromFile("C:\\Users\\abn4\\Documents\\Dymola","LoadingTest.mo","LoadingTest");
+
+    }
+    
+    function toggleFancy(){
+        if(!isFancy){
+            scene.remove(simpleRoom);
+            scene.add(fancyRoom);
+            scene.add(desk);
+            scene.add(radio);
+            scene.add(big_red_button);
+            scene.add(screwdriver);
+        } else {
+            scene.add(simpleRoom);
+            scene.remove(fancyRoom);
+            scene.remove(desk);
+            scene.remove(radio);
+            scene.remove(big_red_button);
+            scene.remove(screwdriver);
+        }
+        isFancy = !isFancy;
     }
     
     function initializeWorld() {
@@ -2384,6 +2433,10 @@ function Playmola(){
                     world.visible = true;
                     worldHidden = false;
                 }
+                e.preventDefault();
+            }
+            else if (e.keyCode == 71 && e.altKey){
+                toggleFancy();
                 e.preventDefault();
             }
             else if (e.keyCode == 77){ //m
@@ -2822,26 +2875,54 @@ function Playmola(){
     }
     
     function tryClickInteractiveObject(mousePos){
-//        raycaster.setFromCamera(mousePos, camera);
-//
-//        var intersect = raycaster.intersectObject(radio,true);
-//        if(intersect.length > 0){
-//            audio.playClick();
-//            if(audio.isMusicPlaying)
-//                audio.stopMusic();
-//            else{
-//                if(simulationMode)
-//                    audio.playSimulate();
-//                else
-//                    audio.playTheme();
-//            }
-//        }
-//        intersect = raycaster.intersectObject(big_red_button,true);
-//        if(intersect.length > 0){
-//            audio.playClick();
-//            trySimulation();
-//        }
+        if(!isFancy) return;
+        
+        raycaster.setFromCamera(mousePos, camera);
 
+        var intersect = raycaster.intersectObject(radio,true);
+        if(intersect.length > 0){
+            audio.playClick();
+            if(audio.isMusicPlaying)
+                audio.stopMusic();
+            else{
+                if(simulationMode)
+                    audio.playSimulate();
+                else
+                    audio.playTheme();
+            }
+        }
+        intersect = raycaster.intersectObject(big_red_button,true);
+        if(intersect.length > 0){
+            audio.playClick();
+            trySimulation();
+        }
+
+    }
+    
+    
+    function loadModelFromFile(path, package, model){
+//        dymolaInterface.openModelFile(path,package);
+//        
+//        
+//        var res = dymolaInterface.Dymola_AST_ClassesInPackageWithProperties(model);
+//        
+//        var components = dymolaInterface.ModelManagement_Structure_AST_ComponentsInClassAttributes(model);
+//        
+//        for(var i = 0; i < components.length; i++){
+//            var c = palette.makeComponentUnkownCategory(components[i].fullTypeName);
+//            c.position.set(0,0,0);
+//            
+//            //Set all the parameters....
+//            
+//            
+////            var params = [];
+////            params.push(components[i].fullTypeName);
+////            params.push(componentsInClass[j]);
+////            if(dymolaInterface.callDymolaFunction("Dymola_AST_ComponentVariability", params) === "parameter"){
+////            
+////            for(var j = 0; j < c.parameters.length;)
+//        }
+        
     }
     
     function dragConnection(event){
