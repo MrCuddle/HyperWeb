@@ -1,0 +1,234 @@
+{
+    "materials": [{
+        "uuid": "4277D67B-9D2A-44EF-ABF3-8A6D01059BC1",
+        "depthTest": true,
+        "name": "Box",
+        "ambient": 10724259,
+        "depthWrite": true,
+        "emissive": 0,
+        "color": 10724259,
+        "type": "MeshLambertMaterial",
+        "map": "79489769-8AC1-4314-9644-0E5752795E14",
+        "blending": "NormalBlending",
+        "vertexColors": false
+    },{
+        "name": "Ceiling.001",
+        "type": "MeshPhongMaterial",
+        "emissive": 0,
+        "depthTest": true,
+        "specular": 4737096,
+        "blending": "NormalBlending",
+        "shininess": 50,
+        "uuid": "0F228FF6-4E4C-4EFA-B80E-D740A8BEC7AF",
+        "ambient": 8224125,
+        "color": 8224125,
+        "depthWrite": true,
+        "vertexColors": false
+    },{
+        "name": "Door",
+        "type": "MeshPhongMaterial",
+        "emissive": 0,
+        "depthTest": true,
+        "specular": 921102,
+        "blending": "NormalBlending",
+        "shininess": 50,
+        "uuid": "68B2B296-7ABA-4FE1-8594-BB17FAAE6318",
+        "ambient": 10724259,
+        "color": 10724259,
+        "map": "5AB043F0-6E55-4CD2-9199-8658676DC3A2",
+        "depthWrite": true,
+        "vertexColors": false
+    },{
+        "name": "Floor",
+        "type": "MeshPhongMaterial",
+        "emissive": 0,
+        "depthTest": true,
+        "specular": 1644825,
+        "blending": "NormalBlending",
+        "shininess": 50,
+        "uuid": "B9835D2A-D2DC-49D9-B471-E53331F547C7",
+        "ambient": 5723991,
+        "color": 5723991,
+        "depthWrite": true,
+        "vertexColors": false
+    },{
+        "uuid": "5E3F8AFA-CE69-4174-9D89-4A4BA9D8DF1A",
+        "depthTest": true,
+        "name": "Walls",
+        "ambient": 16777215,
+        "depthWrite": true,
+        "emissive": 0,
+        "color": 16777215,
+        "type": "MeshLambertMaterial",
+        "map": "1D5EB43F-4907-4355-8550-B213EE296DFD",
+        "blending": "NormalBlending",
+        "vertexColors": false
+    },{
+        "uuid": "62E2985C-182A-4C03-913A-80FAAC7028B2",
+        "depthTest": true,
+        "name": "Window",
+        "ambient": 10724259,
+        "depthWrite": true,
+        "emissive": 0,
+        "color": 10724259,
+        "type": "MeshLambertMaterial",
+        "map": "B080308A-5A09-4AF1-A8C5-570FEFF155BA",
+        "blending": "NormalBlending",
+        "vertexColors": false
+    }],
+    "object": {
+        "uuid": "5A1FD09C-A4A5-45D4-B8BB-7C47457D7816",
+        "matrix": [1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1],
+        "type": "Scene",
+        "children": [{
+            "type": "Mesh",
+            "name": "Room",
+            "uuid": "DFD6912D-2AEF-4AD9-97FD-3934E8349DFB",
+            "position": [0.0,0.0,0.0],
+            "rotation": [-1.5707964897155762,0.0,0.0],
+            "scale": [1.0,0.9999999403953552,0.9999999403953552],
+            "visible": true,
+            "castShadow": false,
+            "receiveShadow": false,
+            "geometry": "09F838B4-C9D6-4A9E-BC8C-8D1FF8543B1E"
+        }]
+    },
+    "images": [{
+        "uuid": "EBAE2481-4E0B-4CBE-AB7B-A293C1410920",
+        "name": "PlasterBare0129_1_S.jpg",
+        "url": "PlasterBare0129_1_S.jpg"
+    },{
+        "uuid": "63F45D28-4167-4730-BC63-900F6B418979",
+        "name": "MetalPlatesRusted0052_1_S.jpg",
+        "url": "MetalPlatesRusted0052_1_S.jpg"
+    },{
+        "uuid": "DA969125-EF5C-4A3D-9DE1-72C32863E032",
+        "name": "ConcreteFloors0064_1_S.jpg",
+        "url": "ConcreteFloors0064_1_S.jpg"
+    },{
+        "uuid": "4A26B8EF-27AF-4452-8189-CBBB86BE0B57",
+        "name": "door_texture.png",
+        "url": "door_texture.png"
+    },{
+        "uuid": "0D64ADE5-58CA-49EB-B179-584F62888353",
+        "name": "CardboardPlain0008_1_S.jpg",
+        "url": "CardboardPlain0008_1_S.jpg"
+    },{
+        "uuid": "03C77DD2-5D5E-4C31-A8B3-C50DB5529798",
+        "name": "WindowsIndustrial0245_1_S.jpg",
+        "url": "WindowsIndustrial0245_1_S.jpg"
+    }],
+    "textures": [{
+        "uuid": "1D5EB43F-4907-4355-8550-B213EE296DFD",
+        "mapping": "UVMapping",
+        "name": "Tex",
+        "type": "Geometry",
+        "magFilter": "LinearFilter",
+        "wrap": ["RepeatWrapping","RepeatWrapping"],
+        "repeat": [4,4],
+        "image": "EBAE2481-4E0B-4CBE-AB7B-A293C1410920",
+        "anisotropy": 1.0,
+        "minFilter": "LinearMipMapLinearFilter"
+    },{
+        "uuid": "8B2CDF52-A781-4314-9AFA-B91B252097CD",
+        "mapping": "UVMapping",
+        "name": "Texture",
+        "type": "Geometry",
+        "magFilter": "LinearFilter",
+        "wrap": ["RepeatWrapping","RepeatWrapping"],
+        "repeat": [3,3],
+        "image": "63F45D28-4167-4730-BC63-900F6B418979",
+        "anisotropy": 1.0,
+        "minFilter": "LinearMipMapLinearFilter"
+    },{
+        "uuid": "88F70A28-631F-46F6-9739-BFE44B033B88",
+        "mapping": "UVMapping",
+        "name": "Texture.001",
+        "type": "Geometry",
+        "magFilter": "LinearFilter",
+        "wrap": ["RepeatWrapping","RepeatWrapping"],
+        "repeat": [4,4],
+        "image": "DA969125-EF5C-4A3D-9DE1-72C32863E032",
+        "anisotropy": 1.0,
+        "minFilter": "LinearMipMapLinearFilter"
+    },{
+        "uuid": "5AB043F0-6E55-4CD2-9199-8658676DC3A2",
+        "mapping": "UVMapping",
+        "name": "Texture.002",
+        "type": "Geometry",
+        "magFilter": "LinearFilter",
+        "wrap": ["RepeatWrapping","RepeatWrapping"],
+        "repeat": [1,1],
+        "image": "4A26B8EF-27AF-4452-8189-CBBB86BE0B57",
+        "anisotropy": 1.0,
+        "minFilter": "LinearMipMapLinearFilter"
+    },{
+        "uuid": "79489769-8AC1-4314-9644-0E5752795E14",
+        "mapping": "UVMapping",
+        "name": "Texture.003",
+        "type": "Geometry",
+        "magFilter": "LinearFilter",
+        "wrap": ["RepeatWrapping","RepeatWrapping"],
+        "repeat": [1,1],
+        "image": "0D64ADE5-58CA-49EB-B179-584F62888353",
+        "anisotropy": 1.0,
+        "minFilter": "LinearMipMapLinearFilter"
+    },{
+        "uuid": "B080308A-5A09-4AF1-A8C5-570FEFF155BA",
+        "mapping": "UVMapping",
+        "name": "Texture.004",
+        "type": "Geometry",
+        "magFilter": "LinearFilter",
+        "wrap": ["RepeatWrapping","RepeatWrapping"],
+        "repeat": [1,1],
+        "image": "03C77DD2-5D5E-4C31-A8B3-C50DB5529798",
+        "anisotropy": 1.0,
+        "minFilter": "LinearMipMapLinearFilter"
+    }],
+    "metadata": {
+        "sourceFile": "room_boring.blend",
+        "generator": "io_three",
+        "type": "Object",
+        "version": 4.3
+    },
+    "geometries": [{
+        "uuid": "09F838B4-C9D6-4A9E-BC8C-8D1FF8543B1E",
+        "materials": [{
+            "transparent": false,
+            "DbgColor": 15597568,
+            "colorEmissive": [0.0,0.0,0.0],
+            "opacity": 0.0,
+            "colorSpecular": [0.28378379344940186,0.28378379344940186,0.28378379344940186],
+            "visible": true,
+            "colorAmbient": [0.4921416355988626,0.4921416355988626,0.4921416355988626],
+            "blending": "NormalBlending",
+            "DbgIndex": 1,
+            "depthTest": true,
+            "specularCoef": 50,
+            "DbgName": "Ceiling.001",
+            "shading": "phong",
+            "colorDiffuse": [0.4921416355988626,0.4921416355988626,0.4921416355988626],
+            "wireframe": false,
+            "depthWrite": true
+        },{
+            "transparent": false,
+            "DbgColor": 60928,
+            "colorEmissive": [0.0,0.0,0.0],
+            "opacity": 0.0,
+            "colorSpecular": [0.10000000149011612,0.10000000149011612,0.10000000149011612],
+            "visible": true,
+            "colorAmbient": [0.34338038479358524,0.34338038479358524,0.34338038479358524],
+            "blending": "NormalBlending",
+            "DbgIndex": 2,
+            "depthTest": true,
+            "specularCoef": 50,
+            "DbgName": "Floor",
+            "shading": "phong",
+            "colorDiffuse": [0.34338038479358524,0.34338038479358524,0.34338038479358524],
+            "wireframe": false,
+            "depthWrite": true
+        }],
+        "type": "Geometry",
+        "url": "geometry.CubeGeometry.9.json"
+    }]
+}
